@@ -73,7 +73,8 @@ export function Footer() {
           {/* Brand Section */}
           <div className="lg:col-span-2">
             <div className="flex items-center space-x-3 mb-4">
-              <img src="/dna-logo.jpg" alt="DNA Publications" className="h-12 w-auto" />
+              <img src="/dnap-cropped.png" alt="DNA Publications" className="h-14 w-auto" />
+              <span className="text-3xl font-bold text-primary">DNA Publications</span>
             </div>
             <p className="text-muted-foreground mb-6 max-w-md">
               The home of ambitious writers. Bringing exceptional stories to readers worldwide.

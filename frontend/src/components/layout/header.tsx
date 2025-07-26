@@ -49,7 +49,7 @@ export function Header() {
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           <Link to="/" className="header-item flex items-center space-x-3">
-            <img src="/dna-logo.jpg" alt="DNA Publications" className="h-14 w-auto" />
+            <img src="/dnap-cropped.png" alt="DNA Publications" className="h-14 w-auto" />
           </Link>
 
           {/* Desktop Navigation */}
