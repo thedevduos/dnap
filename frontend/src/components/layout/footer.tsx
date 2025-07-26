@@ -43,7 +43,6 @@ export function Footer() {
       { name: "About Us", path: "/about" },
       { name: "Our Team", path: "/team" },
       { name: "Careers", href: "#" },
-      { name: "Press", href: "#" },
     ],
     services: [
       { name: "Publishing", path: "/pricing" },
@@ -52,10 +51,11 @@ export function Footer() {
       { name: "Author Services", href: "#" },
     ],
     support: [
-      { name: "Help Center", href: "#" },
       { name: "Contact Us", path: "/contact" },
-      { name: "Privacy Policy", href: "#" },
-      { name: "Terms of Service", href: "#" },
+      { name: "Privacy Policy", path: "/privacy-policy" },
+      { name: "Refund Policy", path: "/refund-policy" },
+      { name: "Shipping Policy", path: "/shipping-policy" },
+      { name: "Terms & Conditions", path: "/terms-conditions" },
     ],
   }
 
@@ -143,15 +143,9 @@ export function Footer() {
             <ul className="space-y-2">
               {footerLinks.support.map((link) => (
                 <li key={link.name}>
-                  {link.path ? (
-                    <Link to={link.path} className="text-muted-foreground hover:text-primary transition-colors">
-                      {link.name}
-                    </Link>
-                  ) : (
-                    <a href={link.href} className="text-muted-foreground hover:text-primary transition-colors">
-                      {link.name}
-                    </a>
-                  )}
+                  <Link to={link.path} className="text-muted-foreground hover:text-primary transition-colors">
+                    {link.name}
+                  </Link>
                 </li>
               ))}
             </ul>

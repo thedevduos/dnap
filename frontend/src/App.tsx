@@ -16,6 +16,10 @@ import PricingPage from "@/pages/pricing"
 import BooksPage from "@/pages/books"
 import TeamPage from "@/pages/team"
 import ContactPage from "@/pages/contact"
+import PrivacyPolicy from "@/pages/privacy-policy"
+import RefundPolicy from "@/pages/refund-policy"
+import ShippingPolicy from "@/pages/shipping-policy"
+import TermsConditions from "@/pages/terms-conditions"
 
 // Admin Pages
 import AdminDashboard from "@/pages/admin/dashboard"
@@ -76,6 +80,10 @@ export default function App() {
                         <Route path="/books" element={<BooksPage />} />
                         <Route path="/team" element={<TeamPage />} />
                         <Route path="/contact" element={<ContactPage />} />
+                        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                        <Route path="/refund-policy" element={<RefundPolicy />} />
+                        <Route path="/shipping-policy" element={<ShippingPolicy />} />
+                        <Route path="/terms-conditions" element={<TermsConditions />} />
                       </Routes>
                     </main>
                     <Footer />
