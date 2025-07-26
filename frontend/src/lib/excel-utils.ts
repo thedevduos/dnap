@@ -11,6 +11,7 @@ export async function exportToExcel(data: any[], filename: string) {
     'Status': item.status || '',
     'Applied Date': item.createdAt?.toDate ? item.createdAt.toDate().toLocaleDateString() : '',
     'Cover Letter': item.coverLetter || '',
+    'Resume Link': item.resume?.url || '',
     // Add custom questions if they exist
     ...(item.answers && Object.keys(item.answers).length > 0 ? 
       Object.fromEntries(

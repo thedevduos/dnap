@@ -11,9 +11,10 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { useCareers } from "@/hooks/use-careers"
-import { Search, MapPin,  DollarSign, Briefcase } from "lucide-react"
+import { Search, MapPin, Briefcase } from "lucide-react"
 import { collection, addDoc, serverTimestamp } from "firebase/firestore"
-import { db } from "@/lib/firebase"
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
+import { db, storage } from "@/lib/firebase"
 
 interface JobApplication {
   jobId: string
@@ -92,12 +93,58 @@ export default function CareersPage() {
   const handleSubmitApplication = async () => {
     if (!selectedJob) return
 
+    // Validate required fields
+    if (!application.fullName || !application.email || !application.phone || !application.experience || !application.coverLetter) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Validate custom questions if they exist
+    if (selectedJob.questions && selectedJob.questions.length > 0) {
+      const requiredQuestions = selectedJob.questions.filter((q: any) => q.required)
+      const missingAnswers = requiredQuestions.filter((q: any) => !application.answers[q.id] || application.answers[q.id].trim() === "")
+      
+      if (missingAnswers.length > 0) {
+        toast({
+          title: "Validation Error",
+          description: "Please answer all required questions.",
+          variant: "destructive",
+        })
+        return
+      }
+    }
+
     setIsSubmitting(true)
     try {
+      let resumeUrl = ""
+      let resumeData = null
+
+      // Upload resume file if provided
+      if (application.resume) {
+        const fileRef = ref(storage, `resumes/${Date.now()}_${application.resume.name}`)
+        await uploadBytes(fileRef, application.resume)
+        resumeUrl = await getDownloadURL(fileRef)
+        resumeData = {
+          name: application.resume.name,
+          url: resumeUrl,
+          size: application.resume.size
+        }
+      }
+
       const applicationData = {
-        ...application,
+        jobId: application.jobId,
+        fullName: application.fullName,
+        email: application.email,
+        phone: application.phone,
+        experience: application.experience,
+        coverLetter: application.coverLetter,
+        resume: resumeData,
+        answers: application.answers,
         jobTitle: selectedJob.title,
-        jobId: selectedJob.id,
         status: "pending",
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
@@ -123,6 +170,7 @@ export default function CareersPage() {
       })
       setCurrentStep(1)
     } catch (error) {
+      console.error("Application submission error:", error)
       toast({
         title: "Error",
         description: "Failed to submit application. Please try again.",
@@ -265,7 +313,7 @@ export default function CareersPage() {
               <div className="space-y-2 mb-4">
                 {job.salary && (
                   <div className="flex items-center gap-2 text-sm">
-                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-muted-foreground text-lg font-semibold">₹</span>
                     <span>{job.salary}</span>
                   </div>
                 )}

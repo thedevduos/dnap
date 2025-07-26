@@ -287,7 +287,7 @@ export function JobModal({ open, onOpenChange, job }: JobModalProps) {
                     id="salary"
                     value={jobData.salary}
                     onChange={(e) => handleInputChange("salary", e.target.value)}
-                    placeholder="e.g., $80,000 - $120,000"
+                    placeholder="e.g., ₹8,00,000 - ₹12,00,000"
                   />
                 </div>
                 <div>

@@ -14,8 +14,21 @@ import { useJobApplications } from "@/hooks/use-job-applications"
 import { JobModal } from "@/components/admin/job-modal"
 import { ApplicationModal } from "@/components/admin/application-modal"
 import { ResumeModal } from "@/components/admin/resume-modal"
-import { Plus, Eye, Download, FileText, Users, Briefcase } from "lucide-react"
+import { Plus, Eye, Download, FileText, Users, Briefcase, Trash2 } from "lucide-react"
 import { exportToExcel } from "@/lib/excel-utils"
+import { deleteDoc, doc } from "firebase/firestore"
+import { ref, deleteObject } from "firebase/storage"
+import { db, storage } from "@/lib/firebase"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 export default function AdminCareersPage() {
   const { jobs, loading: jobsLoading } = useCareersAdmin()
@@ -27,6 +40,8 @@ export default function AdminCareersPage() {
   const [selectedJob, setSelectedJob] = useState<any>(null)
   const [selectedApplication, setSelectedApplication] = useState<any>(null)
   const [selectedResume, setSelectedResume] = useState<any>(null)
+  const [jobToDelete, setJobToDelete] = useState<any>(null)
+  const [applicationToDelete, setApplicationToDelete] = useState<any>(null)
 
   const handleAddJob = () => {
     setSelectedJob(null)
@@ -79,6 +94,125 @@ export default function AdminCareersPage() {
         description: "Failed to export applications. Please try again.",
         variant: "destructive",
       })
+    }
+  }
+
+  const handleDeleteJob = async (jobId: string) => {
+    const job = jobs.find(j => j.id === jobId)
+    setJobToDelete(job)
+  }
+
+  const confirmDeleteJob = async () => {
+    if (!jobToDelete) return
+
+    try {
+      const jobApplications = applications.filter(app => app.jobId === jobToDelete.id)
+      
+      // Export applications if any exist
+      if (jobApplications.length > 0) {
+        try {
+          await exportToExcel(jobApplications, `applications-backup-${jobToDelete?.title || jobToDelete.id}`)
+          toast({
+            title: "Applications Exported",
+            description: `Exported ${jobApplications.length} applications before deletion.`,
+          })
+        } catch (exportError) {
+          console.warn("Failed to export applications:", exportError)
+          toast({
+            title: "Export Warning",
+            description: "Failed to export applications, but proceeding with deletion.",
+            variant: "destructive",
+          })
+        }
+      }
+
+      // Delete all applications for this job and their resume files
+      for (const application of jobApplications) {
+        try {
+          // Delete the application document
+          await deleteDoc(doc(db, "jobApplications", application.id))
+          
+          // Delete resume file if it exists
+          if (application?.resume?.url) {
+            try {
+              const url = new URL(application.resume.url)
+              const pathSegments = url.pathname.split('/')
+              const filePath = pathSegments.slice(pathSegments.indexOf('o') + 1).join('/')
+              const decodedPath = decodeURIComponent(filePath)
+              
+              const fileRef = ref(storage, decodedPath)
+              await deleteObject(fileRef)
+            } catch (storageError) {
+              console.warn("Failed to delete resume file from storage:", storageError)
+            }
+          }
+        } catch (appError) {
+          console.warn("Failed to delete application:", appError)
+        }
+      }
+
+      // Finally delete the job
+      await deleteDoc(doc(db, "jobs", jobToDelete.id))
+      
+      toast({
+        title: "Job Deleted",
+        description: `Job and ${jobApplications.length} applications have been deleted successfully.`,
+      })
+    } catch (error) {
+      console.error("Delete job error:", error)
+      toast({
+        title: "Delete Failed",
+        description: "Failed to delete job. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setJobToDelete(null)
+    }
+  }
+
+  const handleDeleteApplication = async (applicationId: string) => {
+    const application = applications.find(app => app.id === applicationId)
+    setApplicationToDelete(application)
+  }
+
+  const confirmDeleteApplication = async () => {
+    if (!applicationToDelete) return
+
+    try {
+      // Delete the application document first
+      await deleteDoc(doc(db, "jobApplications", applicationToDelete.id))
+      
+      // If application has a resume, delete it from storage
+      if (applicationToDelete?.resume?.url) {
+        try {
+          // Extract the file path from the URL
+          const url = new URL(applicationToDelete.resume.url)
+          const pathSegments = url.pathname.split('/')
+          const filePath = pathSegments.slice(pathSegments.indexOf('o') + 1).join('/')
+          const decodedPath = decodeURIComponent(filePath)
+          
+          // Delete the file from storage
+          const fileRef = ref(storage, decodedPath)
+          await deleteObject(fileRef)
+        } catch (storageError) {
+          console.warn("Failed to delete resume file from storage:", storageError)
+          // Don't fail the entire operation if storage deletion fails
+        }
+      }
+      
+      toast({
+        title: "Application Deleted",
+        description: "Application and resume have been deleted successfully.",
+      })
+    } catch (error) {
+      console.error("Delete application error:", error)
+      toast({
+        title: "Delete Failed",
+        description: "Failed to delete application. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setApplicationToDelete(null)
     }
   }
 
@@ -219,6 +353,14 @@ export default function AdminCareersPage() {
                                   <Download className="h-4 w-4 mr-1" />
                                   Export
                                 </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleDeleteJob(job.id)}
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
                               </div>
                             </TableCell>
                           </TableRow>
@@ -304,6 +446,14 @@ export default function AdminCareersPage() {
                                   Resume
                                 </Button>
                               )}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDeleteApplication(application.id)}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -337,6 +487,64 @@ export default function AdminCareersPage() {
           onOpenChange={setIsResumeModalOpen}
           resume={selectedResume}
         />
+
+        {/* Delete Job Alert Dialog */}
+        <AlertDialog open={!!jobToDelete} onOpenChange={() => setJobToDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Job</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete "{jobToDelete?.title}"? This action will:
+                <br />
+                • Export all applications as backup
+                <br />
+                • Delete all applications and their resume files
+                <br />
+                • Delete the job posting
+                <br />
+                <br />
+                This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={confirmDeleteJob}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Delete Job
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Delete Application Alert Dialog */}
+        <AlertDialog open={!!applicationToDelete} onOpenChange={() => setApplicationToDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Application</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete the application from "{applicationToDelete?.fullName}" for "{applicationToDelete?.jobTitle}"? This action will:
+                <br />
+                • Delete the application data
+                <br />
+                • Delete the resume file
+                <br />
+                <br />
+                This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={confirmDeleteApplication}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Delete Application
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AdminLayout>
   )
