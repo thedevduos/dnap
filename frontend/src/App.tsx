@@ -20,6 +20,7 @@ import PrivacyPolicy from "@/pages/privacy-policy"
 import RefundPolicy from "@/pages/refund-policy"
 import ShippingPolicy from "@/pages/shipping-policy"
 import TermsConditions from "@/pages/terms-conditions"
+import CareersPage from "@/pages/careers"
 
 // Admin Pages
 import AdminDashboard from "@/pages/admin/dashboard"
@@ -30,6 +31,7 @@ import AdminMessages from "@/pages/admin/messages"
 import AdminEmails from "@/pages/admin/emails"
 import AdminUsers from "@/pages/admin/users"
 import AdminTeam from "@/pages/admin/team"
+import AdminCareers from "@/pages/admin/careers"
 import AdminLogin from "@/pages/admin/login"
 import AdminProfile from "@/pages/admin/profile"
 
@@ -56,6 +58,7 @@ export default function App() {
                       <Route path="/books" element={<AdminBooks />} />
                       <Route path="/users" element={<AdminUsers />} />
                       <Route path="/team" element={<AdminTeam />} />
+                      <Route path="/careers" element={<AdminCareers />} />
                       <Route path="/testimonials" element={<AdminTestimonials />} />
                       <Route path="/updates" element={<AdminUpdates />} />
                       <Route path="/messages" element={<AdminMessages />} />
@@ -78,12 +81,13 @@ export default function App() {
                         <Route path="/about" element={<AboutPage />} />
                         <Route path="/pricing" element={<PricingPage />} />
                         <Route path="/books" element={<BooksPage />} />
-                        <Route path="/team" element={<TeamPage />} />
-                        <Route path="/contact" element={<ContactPage />} />
-                        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-                        <Route path="/refund-policy" element={<RefundPolicy />} />
-                        <Route path="/shipping-policy" element={<ShippingPolicy />} />
-                        <Route path="/terms-conditions" element={<TermsConditions />} />
+                                              <Route path="/team" element={<TeamPage />} />
+                      <Route path="/careers" element={<CareersPage />} />
+                      <Route path="/contact" element={<ContactPage />} />
+                      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                      <Route path="/refund-policy" element={<RefundPolicy />} />
+                      <Route path="/shipping-policy" element={<ShippingPolicy />} />
+                      <Route path="/terms-conditions" element={<TermsConditions />} />
                       </Routes>
                     </main>
                     <Footer />

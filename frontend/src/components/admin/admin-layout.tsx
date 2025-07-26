@@ -15,6 +15,7 @@ import {
   Calendar,
   LogOut,
   User,
+  Briefcase,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/auth-context"
@@ -52,6 +53,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     { name: "Books", href: "/admin/books", icon: BookOpen },
     { name: "Users", href: "/admin/users", icon: Users },
     { name: "Team", href: "/admin/team", icon: Users },
+    { name: "Careers", href: "/admin/careers", icon: Briefcase },
     { name: "Messages", href: "/admin/messages", icon: MessageSquare },
     { name: "Emails", href: "/admin/emails", icon: Mail },
     { name: "Testimonials", href: "/admin/testimonials", icon: Star },
@@ -83,9 +85,6 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         <div className="fixed inset-y-0 left-0 flex w-64 flex-col bg-white">
           <div className="flex h-16 items-center justify-between px-4 border-b">
             <Link to="/admin/dashboard" className="flex items-center space-x-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-orange-600 to-amber-600">
-                <span className="text-white font-bold text-sm">C</span>
-              </div>
               <div>
                 <span className="text-lg font-bold">Admin Dashboard</span>
                 <p className="text-xs text-gray-500">DNA Publications Platform</p>
@@ -121,9 +120,6 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         <div className="flex flex-col flex-grow bg-white border-r border-gray-200">
           <div className="flex h-16 items-center px-4 border-b">
             <Link to="/admin/dashboard" className="flex items-center space-x-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-orange-600 to-amber-600">
-                <span className="text-white font-bold text-sm">C</span>
-              </div>
               <div>
                 <span className="text-lg font-bold">Admin Dashboard</span>
                 <p className="text-xs text-gray-500">DNA Publications Platform</p>

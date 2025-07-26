@@ -122,11 +122,37 @@ export default function ProfilePage() {
             <CardContent className="space-y-6">
               {/* Profile Picture */}
               <div className="flex items-center space-x-4">
-                <div className="w-20 h-20 bg-gradient-to-br from-orange-500 to-amber-600 rounded-full flex items-center justify-center">
-                  <User className="w-10 h-10 text-white" />
+                <div className="relative">
+                  {user?.photoURL ? (
+                    <img
+                      src={`https://images.weserv.nl/?url=${encodeURIComponent(user.photoURL)}&w=80&h=80&fit=cover&mask=circle`}
+                      alt="Profile"
+                      className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-lg"
+                      loading="lazy"
+                      onError={(e) => {
+                        // Hide the image and show fallback
+                        e.currentTarget.style.display = 'none'
+                        const fallback = e.currentTarget.nextElementSibling
+                        if (fallback) {
+                          fallback.classList.remove('hidden')
+                        }
+                      }}
+                    />
+                  ) : null}
+                  <div className={`w-20 h-20 bg-gradient-to-br from-orange-500 to-amber-600 rounded-full flex items-center justify-center border-4 border-white shadow-lg ${user?.photoURL ? 'hidden' : ''}`}>
+                    {user?.displayName ? (
+                      <span className="text-white font-bold text-2xl">
+                        {user.displayName.charAt(0).toUpperCase()}
+                      </span>
+                    ) : (
+                      <User className="w-10 h-10 text-white" />
+                    )}
+                  </div>
                 </div>
                 <div>
-                  <h3 className="text-xl font-semibold text-gray-900">Administrator</h3>
+                  <h3 className="text-xl font-semibold text-gray-900">
+                    {user?.displayName || user?.email?.split('@')[0] || 'Administrator'}
+                  </h3>
                   <Badge variant="outline" className="border-orange-200 text-orange-600">
                     Admin Role
                   </Badge>

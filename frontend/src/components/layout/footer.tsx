@@ -42,13 +42,13 @@ export function Footer() {
     company: [
       { name: "About Us", path: "/about" },
       { name: "Our Team", path: "/team" },
-      { name: "Careers", href: "#" },
+      { name: "Careers", path: "/careers" },
     ],
     services: [
       { name: "Publishing", path: "/pricing" },
       { name: "E-books", path: "/books" },
       { name: "Subscriptions", path: "/pricing" },
-      { name: "Author Services", href: "#" },
+      { name: "Author Services", path: "/pricing" },
     ],
     support: [
       { name: "Contact Us", path: "/contact" },
@@ -105,15 +105,9 @@ export function Footer() {
             <ul className="space-y-2">
               {footerLinks.company.map((link) => (
                 <li key={link.name}>
-                  {link.path ? (
-                    <Link to={link.path} className="text-muted-foreground hover:text-primary transition-colors">
-                      {link.name}
-                    </Link>
-                  ) : (
-                    <a href={link.href} className="text-muted-foreground hover:text-primary transition-colors">
-                      {link.name}
-                    </a>
-                  )}
+                  <Link to={link.path} className="text-muted-foreground hover:text-primary transition-colors">
+                    {link.name}
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -124,15 +118,9 @@ export function Footer() {
             <ul className="space-y-2">
               {footerLinks.services.map((link) => (
                 <li key={link.name}>
-                  {link.path ? (
-                    <Link to={link.path} className="text-muted-foreground hover:text-primary transition-colors">
-                      {link.name}
-                    </Link>
-                  ) : (
-                    <a href={link.href} className="text-muted-foreground hover:text-primary transition-colors">
-                      {link.name}
-                    </a>
-                  )}
+                  <Link to={link.path} className="text-muted-foreground hover:text-primary transition-colors">
+                    {link.name}
+                  </Link>
                 </li>
               ))}
             </ul>
