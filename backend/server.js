@@ -7,8 +7,12 @@ require('dotenv').config({ path: './.env' });
 const http = require('http');
 const axios = require('axios');
 
-// Track last activity timestamp
+// Enhanced activity tracking
 let lastActivity = Date.now();
+const INACTIVITY_THRESHOLD = 5 * 60 * 1000; // 5 minutes in milliseconds
+const KEEP_ALIVE_INTERVAL = 10 * 60 * 1000; // 10 minutes in milliseconds
+const KEEP_ALIVE_URL = process.env.KEEP_ALIVE_URL || 'https://dnap-backend.onrender.com';
+let keepAliveInterval = null;
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -16,15 +20,66 @@ const PORT = process.env.PORT || 5000;
 // Import email service
 const emailService = require('./services/emailService');
 
+// Function to update last activity
+const updateActivity = () => {
+  lastActivity = Date.now();
+};
+
+// Enhanced keep-alive function with better logging and error handling
+const sendKeepAlive = async () => {
+  try {
+    const timeSinceLastActivity = Date.now() - lastActivity;
+    const secondsSinceLastActivity = Math.round(timeSinceLastActivity / 1000);
+    
+    console.log(`[Keep-Alive] Checking activity: ${secondsSinceLastActivity}s since last activity`);
+    
+    if (timeSinceLastActivity > INACTIVITY_THRESHOLD) {
+      console.log('[Keep-Alive] Sending keep-alive request to prevent spin-down');
+      
+      const url = `${KEEP_ALIVE_URL}/health`;
+      const response = await axios.get(url, {
+        timeout: 10000, // 10 second timeout
+        headers: {
+          'User-Agent': 'Keep-Alive-Bot',
+          'X-Keep-Alive': 'true'
+        }
+      });
+      
+      if (response.status === 200) {
+        console.log(`[Keep-Alive] Successfully pinged /health at ${new Date().toISOString()}`);
+      } else {
+        console.warn(`[Keep-Alive] Request failed with status: ${response.status}`);
+      }
+    } else {
+      console.log('[Keep-Alive] Recent activity detected, skipping keep-alive request');
+    }
+  } catch (error) {
+    if (error.code === 'ECONNABORTED') {
+      console.error('[Keep-Alive] Request timed out');
+    } else {
+      console.error('[Keep-Alive] Request failed:', error.message);
+    }
+  }
+};
+
+// Start keep-alive monitoring if URL is set and includes onrender.com
+if (KEEP_ALIVE_URL && KEEP_ALIVE_URL.includes('onrender.com')) {
+  keepAliveInterval = setInterval(sendKeepAlive, KEEP_ALIVE_INTERVAL);
+  console.log(`[Keep-Alive] Monitoring started (checking every ${KEEP_ALIVE_INTERVAL / 60000} minutes)`);
+}
+
 // Middleware
 app.use(helmet());
 app.use(morgan('combined'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Middleware to update last activity on every request
+// Enhanced activity tracking middleware
 app.use((req, res, next) => {
-  lastActivity = Date.now();
+  // Don't count keep-alive requests as activity
+  if (req.get('X-Keep-Alive') !== 'true') {
+    updateActivity();
+  }
   next();
 });
 
@@ -36,13 +91,31 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-// Health check endpoint
+// Enhanced health check endpoint with activity info
 app.get('/health', (req, res) => {
+  const isKeepAlive = req.get('X-Keep-Alive') === 'true';
+  const timeSinceLastActivity = Date.now() - lastActivity;
+  
   res.status(200).json({
     status: 'OK',
     message: 'DNA Publications Backend is running',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV
+    environment: process.env.NODE_ENV,
+    lastActivity: new Date(lastActivity).toISOString(),
+    timeSinceLastActivity: Math.round(timeSinceLastActivity / 1000),
+    isKeepAliveRequest: isKeepAlive
+  });
+});
+
+// Activity status endpoint
+app.get('/api/activity-status', (req, res) => {
+  const timeSinceLastActivity = Date.now() - lastActivity;
+  res.json({
+    lastActivity: new Date(lastActivity).toISOString(),
+    timeSinceLastActivity: Math.round(timeSinceLastActivity / 1000),
+    thresholdSeconds: INACTIVITY_THRESHOLD / 1000,
+    isInactive: timeSinceLastActivity > INACTIVITY_THRESHOLD,
+    keepAliveEnabled: !!(KEEP_ALIVE_URL && KEEP_ALIVE_URL.includes('onrender.com'))
   });
 });
 
@@ -146,25 +219,9 @@ const server = app.listen(PORT, () => {
   console.log(`🚀 DNA Publications Backend running on port ${PORT}`);
   console.log(`📧 Email service ready`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
-  console.log(`🔗 Health check: https://dnap-backend.onrender.com/health`);
+  console.log(`🔗 Health check: ${KEEP_ALIVE_URL}/health`);
+  console.log(`⏰ Keep-alive monitoring: ${(KEEP_ALIVE_URL && KEEP_ALIVE_URL.includes('onrender.com')) ? 'ENABLED' : 'DISABLED'}`);
 });
-
-// Keep-alive logic for Render.com
-const KEEP_ALIVE_INTERVAL = 10 * 60 * 1000; // 10 minutes
-setInterval(async () => {
-  const now = Date.now();
-  const secondsSinceLastActivity = Math.floor((now - lastActivity) / 1000);
-  if (now - lastActivity >= KEEP_ALIVE_INTERVAL) {
-    try {
-      const url = `https://dnap-backend.onrender.com/health`;
-      console.log(`[Keep-Alive] No activity for ${secondsSinceLastActivity} seconds. Calling keep-alive URL: ${url}`);
-      await axios.get(url);
-      console.log(`[Keep-Alive] Successfully pinged /health at ${new Date().toISOString()}`);
-    } catch (err) {
-      console.error('[Keep-Alive] Failed to ping /health:', err.message);
-    }
-  }
-}, KEEP_ALIVE_INTERVAL);
 
 // Ignore shutdown signals (SIGTERM, SIGINT, etc.)
 const ignoreSignal = (signal) => {
@@ -174,4 +231,4 @@ process.on('SIGTERM', () => ignoreSignal('SIGTERM'));
 process.on('SIGINT', () => ignoreSignal('SIGINT'));
 process.on('SIGQUIT', () => ignoreSignal('SIGQUIT'));
 
-module.exports = app; 
+module.exports = app;
