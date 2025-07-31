@@ -190,6 +190,8 @@ export default function CheckoutPage() {
 
     try {
       // Create order in database
+      const selectedShippingMethod = shippingMethods.find(m => m.id === formData.shippingMethod)
+      
       const orderData = {
         userId: user?.uid || null,
         items: items.map(item => ({
@@ -217,6 +219,11 @@ export default function CheckoutPage() {
         total: finalTotal,
         paymentMethod: formData.paymentMethod,
         shippingMethod: formData.shippingMethod,
+        shippingMethodDetails: selectedShippingMethod ? {
+          name: selectedShippingMethod.name,
+          price: selectedShippingMethod.price,
+          deliveryTime: selectedShippingMethod.deliveryTime
+        } : null,
         appliedCoupon: appliedCoupon ? {
           code: appliedCoupon.code,
           discountAmount: discount
