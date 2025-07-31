@@ -20,7 +20,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Package, Search, Filter, MoreHorizontal, Eye, Edit, RefreshCw } from "lucide-react"
+import { Package, Search, Filter, MoreHorizontal, Eye, Edit, RefreshCw, Truck } from "lucide-react"
 import { useOrdersAdmin } from "@/hooks/use-orders-admin"
 import { updateOrderStatus } from "@/lib/firebase-utils"
 import { useToast } from "@/hooks/use-toast"
