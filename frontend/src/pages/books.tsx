@@ -4,9 +4,10 @@ import { useEffect, useRef, useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Star, Heart, ShoppingCart, Eye, Search, BookOpen } from "lucide-react"
+import { Star, Heart, ShoppingCart, Search, BookOpen } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { useBooks } from "@/hooks/use-books"
+import { Link } from "react-router-dom"
 import anime from "animejs"
 
 export default function BooksPage() {
@@ -140,16 +141,12 @@ export default function BooksPage() {
                       hoveredBook === index ? "opacity-100" : "opacity-0"
                     }`}
                   >
-                    <div className="flex space-x-2">
-                      <Button size="sm" variant="secondary">
-                        <Eye className="h-4 w-4 mr-1" />
-                        Preview
-                      </Button>
-                      <Button size="sm">
+                    <Button size="sm" asChild>
+                      <Link to={`/book/${book.id}`}>
                         <ShoppingCart className="h-4 w-4 mr-1" />
-                        Buy
-                      </Button>
-                    </div>
+                        Buy Now
+                      </Link>
+                    </Button>
                   </div>
                 </div>
 
@@ -161,9 +158,7 @@ export default function BooksPage() {
                   </div>
 
                   <h3 className="text-xl font-bold mb-2 group-hover:text-orange-600 transition-colors">
-                    <Link to={`/book/${book.id}`} className="hover:text-orange-600">
-                      {book.title}
-                    </Link>
+                    {book.title}
                   </h3>
 
                   <p className="text-muted-foreground mb-2">by {book.author}</p>
