@@ -7,12 +7,16 @@ import { Badge } from "@/components/ui/badge"
 import { Star, Heart, ShoppingCart, Eye, BookOpen } from "lucide-react"
 import { useFeaturedBooks } from "@/hooks/use-featured-books"
 import { Link } from "react-router-dom"
+import { useCart } from "@/contexts/cart-context"
+import { useUser } from "@/contexts/user-context"
 import anime from "animejs"
 
 export function FeaturedBooks() {
   const sectionRef = useRef<HTMLElement>(null)
   const [hoveredBook, setHoveredBook] = useState<number | null>(null)
   const { books: featuredBooks, loading } = useFeaturedBooks()
+  const { addToCart, isInCart } = useCart()
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useUser()
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -57,6 +61,25 @@ export function FeaturedBooks() {
         return "bg-indigo-500"
       default:
         return "bg-primary"
+    }
+  }
+
+  const handleAddToCart = (book: any) => {
+    addToCart({
+      id: book.id,
+      title: book.title,
+      author: book.author,
+      price: book.price,
+      imageUrl: book.imageUrl,
+      category: book.category
+    })
+  }
+
+  const handleWishlistToggle = async (book: any) => {
+    if (isInWishlist(book.id)) {
+      await removeFromWishlist(book.id)
+    } else {
+      await addToWishlist(book.id)
     }
   }
 
@@ -106,8 +129,9 @@ export function FeaturedBooks() {
                     size="sm"
                     variant="secondary"
                     className="opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                    onClick={() => handleWishlistToggle(book)}
                   >
-                    <Heart className="h-4 w-4" />
+                    <Heart className={`h-4 w-4 ${isInWishlist(book.id) ? 'fill-red-500 text-red-500' : ''}`} />
                   </Button>
                 </div>
 
@@ -122,9 +146,9 @@ export function FeaturedBooks() {
                       <Eye className="h-4 w-4 mr-1" />
                       Preview
                     </Button>
-                    <Button size="sm">
+                    <Button size="sm" onClick={() => handleAddToCart(book)}>
                       <ShoppingCart className="h-4 w-4 mr-1" />
-                      Buy
+                      {isInCart(book.id) ? "In Cart" : "Buy"}
                     </Button>
                   </div>
                 </div>
@@ -155,10 +179,10 @@ export function FeaturedBooks() {
                 <div className="flex space-x-2">
                   <Button className="flex-1 group">
                     <ShoppingCart className="h-4 w-4 mr-2 group-hover:animate-bounce" />
-                    Add to Cart
+                    {isInCart(book.id) ? "In Cart" : "Add to Cart"}
                   </Button>
-                  <Button variant="outline" size="icon">
-                    <Heart className="h-4 w-4" />
+                  <Button variant="outline" size="icon" onClick={() => handleWishlistToggle(book)}>
+                    <Heart className={`h-4 w-4 ${isInWishlist(book.id) ? 'fill-red-500 text-red-500' : ''}`} />
                   </Button>
                 </div>
               </CardContent>
@@ -169,7 +193,7 @@ export function FeaturedBooks() {
 
         <div className="text-center mt-12">
           <Button size="lg" variant="outline" className="group bg-transparent" asChild>
-            <Link to="/books">
+            <Link to="/shop">
               View All Books
               <Eye className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
             </Link>

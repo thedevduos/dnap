@@ -1,15 +1,37 @@
 "use client"
 
 import React, { createContext, useContext, useEffect, useState } from "react"
-import { signInWithEmailAndPassword, signOut, onAuthStateChanged, User, signInWithPopup, GoogleAuthProvider } from "firebase/auth"
+import { 
+  signInWithEmailAndPassword, 
+  signOut, 
+  onAuthStateChanged, 
+  User, 
+  signInWithPopup, 
+  GoogleAuthProvider,
+  createUserWithEmailAndPassword,
+  updateProfile
+} from "firebase/auth"
+import { doc, setDoc, serverTimestamp } from "firebase/firestore"
 import { auth } from "@/lib/firebase"
+import { db } from "@/lib/firebase"
+import { subscribeToNewsletter } from "@/lib/firebase-utils"
 
 interface AuthContextType {
   user: User | null
   login: (email: string, password: string) => Promise<void>
+  register: (userData: RegisterData) => Promise<void>
   loginWithGoogle: () => Promise<void>
   logout: () => Promise<void>
   loading: boolean
+}
+
+interface RegisterData {
+  email: string
+  password: string
+  firstName: string
+  lastName: string
+  phone: string
+  subscribeNewsletter: boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -48,18 +70,60 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await signInWithEmailAndPassword(auth, email, password)
   }
 
+  const register = async (userData: RegisterData) => {
+    try {
+      // Create user account
+      const userCredential = await createUserWithEmailAndPassword(auth, userData.email, userData.password)
+      const user = userCredential.user
+
+      // Update user profile
+      await updateProfile(user, {
+        displayName: `${userData.firstName} ${userData.lastName}`
+      })
+
+      // Create user profile document
+      await setDoc(doc(db, "userProfiles", user.uid), {
+        id: user.uid,
+        email: userData.email,
+        displayName: `${userData.firstName} ${userData.lastName}`,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        phone: userData.phone,
+        role: 'customer', // Set default role as customer for regular registrations
+        addresses: [],
+        preferences: {
+          newsletter: userData.subscribeNewsletter,
+          notifications: true,
+          language: 'en'
+        },
+        orderHistory: [],
+        wishlist: [],
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      })
+
+      // Subscribe to newsletter if requested
+      if (userData.subscribeNewsletter) {
+        try {
+          await subscribeToNewsletter(userData.email)
+        } catch (error) {
+          console.warn("Failed to subscribe to newsletter:", error)
+        }
+      }
+
+    } catch (error) {
+      console.error('Registration error:', error)
+      throw error
+    }
+  }
+
   const loginWithGoogle = async () => {
     const provider = new GoogleAuthProvider()
     try {
       const result = await signInWithPopup(auth, provider)
-      console.log('Google login result:', {
-        user: result.user ? {
-          email: result.user.email,
-          photoURL: result.user.photoURL,
-          displayName: result.user.displayName,
-          uid: result.user.uid
-        } : null
-      })
+      console.log('Google login result:', result)
+      // Let the user context handle profile creation/loading
+      // This avoids race conditions and ensures consistent logic
     } catch (error) {
       console.error('Google login error:', error)
       throw error
@@ -73,6 +137,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value = {
     user,
     login,
+    register,
     loginWithGoogle,
     logout,
     loading,
