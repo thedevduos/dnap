@@ -160,7 +160,11 @@ export default function BooksPage() {
                     </Badge>
                   </div>
 
-                  <h3 className="text-xl font-bold mb-2 group-hover:text-orange-600 transition-colors">{book.title}</h3>
+                  <h3 className="text-xl font-bold mb-2 group-hover:text-orange-600 transition-colors">
+                    <Link to={`/book/${book.id}`} className="hover:text-orange-600">
+                      {book.title}
+                    </Link>
+                  </h3>
 
                   <p className="text-muted-foreground mb-2">by {book.author}</p>
 
