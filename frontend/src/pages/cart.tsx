@@ -7,18 +7,16 @@ import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { Trash2, Plus, Minus, ShoppingBag, ArrowRight } from "lucide-react"
 import { useCart } from "@/contexts/cart-context"
+import { useUser } from "@/contexts/user-context"
 import { Link } from "react-router-dom"
 import { useToast } from "@/hooks/use-toast"
 
 export default function CartPage() {
   const { items, updateQuantity, removeFromCart, getTotalPrice, getTotalItems } = useCart()
+  const { isAdmin } = useUser()
   const [couponCode, setCouponCode] = useState("")
   const [discount, setDiscount] = useState(0)
   const { toast } = useToast()
-
-  const shipping = getTotalPrice() > 500 ? 0 : 50
-  const tax = Math.round(getTotalPrice() * 0.18) // 18% GST
-  const finalTotal = getTotalPrice() + shipping + tax - discount
 
   const handleApplyCoupon = () => {
     // Simple coupon logic - in real app, this would be validated against backend
@@ -74,6 +72,27 @@ export default function CartPage() {
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-8">Shopping Cart ({getTotalItems()} items)</h1>
+
+        {/* Admin restriction notice */}
+        {isAdmin && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-red-800">
+                  Admin Access Restricted
+                </h3>
+                <div className="mt-2 text-sm text-red-700">
+                  <p>Admin users are not allowed to make purchases. Please use a customer account to complete your order.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Cart Items */}
@@ -178,12 +197,12 @@ export default function CartPage() {
                 
                 <div className="flex justify-between">
                   <span>Shipping</span>
-                  <span>{shipping === 0 ? 'Free' : `₹${shipping}`}</span>
+                  <span className="text-muted-foreground">Calculated on checkout</span>
                 </div>
                 
                 <div className="flex justify-between">
                   <span>Tax (GST 18%)</span>
-                  <span>₹{tax}</span>
+                  <span className="text-muted-foreground">Calculated on checkout</span>
                 </div>
                 
                 {discount > 0 && (
@@ -196,13 +215,17 @@ export default function CartPage() {
                 <Separator />
                 
                 <div className="flex justify-between text-lg font-semibold">
-                  <span>Total</span>
-                  <span>₹{finalTotal}</span>
+                  <span>Subtotal</span>
+                  <span>₹{getTotalPrice() - discount}</span>
                 </div>
+                
+                <p className="text-xs text-muted-foreground text-center">
+                  Final total including shipping and taxes will be calculated on checkout
+                </p>
 
-                <Button asChild size="lg" className="w-full">
-                  <Link to="/checkout">
-                    Proceed to Checkout
+                <Button asChild size="lg" className="w-full" disabled={isAdmin}>
+                  <Link to={isAdmin ? "#" : "/checkout"}>
+                    {isAdmin ? "Admin Cannot Purchase" : "Proceed to Checkout"}
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Link>
                 </Button>
@@ -211,11 +234,6 @@ export default function CartPage() {
                   <Link to="/shop">Continue Shopping</Link>
                 </Button>
 
-                {getTotalPrice() < 500 && (
-                  <p className="text-sm text-muted-foreground text-center">
-                    Add ₹{500 - getTotalPrice()} more for free shipping!
-                  </p>
-                )}
               </CardContent>
             </Card>
           </div>

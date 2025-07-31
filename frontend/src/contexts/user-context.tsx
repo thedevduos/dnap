@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react"
 import { User } from "firebase/auth"
-import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore"
+import { doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, serverTimestamp } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { useAuth } from "./auth-context"
 
@@ -13,6 +13,7 @@ interface UserProfile {
   firstName?: string
   lastName?: string
   phone?: string
+  role?: string
   addresses: Address[]
   preferences: {
     newsletter: boolean
@@ -44,6 +45,7 @@ interface Address {
 interface UserContextType {
   userProfile: UserProfile | null
   loading: boolean
+  isAdmin: boolean
   updateProfile: (updates: Partial<UserProfile>) => Promise<void>
   addAddress: (address: Omit<Address, 'id'>) => Promise<void>
   updateAddress: (addressId: string, updates: Partial<Address>) => Promise<void>
@@ -80,21 +82,32 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
   const loadUserProfile = async (authUser: User) => {
     try {
-      const userDoc = await getDoc(doc(db, "userProfiles", authUser.uid))
+      console.log('Loading user profile for:', authUser.email, authUser.uid)
       
-      if (userDoc.exists()) {
-        const data = userDoc.data()
-        setUserProfile({
-          ...data,
-          createdAt: data.createdAt?.toDate() || new Date(),
-          updatedAt: data.updatedAt?.toDate() || new Date(),
-        } as UserProfile)
-      } else {
-        // Create new user profile
-        const newProfile: UserProfile = {
+      // First check if user exists in users collection (admin users)
+      // Check by both uid and email to ensure we find admin users
+      const usersQueryByUid = query(collection(db, "users"), where("uid", "==", authUser.uid))
+      const usersQueryByEmail = query(collection(db, "users"), where("email", "==", authUser.email))
+      
+      const [usersSnapshotByUid, usersSnapshotByEmail] = await Promise.all([
+        getDocs(usersQueryByUid),
+        getDocs(usersQueryByEmail)
+      ])
+      
+      const usersSnapshot = usersSnapshotByUid.empty ? usersSnapshotByEmail : usersSnapshotByUid
+      
+      if (!usersSnapshot.empty) {
+        const adminUser = usersSnapshot.docs[0].data()
+        console.log('Found admin user in users collection:', adminUser)
+        // Create user profile from admin user data
+        const adminProfile: UserProfile = {
           id: authUser.uid,
-          email: authUser.email || '',
-          displayName: authUser.displayName || '',
+          email: adminUser.email || authUser.email || '',
+          displayName: adminUser.name || authUser.displayName || '',
+          firstName: adminUser.name?.split(' ')[0] || '',
+          lastName: adminUser.name?.split(' ').slice(1).join(' ') || '',
+          phone: adminUser.mobile || '',
+          role: adminUser.role || 'admin',
           addresses: [],
           preferences: {
             newsletter: true,
@@ -103,17 +116,100 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           },
           orderHistory: [],
           wishlist: [],
-          createdAt: new Date(),
-          updatedAt: new Date()
+          createdAt: adminUser.createdAt?.toDate() || new Date(),
+          updatedAt: adminUser.updatedAt?.toDate() || new Date(),
         }
+        setUserProfile(adminProfile)
+      } else {
+        // Check if user exists in userProfiles collection (regular customers)
+        const userDoc = await getDoc(doc(db, "userProfiles", authUser.uid))
         
-        await setDoc(doc(db, "userProfiles", authUser.uid), {
-          ...newProfile,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        })
-        
-        setUserProfile(newProfile)
+        if (userDoc.exists()) {
+          const data = userDoc.data()
+          console.log('Found user in userProfiles:', data)
+          setUserProfile({
+            ...data,
+            createdAt: data.createdAt?.toDate() || new Date(),
+            updatedAt: data.updatedAt?.toDate() || new Date(),
+          } as UserProfile)
+        } else {
+          console.log('User not found in userProfiles, checking if admin...')
+          
+          // Check if user is an admin in users collection
+          // Check by both uid and email to ensure we find admin users
+          const usersQueryByUid = query(collection(db, "users"), where("uid", "==", authUser.uid))
+          const usersQueryByEmail = query(collection(db, "users"), where("email", "==", authUser.email))
+          
+          const [usersSnapshotByUid, usersSnapshotByEmail] = await Promise.all([
+            getDocs(usersQueryByUid),
+            getDocs(usersQueryByEmail)
+          ])
+          
+          const usersSnapshot = usersSnapshotByUid.empty ? usersSnapshotByEmail : usersSnapshotByUid
+          
+          if (!usersSnapshot.empty) {
+            // User is an admin, create admin profile
+            const adminUser = usersSnapshot.docs[0].data()
+            console.log('Found admin user, creating admin profile:', adminUser)
+            
+            const adminProfile: UserProfile = {
+              id: authUser.uid,
+              email: adminUser.email || authUser.email || '',
+              displayName: adminUser.name || authUser.displayName || '',
+              firstName: adminUser.name?.split(' ')[0] || '',
+              lastName: adminUser.name?.split(' ').slice(1).join(' ') || '',
+              phone: adminUser.mobile || '',
+              role: adminUser.role || 'admin',
+              addresses: [],
+              preferences: {
+                newsletter: true,
+                notifications: true,
+                language: 'en'
+              },
+              orderHistory: [],
+              wishlist: [],
+              createdAt: adminUser.createdAt?.toDate() || new Date(),
+              updatedAt: adminUser.updatedAt?.toDate() || new Date(),
+            }
+            
+            // Save the admin profile
+            await setDoc(doc(db, "userProfiles", authUser.uid), {
+              ...adminProfile,
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp()
+            })
+            
+            setUserProfile(adminProfile)
+          } else {
+            // User is not an admin, create regular customer profile
+            console.log('Creating new customer profile for:', authUser.email)
+            const newProfile: UserProfile = {
+              id: authUser.uid,
+              email: authUser.email || '',
+              displayName: authUser.displayName || '',
+              role: 'customer', // Default role for new users
+              addresses: [],
+              preferences: {
+                newsletter: true,
+                notifications: true,
+                language: 'en'
+              },
+              orderHistory: [],
+              wishlist: [],
+              createdAt: new Date(),
+              updatedAt: new Date()
+            }
+            
+            // Save the new profile
+            await setDoc(doc(db, "userProfiles", authUser.uid), {
+              ...newProfile,
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp()
+            })
+            
+            setUserProfile(newProfile)
+          }
+        }
       }
     } catch (error) {
       console.error("Error loading user profile:", error)
@@ -148,9 +244,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     if (!userProfile || !user) return
 
     try {
+      // Generate a more unique ID using timestamp + random number
       const newAddress: Address = {
         ...address,
-        id: Date.now().toString(),
+        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       }
 
       const updatedAddresses = [...userProfile.addresses, newAddress]
@@ -233,9 +330,22 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     return userProfile?.wishlist.includes(bookId) || false
   }
 
+  const isAdmin = userProfile?.role === 'admin' || false
+  
+  console.log('User context debug:', { 
+    userProfile: userProfile ? { 
+      email: userProfile.email, 
+      role: userProfile.role,
+      displayName: userProfile.displayName 
+    } : null, 
+    isAdmin, 
+    loading 
+  })
+
   const value = {
     userProfile,
     loading,
+    isAdmin,
     updateProfile,
     addAddress,
     updateAddress,

@@ -19,11 +19,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Users, Search, MoreHorizontal, Eye, Mail, Ban } from "lucide-react"
+import { Users, Search, MoreHorizontal, Eye, Mail, Ban, RefreshCw } from "lucide-react"
 import { useCustomers } from "@/hooks/use-customers"
 import { useToast } from "@/hooks/use-toast"
 import { AdminLayout } from "@/components/admin/admin-layout"
 import { CustomerModal } from "@/components/admin/customer-modal"
+import { recalculateCustomerStats } from "@/lib/firebase-utils"
 
 export default function AdminCustomers() {
   const { customers, loading, analytics } = useCustomers()
@@ -31,6 +32,26 @@ export default function AdminCustomers() {
   const [searchTerm, setSearchTerm] = useState("")
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null)
+  const [isRecalculating, setIsRecalculating] = useState(false)
+
+  const handleRecalculateStats = async () => {
+    setIsRecalculating(true)
+    try {
+      await recalculateCustomerStats()
+      toast({
+        title: "Stats Recalculated",
+        description: "Customer order counts and totals have been updated.",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to recalculate customer stats.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsRecalculating(false)
+    }
+  }
 
   const handleViewCustomer = (customer: any) => {
     setSelectedCustomer(customer)
@@ -48,8 +69,18 @@ export default function AdminCustomers() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Customer Management</h1>
-            <p className="text-gray-600">View and manage customer accounts</p>
+            <h1 className="text-2xl font-bold text-gray-900">All Customers ({customers.length})</h1>
+            <p className="text-gray-600">Manage customer accounts and view their activity</p>
+          </div>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={handleRecalculateStats}
+              disabled={isRecalculating}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isRecalculating ? 'animate-spin' : ''}`} />
+              {isRecalculating ? "Recalculating..." : "Recalculate Stats"}
+            </Button>
           </div>
         </div>
 

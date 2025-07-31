@@ -13,6 +13,10 @@ export default function PaymentFailurePage() {
 
   useEffect(() => {
     const error = searchParams.get('error') || 'Payment was unsuccessful'
+    
+    // Clear stored order data since payment failed
+    sessionStorage.removeItem('pendingOrderData')
+    
     toast({
       title: "Payment Failed",
       description: error,
@@ -70,7 +74,7 @@ export default function PaymentFailurePage() {
               </div>
 
               <div className="text-sm text-muted-foreground">
-                <p>Need help? Contact our support team at support@dnapublications.com</p>
+                <p>Need help? Contact our support team at info@dnap.in</p>
                 {orderId && (
                   <p className="mt-2">Reference Order ID: #{orderId.slice(-8)}</p>
                 )}

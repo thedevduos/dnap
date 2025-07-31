@@ -89,6 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         firstName: userData.firstName,
         lastName: userData.lastName,
         phone: userData.phone,
+        role: 'customer', // Set default role as customer for regular registrations
         addresses: [],
         preferences: {
           newsletter: userData.subscribeNewsletter,
@@ -120,28 +121,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const provider = new GoogleAuthProvider()
     try {
       const result = await signInWithPopup(auth, provider)
-      const user = result.user
-
-      // Create or update user profile for Google users
-      await setDoc(doc(db, "userProfiles", user.uid), {
-        id: user.uid,
-        email: user.email,
-        displayName: user.displayName,
-        firstName: user.displayName?.split(' ')[0] || '',
-        lastName: user.displayName?.split(' ').slice(1).join(' ') || '',
-        phone: user.phoneNumber || '',
-        addresses: [],
-        preferences: {
-          newsletter: true,
-          notifications: true,
-          language: 'en'
-        },
-        orderHistory: [],
-        wishlist: [],
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      }, { merge: true })
-
+      console.log('Google login result:', result)
+      // Let the user context handle profile creation/loading
+      // This avoids race conditions and ensures consistent logic
     } catch (error) {
       console.error('Google login error:', error)
       throw error

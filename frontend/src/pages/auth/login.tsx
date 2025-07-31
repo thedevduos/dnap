@@ -32,10 +32,13 @@ export default function LoginPage() {
 
     try {
       await login(credentials.email, credentials.password)
+      
       toast({
         title: "Welcome back!",
         description: "You have been logged in successfully.",
       })
+      
+      // Simple redirect to intended destination
       navigate(from, { replace: true })
     } catch (error: any) {
       toast({
@@ -52,15 +55,18 @@ export default function LoginPage() {
     setIsLoading(true)
     try {
       await loginWithGoogle()
+      
       toast({
-        title: "Welcome!",
+        title: "Welcome back!",
         description: "You have been logged in with Google.",
       })
+      
+      // Simple redirect to intended destination
       navigate(from, { replace: true })
     } catch (error: any) {
       toast({
-        title: "Login Failed",
-        description: error.message || "Google login failed. Please try again.",
+        title: "Google Login Failed",
+        description: "Failed to login with Google. Please try again.",
         variant: "destructive",
       })
     } finally {

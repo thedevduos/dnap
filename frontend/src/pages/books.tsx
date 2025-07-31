@@ -4,9 +4,10 @@ import { useEffect, useRef, useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Star, Heart, ShoppingCart, Search, BookOpen } from "lucide-react"
+import { Heart, ShoppingCart, Search, BookOpen } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { useBooks } from "@/hooks/use-books"
+import { useUser } from "@/contexts/user-context"
 import { Link } from "react-router-dom"
 import anime from "animejs"
 
@@ -15,6 +16,7 @@ export default function BooksPage() {
   const [hoveredBook, setHoveredBook] = useState<number | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const { books, loading } = useBooks()
+  const { isAdmin } = useUser()
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -80,6 +82,27 @@ export default function BooksPage() {
             Discover our extensive collection of books across various genres
           </p>
 
+          {/* Admin restriction notice */}
+          {isAdmin && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg max-w-2xl mx-auto">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-red-800">
+                    Admin Access Restricted
+                  </h3>
+                  <div className="mt-2 text-sm text-red-700">
+                    <p>Admin users are not allowed to make purchases. Please use a customer account to add items to cart.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Search Bar */}
           <div className="max-w-md mx-auto relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -141,10 +164,10 @@ export default function BooksPage() {
                       hoveredBook === index ? "opacity-100" : "opacity-0"
                     }`}
                   >
-                    <Button size="sm" asChild>
-                      <Link to={`/book/${book.id}`}>
+                    <Button size="sm" asChild disabled={isAdmin}>
+                      <Link to={isAdmin ? "#" : `/book/${book.id}`}>
                         <ShoppingCart className="h-4 w-4 mr-1" />
-                        Buy Now
+                        {isAdmin ? "Admin Cannot Purchase" : "Buy Now"}
                       </Link>
                     </Button>
                   </div>
@@ -158,7 +181,9 @@ export default function BooksPage() {
                   </div>
 
                   <h3 className="text-xl font-bold mb-2 group-hover:text-orange-600 transition-colors">
-                    {book.title}
+                    <Link to={`/book/${book.id}`} className="hover:text-orange-600">
+                      {book.title}
+                    </Link>
                   </h3>
 
                   <p className="text-muted-foreground mb-2">by {book.author}</p>
@@ -167,20 +192,19 @@ export default function BooksPage() {
 
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center space-x-1">
-                      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                      {/* <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                       <span className="text-sm font-medium">4.8</span>
-                      <span className="text-xs text-muted-foreground">(124)</span>
+                      <span className="text-xs text-muted-foreground">(124)</span> */}
                     </div>
                     <span className="text-lg font-bold text-orange-600">₹{book.price}</span>
                   </div>
 
                   <div className="flex space-x-2">
-                    <Button className="flex-1 group bg-orange-600 hover:bg-orange-700">
+                    <Button className="flex-1 group bg-orange-600 hover:bg-orange-700" disabled={isAdmin}>
                       <ShoppingCart className="h-4 w-4 mr-2 group-hover:animate-bounce" />
-                      Add to Cart
-                    </Button>
-                    <Button variant="outline" size="icon">
-                      <Heart className="h-4 w-4" />
+                      <Link to={isAdmin ? "#" : `/book/${book.id}`}>
+                        {isAdmin ? "Admin Cannot Purchase" : "Add to Cart"}
+                      </Link>
                     </Button>
                   </div>
                 </CardContent>

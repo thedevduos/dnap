@@ -68,6 +68,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     { name: "Careers", href: "/admin/careers", icon: Briefcase },
     { name: "Messages", href: "/admin/messages", icon: MessageSquare },
     { name: "Emails", href: "/admin/emails", icon: Mail },
+    { name: "Reviews", href: "/admin/reviews", icon: Star },
     { name: "Testimonials", href: "/admin/testimonials", icon: Star },
     { name: "Updates", href: "/admin/updates", icon: Calendar },
   ]
@@ -79,7 +80,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         title: "Success",
         description: "Logged out successfully",
       })
-      navigate("/admin/login")
+      navigate("/") // Redirect to home page instead of admin login
     } catch (error) {
       toast({
         title: "Error",

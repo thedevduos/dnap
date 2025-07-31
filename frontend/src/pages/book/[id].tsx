@@ -8,12 +8,13 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { Star, Heart, ShoppingCart, ArrowLeft, Share2, Truck, Shield, RotateCcw } from "lucide-react"
-import { doc, getDoc, collection, query, where, getDocs, addDoc, serverTimestamp, orderBy } from "firebase/firestore"
+import { doc, getDoc, collection, query, where, getDocs, orderBy } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { useCart } from "@/contexts/cart-context"
 import { useUser } from "@/contexts/user-context"
 import { useAuth } from "@/contexts/auth-context"
 import { useToast } from "@/hooks/use-toast"
+import { addReview } from "@/lib/firebase-utils"
 
 interface Review {
   id: string
@@ -25,17 +26,30 @@ interface Review {
   helpful: number
 }
 
+interface Book {
+  id: string
+  title: string
+  author: string
+  description: string
+  price: number
+  imageUrl: string
+  category?: string
+  rating?: number
+  status?: string
+  createdAt?: any
+}
+
 export default function BookDetailPage() {
   const { id } = useParams<{ id: string }>()
-  const [book, setBook] = useState<any>(null)
+  const [book, setBook] = useState<Book | null>(null)
   const [reviews, setReviews] = useState<Review[]>([])
-  const [relatedBooks, setRelatedBooks] = useState<any[]>([])
+  const [relatedBooks, setRelatedBooks] = useState<Book[]>([])
   const [loading, setLoading] = useState(true)
   const [newReview, setNewReview] = useState({ rating: 5, comment: "" })
   const [submittingReview, setSubmittingReview] = useState(false)
   
   const { addToCart, isInCart } = useCart()
-  const { addToWishlist, removeFromWishlist, isInWishlist } = useUser()
+  const { addToWishlist, removeFromWishlist, isInWishlist, isAdmin } = useUser()
   const { user } = useAuth()
   const { toast } = useToast()
 
@@ -50,7 +64,7 @@ export default function BookDetailPage() {
     try {
       const bookDoc = await getDoc(doc(db, "books", id!))
       if (bookDoc.exists()) {
-        const bookData = { id: bookDoc.id, ...bookDoc.data() }
+        const bookData = { id: bookDoc.id, ...bookDoc.data() } as Book
         setBook(bookData)
         
         // Load related books (same category)
@@ -62,7 +76,7 @@ export default function BookDetailPage() {
           )
           const relatedSnapshot = await getDocs(relatedQuery)
           const related = relatedSnapshot.docs
-            .map(doc => ({ id: doc.id, ...doc.data() }))
+            .map(doc => ({ id: doc.id, ...doc.data() } as Book))
             .filter(b => b.id !== id)
             .slice(0, 4)
           setRelatedBooks(related)
@@ -80,6 +94,7 @@ export default function BookDetailPage() {
       const reviewsQuery = query(
         collection(db, "reviews"),
         where("bookId", "==", id),
+        where("status", "==", "approved"), // Only show approved reviews to customers
         orderBy("createdAt", "desc")
       )
       const reviewsSnapshot = await getDocs(reviewsQuery)
@@ -101,7 +116,7 @@ export default function BookDetailPage() {
         author: book.author,
         price: book.price,
         imageUrl: book.imageUrl,
-        category: book.category
+        category: book.category || ''
       })
     }
   }
@@ -137,19 +152,18 @@ export default function BookDetailPage() {
 
     setSubmittingReview(true)
     try {
-      await addDoc(collection(db, "reviews"), {
+      await addReview({
         bookId: book.id,
         userId: user.uid,
         userName: user.displayName || user.email?.split('@')[0] || 'Anonymous',
         rating: newReview.rating,
         comment: newReview.comment,
-        helpful: 0,
-        createdAt: serverTimestamp()
+        status: 'pending'
       })
 
       toast({
         title: "Review Submitted",
-        description: "Thank you for your review!"
+        description: "Thank you for your review! It will be reviewed by our team."
       })
 
       setNewReview({ rating: 5, comment: "" })
@@ -201,6 +215,27 @@ export default function BookDetailPage() {
           </Link>
         </div>
 
+        {/* Admin restriction notice */}
+        {isAdmin && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-red-800">
+                  Admin Access Restricted
+                </h3>
+                <div className="mt-2 text-sm text-red-700">
+                  <p>Admin users are not allowed to make purchases. Please use a customer account to add items to cart.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Book Details */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
           {/* Book Image */}
@@ -250,11 +285,11 @@ export default function BookDetailPage() {
                 <Button
                   size="lg"
                   onClick={handleAddToCart}
-                  disabled={isInCart(book.id)}
+                  disabled={isInCart(book.id) || isAdmin}
                   className="flex-1"
                 >
                   <ShoppingCart className="h-5 w-5 mr-2" />
-                  {isInCart(book.id) ? "In Cart" : "Add to Cart"}
+                  {isInCart(book.id) ? "In Cart" : isAdmin ? "Admin Cannot Purchase" : "Add to Cart"}
                 </Button>
                 <Button
                   variant="outline"
@@ -311,7 +346,7 @@ export default function BookDetailPage() {
           <TabsContent value="reviews" className="mt-6">
             <div className="space-y-6">
               {/* Write Review */}
-              {user && (
+              {user ? (
                 <Card>
                   <CardContent className="p-6">
                     <h3 className="text-lg font-semibold mb-4">Write a Review</h3>
@@ -349,6 +384,20 @@ export default function BookDetailPage() {
                         {submittingReview ? "Submitting..." : "Submit Review"}
                       </Button>
                     </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card>
+                  <CardContent className="p-6 text-center">
+                    <h3 className="text-lg font-semibold mb-4">Write a Review</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Please login to write a review for this book.
+                    </p>
+                    <Button asChild>
+                      <Link to="/auth/login" state={{ from: { pathname: `/book/${id}` } }}>
+                        Login to Review
+                      </Link>
+                    </Button>
                   </CardContent>
                 </Card>
               )}

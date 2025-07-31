@@ -6,12 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useAuth } from "@/contexts/auth-context"
 import { useToast } from "@/hooks/use-toast"
 import { BookOpen, UserPlus, Eye, EyeOff } from "lucide-react"
-import { FcGoogle } from "react-icons/fc"
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -27,7 +25,7 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const { register, loginWithGoogle } = useAuth()
+  const { register } = useAuth()
   const { toast } = useToast()
   const navigate = useNavigate()
   const location = useLocation()
@@ -131,26 +129,6 @@ export default function RegisterPage() {
       toast({
         title: "Registration Failed",
         description: error.message || "Failed to create account. Please try again.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleGoogleLogin = async () => {
-    setIsLoading(true)
-    try {
-      await loginWithGoogle()
-      toast({
-        title: "Welcome!",
-        description: "You have been registered with Google.",
-      })
-      navigate(from, { replace: true })
-    } catch (error: any) {
-      toast({
-        title: "Registration Failed",
-        description: error.message || "Google registration failed. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -307,23 +285,6 @@ export default function RegisterPage() {
               )}
             </Button>
           </form>
-
-          <div className="my-6 flex items-center justify-center">
-            <Separator className="flex-1" />
-            <span className="px-4 text-xs text-gray-400 uppercase">or</span>
-            <Separator className="flex-1" />
-          </div>
-
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full flex items-center justify-center gap-2"
-            onClick={handleGoogleLogin}
-            disabled={isLoading}
-          >
-            <FcGoogle className="h-5 w-5" />
-            Continue with Google
-          </Button>
 
           <div className="mt-6 text-center">
             <p className="text-sm text-muted-foreground">

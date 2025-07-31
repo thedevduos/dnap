@@ -15,10 +15,10 @@ import { Link } from "react-router-dom"
 import anime from "animejs"
 
 export default function ShopPage() {
-  const sectionRef = useRef<HTMLElement>(null)
+  const sectionRef = useRef<HTMLDivElement>(null)
   const { books, loading } = useBooks()
   const { addToCart, isInCart } = useCart()
-  const { addToWishlist, removeFromWishlist, isInWishlist } = useUser()
+  const { addToWishlist, removeFromWishlist, isInWishlist, isAdmin } = useUser()
   
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("all")
@@ -112,6 +112,27 @@ export default function ShopPage() {
           <h1 className="text-4xl font-bold mb-4">Book Store</h1>
           <p className="text-muted-foreground">Discover our complete collection of books</p>
         </div>
+
+        {/* Admin restriction notice */}
+        {isAdmin && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-red-800">
+                  Admin Access Restricted
+                </h3>
+                <div className="mt-2 text-sm text-red-700">
+                  <p>Admin users are not allowed to make purchases. Please use a customer account to add items to cart.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Search and Filters */}
         <div className="mb-8 space-y-4">
@@ -333,11 +354,11 @@ export default function ShopPage() {
                             <Button
                               size="sm"
                               onClick={() => handleAddToCart(book)}
-                              disabled={isInCart(book.id)}
+                              disabled={isInCart(book.id) || isAdmin}
                               className="flex-1"
                             >
                               <ShoppingCart className="h-4 w-4 mr-1" />
-                              {isInCart(book.id) ? "In Cart" : "Add to Cart"}
+                              {isInCart(book.id) ? "In Cart" : isAdmin ? "Admin Cannot Purchase" : "Add to Cart"}
                             </Button>
                             <Button variant="outline" size="sm" asChild>
                               <Link to={`/book/${book.id}`}>

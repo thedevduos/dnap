@@ -4,9 +4,7 @@ const crypto = require('crypto');
 const PAYU_CONFIG = {
   key: process.env.PAYU_KEY || 'd3dwST',
   salt: process.env.PAYU_SALT || '4UM3eyk11v0xLxyLvltTcUJvHBTuFrIw',
-  baseUrl: process.env.NODE_ENV === 'production' 
-    ? 'https://secure.payu.in/_payment' 
-    : 'https://sandboxsecure.payu.in/_payment'
+  baseUrl: 'https://test.payu.in/_payment'
 };
 
 // Generate PayU hash

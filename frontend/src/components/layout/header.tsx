@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { CartIcon } from "./cart-icon"
 import { useAuth } from "@/contexts/auth-context"
+import { useUser } from "@/contexts/user-context"
 import { useToast } from "@/hooks/use-toast"
 import anime from "animejs"
 
@@ -21,6 +22,7 @@ export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const location = useLocation()
   const { user, logout } = useAuth()
+  const { isAdmin } = useUser()
   const { toast } = useToast()
 
   useEffect(() => {
@@ -124,6 +126,19 @@ export function Header() {
                       Profile & Orders
                     </Link>
                   </DropdownMenuItem>
+                  {isAdmin && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin/dashboard">
+                          <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                          </svg>
+                          Admin Dashboard
+                        </Link>
+                      </DropdownMenuItem>
+                    </>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout}>
                     <LogOut className="mr-2 h-4 w-4" />
@@ -176,6 +191,16 @@ export function Header() {
                       My Account
                     </Button>
                   </Link>
+                  {isAdmin && (
+                    <Link to="/admin/dashboard">
+                      <Button variant="outline" className="w-full justify-start">
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                        Admin Dashboard
+                      </Button>
+                    </Link>
+                  )}
                   <Button 
                     variant="outline" 
                     className="w-full justify-start"

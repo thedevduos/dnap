@@ -8,6 +8,10 @@ import { CheckCircle, Package, ArrowRight } from "lucide-react"
 import { useCart } from "@/contexts/cart-context"
 import { updateOrderStatus, addTransaction } from "@/lib/firebase-utils"
 import { useToast } from "@/hooks/use-toast"
+import { collection, addDoc, serverTimestamp, doc, updateDoc, increment, query, where, getDocs } from "firebase/firestore"
+import { db } from "@/lib/firebase"
+import { useUser } from "@/contexts/user-context"
+import { applyCoupon } from "@/lib/firebase-utils"
 
 export default function PaymentSuccessPage() {
   const [searchParams] = useSearchParams()
@@ -15,6 +19,7 @@ export default function PaymentSuccessPage() {
   const [orderDetails, setOrderDetails] = useState<any>(null)
   const { clearCart } = useCart()
   const { toast } = useToast()
+  const { addAddress } = useUser()
 
   useEffect(() => {
     const processPaymentSuccess = async () => {
@@ -45,12 +50,60 @@ export default function PaymentSuccessPage() {
         const verifyResult = await verifyResponse.json()
 
         if (verifyResult.success && verifyResult.data.success) {
-          // Extract order ID from txnid
-          const orderId = paymentData.txnid?.split('_')[1]
+          // Get stored order data from sessionStorage
+          const storedOrderData = sessionStorage.getItem('pendingOrderData')
           
-          if (orderId) {
+          if (storedOrderData) {
+            const orderData = JSON.parse(storedOrderData)
+            
+            // Create the actual order in database
+            const orderRef = await addDoc(collection(db, "orders"), {
+              ...orderData,
+              createdAt: serverTimestamp()
+            })
+
+            // Update customer's order count and total spent
+            if (orderData.userId) {
+              // Update user profile with order information
+              const userProfileRef = doc(db, "userProfiles", orderData.userId)
+              await updateDoc(userProfileRef, {
+                orderCount: increment(1),
+                totalSpent: increment(orderData.total),
+                updatedAt: serverTimestamp()
+              })
+            } else {
+              // For guest users, try to find customer by email and update
+              try {
+                const customerQuery = query(
+                  collection(db, "userProfiles"), 
+                  where("email", "==", orderData.userEmail)
+                )
+                const customerSnapshot = await getDocs(customerQuery)
+                if (!customerSnapshot.empty) {
+                  const customerDoc = customerSnapshot.docs[0]
+                  await updateDoc(doc(db, "userProfiles", customerDoc.id), {
+                    orderCount: increment(1),
+                    totalSpent: increment(orderData.total),
+                    updatedAt: serverTimestamp()
+                  })
+                }
+              } catch (error) {
+                console.warn("Failed to update customer order count:", error)
+              }
+            }
+
+            // Apply coupon usage
+            if (orderData.appliedCoupon) {
+              await applyCoupon(orderData.appliedCoupon.id)
+            }
+
+            // Address is already saved before payment, so no need to save again
+            if (orderData.saveAddress) {
+              console.log('Address was already saved before payment')
+            }
+
             // Update order status
-            await updateOrderStatus(orderId, 'confirmed', {
+            await updateOrderStatus(orderRef.id, 'confirmed', {
               paymentStatus: 'paid',
               transactionId: paymentData.mihpayid,
               paymentMode: paymentData.mode
@@ -58,7 +111,7 @@ export default function PaymentSuccessPage() {
 
             // Add transaction record
             await addTransaction({
-              orderId: orderId,
+              orderId: orderRef.id,
               gatewayTransactionId: paymentData.mihpayid,
               amount: parseFloat(paymentData.amount || '0'),
               status: 'success',
@@ -69,10 +122,13 @@ export default function PaymentSuccessPage() {
             })
 
             setOrderDetails({
-              orderId,
+              orderId: orderRef.id,
               amount: paymentData.amount,
               transactionId: paymentData.mihpayid
             })
+
+            // Clear stored order data
+            sessionStorage.removeItem('pendingOrderData')
 
             // Clear cart
             clearCart()
@@ -81,6 +137,8 @@ export default function PaymentSuccessPage() {
               title: "Payment Successful!",
               description: "Your order has been confirmed.",
             })
+          } else {
+            throw new Error('Order data not found')
           }
         } else {
           throw new Error('Payment verification failed')
@@ -99,7 +157,7 @@ export default function PaymentSuccessPage() {
     }
 
     processPaymentSuccess()
-  }, [searchParams, clearCart, toast])
+  }, [searchParams, clearCart, toast, addAddress])
 
   if (processing) {
     return (

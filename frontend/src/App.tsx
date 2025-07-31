@@ -50,6 +50,7 @@ import AdminCoupons from "@/pages/admin/coupons"
 import AdminPayments from "@/pages/admin/payments"
 import AdminCustomers from "@/pages/admin/customers"
 import AdminAnalytics from "@/pages/admin/analytics"
+import AdminReviews from "@/pages/admin/reviews"
 import AdminLogin from "@/pages/admin/login"
 import AdminProfile from "@/pages/admin/profile"
 
@@ -85,6 +86,7 @@ export default function App() {
                           <Route path="/payments" element={<AdminPayments />} />
                           <Route path="/customers" element={<AdminCustomers />} />
                           <Route path="/analytics" element={<AdminAnalytics />} />
+                          <Route path="/reviews" element={<AdminReviews />} />
                           <Route path="/testimonials" element={<AdminTestimonials />} />
                           <Route path="/updates" element={<AdminUpdates />} />
                           <Route path="/messages" element={<AdminMessages />} />
