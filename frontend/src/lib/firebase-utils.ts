@@ -118,6 +118,10 @@ export const updateOrderStatus = async (orderId: string, status: string, additio
   return await updateDoc(doc(db, "orders", orderId), updateData)
 }
 
+// Delete order
+export const deleteOrder = async (orderId: string) => {
+  return await deleteDoc(doc(db, "orders", orderId))
+}
 // Transactions
 export const addTransaction = async (transactionData: any) => {
   return await addDoc(collection(db, "transactions"), {

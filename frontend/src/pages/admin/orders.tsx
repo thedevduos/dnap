@@ -21,8 +21,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Package, Search, Filter, MoreHorizontal, Eye, Edit, RefreshCw, Truck } from "lucide-react"
+import { Trash2 } from "lucide-react"
 import { useOrdersAdmin } from "@/hooks/use-orders-admin"
-import { updateOrderStatus } from "@/lib/firebase-utils"
+import { updateOrderStatus, deleteOrder } from "@/lib/firebase-utils"
 import { useToast } from "@/hooks/use-toast"
 import { AdminLayout } from "@/components/admin/admin-layout"
 import { OrderModal } from "@/components/admin/order-modal"
@@ -56,6 +57,23 @@ export default function AdminOrders() {
     setIsModalOpen(true)
   }
 
+  const handleDeleteOrder = async (orderId: string) => {
+    if (window.confirm("Are you sure you want to delete this order? This action cannot be undone.")) {
+      try {
+        await deleteOrder(orderId)
+        toast({
+          title: "Order Deleted",
+          description: "Order has been deleted successfully.",
+        })
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to delete order.",
+          variant: "destructive",
+        })
+      }
+    }
+  }
   const filteredOrders = orders.filter(order => {
     const matchesSearch = order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          order.shippingAddress?.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -260,6 +278,13 @@ export default function AdminOrders() {
                             <DropdownMenuItem onClick={() => handleStatusUpdate(order.id, "delivered")}>
                               <Edit className="h-4 w-4 mr-2" />
                               Mark Delivered
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => handleDeleteOrder(order.id)}
+                              className="text-red-600"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete Order
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
