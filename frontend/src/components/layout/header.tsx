@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Menu, X } from "lucide-react"
 import { Link, useLocation } from "react-router-dom"
+import { CartIcon } from "./cart-icon"
 import anime from "animejs"
 
 export function Header() {
@@ -68,6 +69,7 @@ export function Header() {
           </nav>
 
           <div className="flex items-center space-x-4">
+            <CartIcon />
             <Link to="/contact">
               <Button className="header-item hidden md:inline-flex bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg hover:from-amber-500 hover:to-orange-500 transition-all">
                 Become an Author Today!
@@ -96,6 +98,9 @@ export function Header() {
                   {item.name}
                 </Link>
               ))}
+              <div className="mobile-menu-item pt-4">
+                <CartIcon />
+              </div>
               <Link to="/contact">
                 <Button className="mobile-menu-item w-full mt-4 bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg hover:from-amber-500 hover:to-orange-500 transition-all">
                   Become an Author Today!
