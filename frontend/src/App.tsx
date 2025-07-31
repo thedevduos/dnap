@@ -52,7 +52,6 @@ import AdminCustomers from "@/pages/admin/customers"
 import AdminAnalytics from "@/pages/admin/analytics"
 import AdminLogin from "@/pages/admin/login"
 import AdminProfile from "@/pages/admin/profile"
-import { ProtectedRoute } from "@/components/auth/protected-route"
 
 import "./globals.css"
 
