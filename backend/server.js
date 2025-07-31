@@ -20,6 +20,10 @@ const PORT = process.env.PORT || 5000;
 // Import email service
 const emailService = require('./services/emailService');
 
+// Import route handlers
+const paymentRoutes = require('./routes/payment');
+const whatsappRoutes = require('./routes/whatsapp');
+
 // Function to update last activity
 const updateActivity = () => {
   lastActivity = Date.now();
@@ -195,6 +199,12 @@ app.post('/api/test-email', async (req, res) => {
     });
   }
 });
+
+// Payment routes
+app.use('/api/payment', paymentRoutes);
+
+// WhatsApp routes
+app.use('/api/whatsapp', whatsappRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

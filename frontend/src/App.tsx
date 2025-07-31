@@ -20,6 +20,12 @@ import ShopPage from "@/pages/shop"
 import BookDetailPage from "@/pages/book/[id]"
 import CartPage from "@/pages/cart"
 import CheckoutPage from "@/pages/checkout"
+import LoginPage from "@/pages/auth/login"
+import RegisterPage from "@/pages/auth/register"
+import ProfilePage from "@/pages/profile/index"
+import OrderDetailPage from "@/pages/order/[id]"
+import PaymentSuccessPage from "@/pages/payment/success"
+import PaymentFailurePage from "@/pages/payment/failure"
 import TeamPage from "@/pages/team"
 import ContactPage from "@/pages/contact"
 import PrivacyPolicy from "@/pages/privacy-policy"
@@ -38,8 +44,15 @@ import AdminEmails from "@/pages/admin/emails"
 import AdminUsers from "@/pages/admin/users"
 import AdminTeam from "@/pages/admin/team"
 import AdminCareers from "@/pages/admin/careers"
+import AdminOrders from "@/pages/admin/orders"
+import AdminShipping from "@/pages/admin/shipping"
+import AdminCoupons from "@/pages/admin/coupons"
+import AdminPayments from "@/pages/admin/payments"
+import AdminCustomers from "@/pages/admin/customers"
+import AdminAnalytics from "@/pages/admin/analytics"
 import AdminLogin from "@/pages/admin/login"
 import AdminProfile from "@/pages/admin/profile"
+import { ProtectedRoute } from "@/components/auth/protected-route"
 
 import "./globals.css"
 
@@ -67,6 +80,12 @@ export default function App() {
                           <Route path="/users" element={<AdminUsers />} />
                           <Route path="/team" element={<AdminTeam />} />
                           <Route path="/careers" element={<AdminCareers />} />
+                          <Route path="/orders" element={<AdminOrders />} />
+                          <Route path="/shipping" element={<AdminShipping />} />
+                          <Route path="/coupons" element={<AdminCoupons />} />
+                          <Route path="/payments" element={<AdminPayments />} />
+                          <Route path="/customers" element={<AdminCustomers />} />
+                          <Route path="/analytics" element={<AdminAnalytics />} />
                           <Route path="/testimonials" element={<AdminTestimonials />} />
                           <Route path="/updates" element={<AdminUpdates />} />
                           <Route path="/messages" element={<AdminMessages />} />
@@ -92,7 +111,25 @@ export default function App() {
                             <Route path="/shop" element={<ShopPage />} />
                             <Route path="/book/:id" element={<BookDetailPage />} />
                             <Route path="/cart" element={<CartPage />} />
-                            <Route path="/checkout" element={<CheckoutPage />} />
+                            <Route path="/checkout" element={
+                              <ProtectedRoute>
+                                <CheckoutPage />
+                              </ProtectedRoute>
+                            } />
+                            <Route path="/auth/login" element={<LoginPage />} />
+                            <Route path="/auth/register" element={<RegisterPage />} />
+                            <Route path="/profile" element={
+                              <ProtectedRoute>
+                                <ProfilePage />
+                              </ProtectedRoute>
+                            } />
+                            <Route path="/order/:id" element={
+                              <ProtectedRoute>
+                                <OrderDetailPage />
+                              </ProtectedRoute>
+                            } />
+                            <Route path="/payment/success" element={<PaymentSuccessPage />} />
+                            <Route path="/payment/failure" element={<PaymentFailurePage />} />
                             <Route path="/team" element={<TeamPage />} />
                             <Route path="/careers" element={<CareersPage />} />
                             <Route path="/contact" element={<ContactPage />} />

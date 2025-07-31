@@ -16,6 +16,12 @@ import {
   LogOut,
   User,
   Briefcase,
+  ShoppingCart,
+  Truck,
+  Ticket,
+  CreditCard,
+  Users as CustomersIcon,
+  BarChart3,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/auth-context"
@@ -53,6 +59,12 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     { name: "Books", href: "/admin/books", icon: BookOpen },
     { name: "Users", href: "/admin/users", icon: Users },
     { name: "Team", href: "/admin/team", icon: Users },
+    { name: "Orders", href: "/admin/orders", icon: ShoppingCart },
+    { name: "Customers", href: "/admin/customers", icon: CustomersIcon },
+    { name: "Shipping", href: "/admin/shipping", icon: Truck },
+    { name: "Coupons", href: "/admin/coupons", icon: Ticket },
+    { name: "Payments", href: "/admin/payments", icon: CreditCard },
+    { name: "Analytics", href: "/admin/analytics", icon: BarChart3 },
     { name: "Careers", href: "/admin/careers", icon: Briefcase },
     { name: "Messages", href: "/admin/messages", icon: MessageSquare },
     { name: "Emails", href: "/admin/emails", icon: Mail },

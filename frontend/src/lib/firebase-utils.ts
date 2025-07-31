@@ -9,11 +9,142 @@ import {
   query,
   where,
   getCountFromServer,
+  increment,
 } from "firebase/firestore"
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
 import { createUserWithEmailAndPassword } from "firebase/auth"
 import { db, storage, auth } from "@/lib/firebase"
 import { sendWelcomeEmail } from "./email-utils"
+
+// Shipping Methods
+export const addShippingMethod = async (methodData: any) => {
+  return await addDoc(collection(db, "shippingMethods"), {
+    ...methodData,
+    createdAt: serverTimestamp(),
+  })
+}
+
+export const updateShippingMethod = async (id: string, methodData: any) => {
+  return await updateDoc(doc(db, "shippingMethods", id), {
+    ...methodData,
+    updatedAt: serverTimestamp(),
+  })
+}
+
+export const deleteShippingMethod = async (id: string) => {
+  return await deleteDoc(doc(db, "shippingMethods", id))
+}
+
+// Coupons
+export const addCoupon = async (couponData: any) => {
+  return await addDoc(collection(db, "coupons"), {
+    ...couponData,
+    usedCount: 0,
+    createdAt: serverTimestamp(),
+  })
+}
+
+export const updateCoupon = async (id: string, couponData: any) => {
+  return await updateDoc(doc(db, "coupons", id), {
+    ...couponData,
+    updatedAt: serverTimestamp(),
+  })
+}
+
+export const deleteCoupon = async (id: string) => {
+  return await deleteDoc(doc(db, "coupons", id))
+}
+
+export const validateCoupon = async (code: string, orderValue: number) => {
+  const q = query(collection(db, "coupons"), where("code", "==", code.toUpperCase()))
+  const querySnapshot = await getDocs(q)
+  
+  if (querySnapshot.empty) {
+    throw new Error("Invalid coupon code")
+  }
+  
+  const couponDoc = querySnapshot.docs[0]
+  const coupon = { id: couponDoc.id, ...couponDoc.data() }
+  
+  // Validate coupon
+  if (coupon.status !== "active") {
+    throw new Error("Coupon is not active")
+  }
+  
+  if (coupon.expiryDate && coupon.expiryDate.toDate() < new Date()) {
+    throw new Error("Coupon has expired")
+  }
+  
+  if (coupon.usageLimit && coupon.usedCount >= coupon.usageLimit) {
+    throw new Error("Coupon usage limit reached")
+  }
+  
+  if (coupon.minOrderValue && orderValue < coupon.minOrderValue) {
+    throw new Error(`Minimum order value of ₹${coupon.minOrderValue} required`)
+  }
+  
+  // Calculate discount
+  let discountAmount = 0
+  if (coupon.discountType === "percentage") {
+    discountAmount = (orderValue * coupon.discountValue) / 100
+    if (coupon.maxDiscountAmount && discountAmount > coupon.maxDiscountAmount) {
+      discountAmount = coupon.maxDiscountAmount
+    }
+  } else {
+    discountAmount = coupon.discountValue
+  }
+  
+  return {
+    coupon,
+    discountAmount: Math.round(discountAmount)
+  }
+}
+
+export const applyCoupon = async (couponId: string) => {
+  return await updateDoc(doc(db, "coupons", couponId), {
+    usedCount: increment(1),
+    lastUsed: serverTimestamp(),
+  })
+}
+
+// Orders
+export const updateOrderStatus = async (orderId: string, status: string, additionalData?: any) => {
+  const updateData = {
+    status,
+    updatedAt: serverTimestamp(),
+    ...additionalData
+  }
+  
+  return await updateDoc(doc(db, "orders", orderId), updateData)
+}
+
+// Transactions
+export const addTransaction = async (transactionData: any) => {
+  return await addDoc(collection(db, "transactions"), {
+    ...transactionData,
+    createdAt: serverTimestamp(),
+  })
+}
+
+export const updateTransaction = async (id: string, transactionData: any) => {
+  return await updateDoc(doc(db, "transactions", id), {
+    ...transactionData,
+    updatedAt: serverTimestamp(),
+  })
+}
+
+export const processRefund = async (transactionId: string, amount: number) => {
+  // Update transaction status
+  await updateDoc(doc(db, "transactions", transactionId), {
+    status: "refunded",
+    refundAmount: amount,
+    refundedAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  })
+  
+  // In a real implementation, you would also call the payment gateway's refund API
+  return { success: true, refundAmount: amount }
+}
 
 // Testimonials
 export const addTestimonial = async (testimonialData: any) => {
@@ -223,4 +354,28 @@ export const updateUser = async (id: string, userData: any) => {
 
 export const deleteUser = async (id: string) => {
   return await deleteDoc(doc(db, "users", id))
+}
+
+// Inventory Management
+export const updateBookStock = async (bookId: string, quantity: number) => {
+  return await updateDoc(doc(db, "books", bookId), {
+    stock: increment(-quantity),
+    updatedAt: serverTimestamp(),
+  })
+}
+
+export const addBookStock = async (bookId: string, quantity: number) => {
+  return await updateDoc(doc(db, "books", bookId), {
+    stock: increment(quantity),
+    updatedAt: serverTimestamp(),
+  })
+}
+
+export const checkBookAvailability = async (bookId: string, requestedQuantity: number) => {
+  const bookDoc = await getDocs(query(collection(db, "books"), where("__name__", "==", bookId)))
+  if (!bookDoc.empty) {
+    const book = bookDoc.docs[0].data()
+    return (book.stock || 0) >= requestedQuantity
+  }
+  return false
 }

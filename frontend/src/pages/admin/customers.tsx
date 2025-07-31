@@ -1,0 +1,235 @@
+"use client"
+
+import { useState } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from "@/components/ui/table"
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Users, Search, MoreHorizontal, Eye, Mail, Ban } from "lucide-react"
+import { useCustomers } from "@/hooks/use-customers"
+import { useToast } from "@/hooks/use-toast"
+import { AdminLayout } from "@/components/admin/admin-layout"
+import { CustomerModal } from "@/components/admin/customer-modal"
+
+export default function AdminCustomers() {
+  const { customers, loading, analytics } = useCustomers()
+  const { toast } = useToast()
+  const [searchTerm, setSearchTerm] = useState("")
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [selectedCustomer, setSelectedCustomer] = useState<any>(null)
+
+  const handleViewCustomer = (customer: any) => {
+    setSelectedCustomer(customer)
+    setIsModalOpen(true)
+  }
+
+  const filteredCustomers = customers.filter(customer => 
+    customer.displayName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    customer.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    customer.phone?.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  return (
+    <AdminLayout>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Customer Management</h1>
+            <p className="text-gray-600">View and manage customer accounts</p>
+          </div>
+        </div>
+
+        {/* Analytics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center">
+                <Users className="h-8 w-8 text-blue-600" />
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Total Customers</p>
+                  <p className="text-2xl font-bold">{analytics.total}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center">
+                <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
+                  <span className="text-green-600 font-bold">✓</span>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Active</p>
+                  <p className="text-2xl font-bold text-green-600">{analytics.active}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center">
+                <div className="h-8 w-8 rounded-full bg-orange-100 flex items-center justify-center">
+                  <span className="text-orange-600 font-bold">📧</span>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Newsletter</p>
+                  <p className="text-2xl font-bold text-orange-600">{analytics.newsletter}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center">
+                <div className="h-8 w-8 rounded-full bg-purple-100 flex items-center justify-center">
+                  <span className="text-purple-600 font-bold">🛒</span>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">With Orders</p>
+                  <p className="text-2xl font-bold text-purple-600">{analytics.withOrders}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Search */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="relative max-w-sm">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Search customers..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Customers Table */}
+        <Card>
+          <CardHeader>
+            <CardTitle>All Customers ({filteredCustomers.length})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600 mx-auto"></div>
+                <p className="mt-2 text-gray-600">Loading customers...</p>
+              </div>
+            ) : filteredCustomers.length === 0 ? (
+              <div className="text-center py-8">
+                <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600">No customers found</p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>Orders</TableHead>
+                    <TableHead>Total Spent</TableHead>
+                    <TableHead>Joined</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredCustomers.map((customer) => (
+                    <TableRow key={customer.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          {customer.photoURL ? (
+                            <img
+                              src={customer.photoURL}
+                              alt={customer.displayName}
+                              className="w-8 h-8 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                              <span className="text-xs font-medium">
+                                {customer.displayName?.charAt(0) || customer.email?.charAt(0)}
+                              </span>
+                            </div>
+                          )}
+                          <div>
+                            <p className="font-medium">{customer.displayName || "N/A"}</p>
+                            {customer.preferences?.newsletter && (
+                              <Badge variant="outline" className="text-xs">Newsletter</Badge>
+                            )}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>{customer.email}</TableCell>
+                      <TableCell>{customer.phone || "N/A"}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">
+                          {customer.orderCount || 0} orders
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        ₹{customer.totalSpent || 0}
+                      </TableCell>
+                      <TableCell>
+                        {customer.createdAt?.toDate().toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleViewCustomer(customer)}>
+                              <Eye className="h-4 w-4 mr-2" />
+                              View Profile
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <Mail className="h-4 w-4 mr-2" />
+                              Send Email
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="text-red-600">
+                              <Ban className="h-4 w-4 mr-2" />
+                              Suspend Account
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <CustomerModal
+        open={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        customer={selectedCustomer}
+      />
+    </AdminLayout>
+  )
+}

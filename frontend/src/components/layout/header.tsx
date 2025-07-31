@@ -2,14 +2,26 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Menu, X } from "lucide-react"
+import { Menu, X, User, LogOut } from "lucide-react"
 import { Link, useLocation } from "react-router-dom"
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { CartIcon } from "./cart-icon"
+import { useAuth } from "@/contexts/auth-context"
+import { useToast } from "@/hooks/use-toast"
 import anime from "animejs"
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const location = useLocation()
+  const { user, logout } = useAuth()
+  const { toast } = useToast()
 
   useEffect(() => {
     anime({
@@ -32,6 +44,22 @@ export function Header() {
         delay: anime.stagger(50),
         duration: 300,
         easing: "easeOutQuart",
+      })
+    }
+  }
+
+  const handleLogout = async () => {
+    try {
+      await logout()
+      toast({
+        title: "Logged out",
+        description: "You have been logged out successfully.",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to logout. Please try again.",
+        variant: "destructive",
       })
     }
   }
@@ -70,11 +98,49 @@ export function Header() {
 
           <div className="flex items-center space-x-4">
             <CartIcon />
-            <Link to="/contact">
-              <Button className="header-item hidden md:inline-flex bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg hover:from-amber-500 hover:to-orange-500 transition-all">
-                Become an Author Today!
-              </Button>
-            </Link>
+            
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="header-item hidden md:flex items-center space-x-2">
+                    {user.photoURL ? (
+                      <img
+                        src={user.photoURL}
+                        alt="Profile"
+                        className="w-6 h-6 rounded-full object-cover"
+                      />
+                    ) : (
+                      <User className="w-5 h-5" />
+                    )}
+                    <span>{user.displayName || user.email?.split('@')[0]}</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link to="/profile">
+                      <User className="mr-2 h-4 w-4" />
+                      Profile & Orders
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Sign out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <div className="header-item hidden md:flex items-center space-x-2">
+                <Button variant="outline" asChild>
+                  <Link to="/auth/login">Sign In</Link>
+                </Button>
+                <Button asChild>
+                  <Link to="/auth/register">Sign Up</Link>
+                </Button>
+              </div>
+            )}
 
             <Button variant="ghost" size="icon" onClick={toggleMenu} className="md:hidden">
               {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -101,11 +167,34 @@ export function Header() {
               <div className="mobile-menu-item pt-4">
                 <CartIcon />
               </div>
-              <Link to="/contact">
-                <Button className="mobile-menu-item w-full mt-4 bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg hover:from-amber-500 hover:to-orange-500 transition-all">
-                  Become an Author Today!
-                </Button>
-              </Link>
+              
+              {user ? (
+                <div className="mobile-menu-item space-y-2 pt-4 border-t">
+                  <Link to="/profile">
+                    <Button variant="outline" className="w-full justify-start">
+                      <User className="w-4 h-4 mr-2" />
+                      My Account
+                    </Button>
+                  </Link>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start"
+                    onClick={handleLogout}
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Sign Out
+                  </Button>
+                </div>
+              ) : (
+                <div className="mobile-menu-item space-y-2 pt-4 border-t">
+                  <Link to="/auth/login">
+                    <Button variant="outline" className="w-full">Sign In</Button>
+                  </Link>
+                  <Link to="/auth/register">
+                    <Button className="w-full">Sign Up</Button>
+                  </Link>
+                </div>
+              )}
             </nav>
           </div>
         )}
