@@ -15,7 +15,7 @@ import { useUser } from "@/contexts/user-context"
 import { useAuth } from "@/contexts/auth-context"
 import { useNavigate } from "react-router-dom"
 import { useToast } from "@/hooks/use-toast"
-import { collection, addDoc, serverTimestamp, doc, getDoc } from "firebase/firestore"
+import { collection, addDoc, serverTimestamp, doc, getDoc, query, where, getDocs } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { validateCoupon, applyCoupon } from "@/lib/firebase-utils"
 
@@ -62,11 +62,14 @@ export default function CheckoutPage() {
   const [couponCode, setCouponCode] = useState("")
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null)
   const [discount, setDiscount] = useState(0)
+  const [shippingMethods, setShippingMethods] = useState<any[]>([])
+  const [loadingShipping, setLoadingShipping] = useState(true)
 
   useEffect(() => {
     if (items.length === 0) {
       navigate('/cart')
     }
+    loadShippingMethods()
   }, [items, navigate])
 
   useEffect(() => {
@@ -88,6 +91,27 @@ export default function CheckoutPage() {
       }
     }
   }, [userProfile])
+
+  const loadShippingMethods = async () => {
+    try {
+      const q = query(collection(db, "shippingMethods"), where("status", "==", "active"))
+      const querySnapshot = await getDocs(q)
+      const methods = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }))
+      setShippingMethods(methods)
+      
+      // Set default shipping method if available
+      if (methods.length > 0) {
+        setFormData(prev => ({ ...prev, shippingMethod: methods[0].id }))
+      }
+    } catch (error) {
+      console.error("Error loading shipping methods:", error)
+    } finally {
+      setLoadingShipping(false)
+    }
+  }
 
   const shipping = getTotalPrice() > 500 ? 0 : 50
   const tax = Math.round(getTotalPrice() * 0.18)
@@ -135,6 +159,16 @@ export default function CheckoutPage() {
         return false
       }
     }
+    
+    if (shippingMethods.length === 0) {
+      toast({
+        title: "Shipping Not Available",
+        description: "Shipping methods are not configured yet. Please contact admin.",
+        variant: "destructive"
+      })
+      return false
+    }
+    
     return true
   }
 
@@ -142,6 +176,15 @@ export default function CheckoutPage() {
     e.preventDefault()
     
     if (!validateForm()) return
+    
+    if (shippingMethods.length === 0) {
+      toast({
+        title: "Cannot Place Order",
+        description: "Shipping methods are not configured. Please contact support.",
+        variant: "destructive"
+      })
+      return
+    }
 
     setProcessing(true)
 
@@ -431,35 +474,48 @@ export default function CheckoutPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <RadioGroup
-                    value={formData.shippingMethod}
-                    onValueChange={(value) => handleInputChange('shippingMethod', value)}
-                  >
-                    <div className="flex items-center space-x-2 p-4 border rounded-lg">
-                      <RadioGroupItem value="standard" id="standard" />
-                      <Label htmlFor="standard" className="flex-1">
-                        <div className="flex justify-between">
-                          <div>
-                            <p className="font-medium">Standard Shipping</p>
-                            <p className="text-sm text-muted-foreground">5-7 business days</p>
-                          </div>
-                          <p className="font-medium">{shipping === 0 ? 'Free' : `₹${shipping}`}</p>
-                        </div>
-                      </Label>
+                  {loadingShipping ? (
+                    <div className="text-center py-4">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+                      <p className="text-sm text-muted-foreground mt-2">Loading shipping methods...</p>
                     </div>
-                    <div className="flex items-center space-x-2 p-4 border rounded-lg">
-                      <RadioGroupItem value="express" id="express" />
-                      <Label htmlFor="express" className="flex-1">
-                        <div className="flex justify-between">
-                          <div>
-                            <p className="font-medium">Express Shipping</p>
-                            <p className="text-sm text-muted-foreground">2-3 business days</p>
-                          </div>
-                          <p className="font-medium">₹100</p>
-                        </div>
-                      </Label>
+                  ) : shippingMethods.length === 0 ? (
+                    <div className="text-center py-8 border-2 border-dashed border-red-200 rounded-lg bg-red-50">
+                      <Truck className="h-12 w-12 text-red-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-red-800 mb-2">No Shipping Methods Available</h3>
+                      <p className="text-red-600 mb-4">
+                        Shipping methods have not been configured yet. Please contact the administrator to set up delivery options.
+                      </p>
+                      <p className="text-sm text-red-500">
+                        You cannot place an order until shipping methods are available.
+                      </p>
                     </div>
-                  </RadioGroup>
+                  ) : (
+                    <RadioGroup
+                      value={formData.shippingMethod}
+                      onValueChange={(value) => handleInputChange('shippingMethod', value)}
+                    >
+                      {shippingMethods.map((method) => (
+                        <div key={method.id} className="flex items-center space-x-2 p-4 border rounded-lg">
+                          <RadioGroupItem value={method.id} id={method.id} />
+                          <Label htmlFor={method.id} className="flex-1">
+                            <div className="flex justify-between">
+                              <div>
+                                <p className="font-medium">{method.name}</p>
+                                <p className="text-sm text-muted-foreground">{method.deliveryTime}</p>
+                                {method.description && (
+                                  <p className="text-xs text-muted-foreground mt-1">{method.description}</p>
+                                )}
+                              </div>
+                              <p className="font-medium">
+                                {method.price === 0 ? 'Free' : `₹${method.price}`}
+                              </p>
+                            </div>
+                          </Label>
+                        </div>
+                      ))}
+                    </RadioGroup>
+                  )}
                 </CardContent>
               </Card>
 
@@ -597,7 +653,7 @@ export default function CheckoutPage() {
                   </div>
 
                   <Button type="submit" size="lg" className="w-full" disabled={processing}>
-                    {processing ? "Processing..." : `Pay ₹${finalTotal}`}
+                    {processing ? "Processing..." : shippingMethods.length === 0 ? "Shipping Not Available" : `Pay ₹${finalTotal}`}
                   </Button>
 
                   <p className="text-xs text-muted-foreground text-center">
