@@ -20,7 +20,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Package, Search, Filter, MoreHorizontal, Eye, Edit, RefreshCw, Truck } from "lucide-react"
+import { Package, Search, MoreHorizontal, Eye, Edit, RefreshCw, Truck } from "lucide-react"
 import { Trash2 } from "lucide-react"
 import { useOrdersAdmin } from "@/hooks/use-orders-admin"
 import { updateOrderStatus, deleteOrder } from "@/lib/firebase-utils"
@@ -75,7 +75,7 @@ export default function AdminOrders() {
     }
   }
   const filteredOrders = orders.filter(order => {
-    const matchesSearch = order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = order.id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          order.shippingAddress?.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          order.shippingAddress?.lastName?.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === "all" || order.status === statusFilter
@@ -225,9 +225,9 @@ export default function AdminOrders() {
                 </TableHeader>
                 <TableBody>
                   {filteredOrders.map((order) => (
-                    <TableRow key={order.id}>
+                    <TableRow key={order.id || ''}>
                       <TableCell className="font-medium">
-                        #{order.id.slice(-8)}
+                        #{order.id?.slice(-8) || ''}
                       </TableCell>
                       <TableCell>
                         <div>
@@ -248,7 +248,7 @@ export default function AdminOrders() {
                         ₹{order.total}
                       </TableCell>
                       <TableCell>
-                        <Badge className={getStatusColor(order.status)}>
+                        <Badge className={getStatusColor(order.status || '')}>
                           {order.status}
                         </Badge>
                       </TableCell>
@@ -267,20 +267,20 @@ export default function AdminOrders() {
                               <Eye className="h-4 w-4 mr-2" />
                               View Details
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleStatusUpdate(order.id, "confirmed")}>
+                            <DropdownMenuItem onClick={() => handleStatusUpdate(order.id || '', "confirmed")}>
                               <Edit className="h-4 w-4 mr-2" />
                               Mark Confirmed
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleStatusUpdate(order.id, "shipped")}>
+                            <DropdownMenuItem onClick={() => handleStatusUpdate(order.id || '', "shipped")}>
                               <Edit className="h-4 w-4 mr-2" />
                               Mark Shipped
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleStatusUpdate(order.id, "delivered")}>
+                            <DropdownMenuItem onClick={() => handleStatusUpdate(order.id || '', "delivered")}>
                               <Edit className="h-4 w-4 mr-2" />
                               Mark Delivered
                             </DropdownMenuItem>
                             <DropdownMenuItem 
-                              onClick={() => handleDeleteOrder(order.id)}
+                              onClick={() => handleDeleteOrder(order.id || '')}
                               className="text-red-600"
                             >
                               <Trash2 className="h-4 w-4 mr-2" />

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { collection, query, where, getDocs, orderBy, limit } from "firebase/firestore"
+import { collection, query, where, getDocs, orderBy } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 
 export function useAnalyticsData(dateRange: string) {
@@ -22,7 +22,7 @@ export function useAnalyticsData(dateRange: string) {
           orderBy("createdAt", "desc")
         )
         const ordersSnapshot = await getDocs(ordersQuery)
-        const orders = ordersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+        const orders = ordersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[]
 
         // Fetch customers
         const customersQuery = query(

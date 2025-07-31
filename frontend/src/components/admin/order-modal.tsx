@@ -8,7 +8,8 @@ import { Separator } from "@/components/ui/separator"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Package, MapPin, CreditCard, Phone, Mail, Truck } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { MapPin, CreditCard, Phone } from "lucide-react"
 import { updateOrderStatus } from "@/lib/firebase-utils"
 import { useToast } from "@/hooks/use-toast"
 
@@ -217,7 +218,7 @@ export function OrderModal({ open, onOpenChange, order }: OrderModalProps) {
                       <Input
                         placeholder="Enter tracking number"
                         value={trackingNumber}
-                        onChange={(e) => setTrackingNumber(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTrackingNumber(e.target.value)}
                       />
                     </div>
                   )}

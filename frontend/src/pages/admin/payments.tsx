@@ -55,7 +55,7 @@ export default function AdminPayments() {
   }
 
   const filteredTransactions = transactions.filter(transaction => 
-    transaction.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            transaction.id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     transaction.orderId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     transaction.customerEmail?.toLowerCase().includes(searchTerm.toLowerCase())
   )
@@ -194,9 +194,9 @@ export default function AdminPayments() {
                 </TableHeader>
                 <TableBody>
                   {filteredTransactions.map((transaction) => (
-                    <TableRow key={transaction.id}>
+                    <TableRow key={transaction.id || ''}>
                       <TableCell className="font-mono text-sm">
-                        {transaction.id.slice(-8)}
+                        {transaction.id?.slice(-8) || ''}
                       </TableCell>
                       <TableCell className="font-mono text-sm">
                         #{transaction.orderId?.slice(-8)}
@@ -218,7 +218,7 @@ export default function AdminPayments() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge className={getStatusColor(transaction.status)}>
+                        <Badge className={getStatusColor(transaction.status || '')}>
                           {transaction.status}
                         </Badge>
                       </TableCell>
@@ -239,7 +239,7 @@ export default function AdminPayments() {
                             </DropdownMenuItem>
                             {transaction.status === "success" && (
                               <DropdownMenuItem 
-                                onClick={() => handleRefund(transaction.id, transaction.amount)}
+                                onClick={() => handleRefund(transaction.id || '', transaction.amount || 0)}
                                 className="text-red-600"
                               >
                                 Process Refund

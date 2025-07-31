@@ -10,8 +10,7 @@ import {
   Users, 
   Package, 
   ShoppingCart,
-  Download,
-  Calendar
+  Download
 } from "lucide-react"
 import { useAnalyticsData } from "@/hooks/use-analytics-data"
 import { AdminLayout } from "@/components/admin/admin-layout"
