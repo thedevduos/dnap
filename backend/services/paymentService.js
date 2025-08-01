@@ -8,9 +8,9 @@ if (typeof fetch === 'undefined') {
 
 // PayU Configuration
 const PAYU_CONFIG = {
-  key: process.env.PAYU_KEY || 'd3dwST',
-  salt: process.env.PAYU_SALT || '4UM3eyk11v0xLxyLvltTcUJvHBTuFrIw',
-  baseUrl: 'https://test.payu.in/_payment'
+  key: process.env.PAYU_KEY,
+  salt: process.env.PAYU_SALT,
+  baseUrl: 'https://test.payu.in/_payment'  
 };
 
 // Razorpay Configuration
