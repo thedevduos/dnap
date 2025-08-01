@@ -88,24 +88,41 @@ export default function AdminOrders() {
       return
     }
 
-    if (window.confirm("Are you sure you want to cancel this order? This will automatically trigger a refund via PayU.")) {
+    // Get payment method display name
+    const getPaymentMethodName = (method: string) => {
+      switch (method) {
+        case 'payu': return 'PayU'
+        case 'razorpay': return 'Razorpay'
+        default: return method
+      }
+    }
+
+    const paymentMethodName = getPaymentMethodName(order.paymentMethod)
+    
+    if (window.confirm(`Are you sure you want to cancel this order? This will automatically trigger a refund via ${paymentMethodName}.`)) {
       try {
         // Update order status to cancelled
         await updateOrderStatus(order.id, "cancelled")
         
-        // Process refund via PayU if payment was made
-        if (order.paymentMethod === 'payu' && order.transactionId) {
-          await processRefund(order.transactionId, order.total)
+        // Process refund if payment was made and transaction ID exists
+        if (order.transactionId && order.total > 0) {
+          await processRefund(order.transactionId, order.total, order.paymentMethod)
+          
+          toast({
+            title: "Order Cancelled",
+            description: `Order has been cancelled and refund initiated via ${paymentMethodName}.`,
+          })
+        } else {
+          toast({
+            title: "Order Cancelled",
+            description: "Order has been cancelled. No refund was processed as no payment was made.",
+          })
         }
-        
-        toast({
-          title: "Order Cancelled",
-          description: "Order has been cancelled and refund initiated via PayU.",
-        })
-      } catch (error) {
+      } catch (error: any) {
+        console.error('Error cancelling order:', error)
         toast({
           title: "Error",
-          description: "Failed to cancel order and process refund.",
+          description: `Failed to cancel order and process refund: ${error.message || 'Unknown error'}`,
           variant: "destructive",
         })
       }
@@ -116,11 +133,22 @@ export default function AdminOrders() {
                          order.shippingAddress?.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          order.shippingAddress?.lastName?.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === "all" || order.status === statusFilter
-    const matchesTab = activeTab === "all" || order.status === activeTab
+    
+    // Filter based on active tab
+    let matchesTab = false
+    if (activeTab === "all") {
+      // Exclude cancelled orders from "All Orders" tab
+      matchesTab = order.status !== "cancelled"
+    } else if (activeTab === "cancelled") {
+      // Only show cancelled orders in "Cancelled Orders" tab
+      matchesTab = order.status === "cancelled"
+    }
+    
     return matchesSearch && matchesStatus && matchesTab
   })
 
   const cancelledOrders = orders.filter(order => order.status === "cancelled")
+  const activeOrders = orders.filter(order => order.status !== "cancelled")
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -148,14 +176,14 @@ export default function AdminOrders() {
         </div>
 
         {/* Analytics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center">
                 <Package className="h-8 w-8 text-blue-600" />
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Total Orders</p>
-                  <p className="text-2xl font-bold">{analytics.total}</p>
+                  <p className="text-sm font-medium text-gray-600">Active Orders</p>
+                  <p className="text-2xl font-bold">{activeOrders.length}</p>
                 </div>
               </div>
             </CardContent>
@@ -202,6 +230,20 @@ export default function AdminOrders() {
               </div>
             </CardContent>
           </Card>
+          
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center">
+                <div className="h-8 w-8 rounded-full bg-red-100 flex items-center justify-center">
+                  <X className="h-4 w-4 text-red-600" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Cancelled</p>
+                  <p className="text-2xl font-bold text-red-600">{cancelledOrders.length}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Filters */}
@@ -227,7 +269,9 @@ export default function AdminOrders() {
                   <SelectItem value="confirmed">Confirmed</SelectItem>
                   <SelectItem value="shipped">Shipped</SelectItem>
                   <SelectItem value="delivered">Delivered</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                  {activeTab === "cancelled" && (
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -239,7 +283,7 @@ export default function AdminOrders() {
           <CardHeader>
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="all">All Orders ({orders.length})</TabsTrigger>
+                <TabsTrigger value="all">Active Orders ({activeOrders.length})</TabsTrigger>
                 <TabsTrigger value="cancelled">Cancelled Orders ({cancelledOrders.length})</TabsTrigger>
               </TabsList>
             </Tabs>

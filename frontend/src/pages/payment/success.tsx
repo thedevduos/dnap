@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { useSearchParams, Link } from "react-router-dom"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -12,62 +12,169 @@ import { collection, addDoc, serverTimestamp, doc, updateDoc, increment, query, 
 import { db } from "@/lib/firebase"
 import { useUser } from "@/contexts/user-context"
 import { applyCoupon } from "@/lib/firebase-utils"
+import { verifyPaymentResponse, getPaymentMethodDisplayName, getOrderData, clearOrderData } from "@/lib/payment-utils"
 
 export default function PaymentSuccessPage() {
   const [searchParams] = useSearchParams()
   const [processing, setProcessing] = useState(true)
   const [orderDetails, setOrderDetails] = useState<any>(null)
+  const processedRef = useRef(false)
+  const processingRef = useRef(false)
+  const mountedRef = useRef(false)
+  const effectRunRef = useRef(false)
+  const clearCartRef = useRef<any>(null)
+  const toastRef = useRef<any>(null)
+  const addAddressRef = useRef<any>(null)
+  
   const { clearCart } = useCart()
   const { toast } = useToast()
   const { addAddress } = useUser()
+  
+  // Store refs to avoid dependency issues
+  clearCartRef.current = clearCart
+  toastRef.current = toast
+  addAddressRef.current = addAddress
 
   useEffect(() => {
+    // Check if this effect has already run for this payment session
+    const effectRunFlag = sessionStorage.getItem('successPageEffectRun')
+    if (effectRunFlag) {
+      console.log('Effect already run for this payment session, skipping...')
+      return
+    }
+
+    // Mark that this effect has run
+    sessionStorage.setItem('successPageEffectRun', 'true')
+    
+    // Prevent multiple processing attempts - use a more robust approach
+    if (effectRunRef.current) {
+      console.log('Effect already run, skipping...')
+      return
+    }
+
+    effectRunRef.current = true
+    
+    // Prevent multiple processing attempts
+    if (processedRef.current || processingRef.current || mountedRef.current) {
+      console.log('Payment already processed, currently processing, or component already mounted, skipping...')
+      return
+    }
+
+    mountedRef.current = true
+    
+    // Clear any existing payment processed flag on mount to ensure fresh processing
+    sessionStorage.removeItem('paymentProcessed')
+    
+    // Additional check: if we've already processed this payment, skip
+    const paymentMethod = searchParams.get('method') || 'payu'
+    if (paymentMethod === 'razorpay') {
+      const razorpayResponse = sessionStorage.getItem('razorpayResponse')
+      if (!razorpayResponse) {
+        console.log('No Razorpay response found, skipping...')
+        setProcessing(false)
+        return
+      }
+    }
+
+    console.log('Starting payment processing...')
+    processingRef.current = true
     const processPaymentSuccess = async () => {
       try {
-        const paymentData = {
-          mihpayid: searchParams.get('mihpayid'),
-          mode: searchParams.get('mode'),
-          status: searchParams.get('status'),
-          unmappedstatus: searchParams.get('unmappedstatus'),
-          key: searchParams.get('key'),
-          txnid: searchParams.get('txnid'),
-          amount: searchParams.get('amount'),
-          productinfo: searchParams.get('productinfo'),
-          firstname: searchParams.get('firstname'),
-          email: searchParams.get('email'),
-          hash: searchParams.get('hash')
+        // Get payment method from URL params or session storage
+        const paymentMethod = searchParams.get('method') || 'payu'
+        
+        let paymentData: any = {}
+        let verificationResult: any = null
+
+        if (paymentMethod === 'razorpay') {
+          // Get Razorpay response from session storage
+          const razorpayResponse = sessionStorage.getItem('razorpayResponse')
+          if (razorpayResponse) {
+            paymentData = JSON.parse(razorpayResponse)
+            verificationResult = await verifyPaymentResponse(paymentData, 'razorpay')
+            // Don't remove razorpayResponse yet - we'll remove it after successful processing
+          } else {
+            throw new Error('Razorpay payment data not found')
+          }
+
+        } else {
+          // Handle PayU response
+          paymentData = {
+            mihpayid: searchParams.get('mihpayid'),
+            mode: searchParams.get('mode'),
+            status: searchParams.get('status'),
+            unmappedstatus: searchParams.get('unmappedstatus'),
+            key: searchParams.get('key'),
+            txnid: searchParams.get('txnid'),
+            amount: searchParams.get('amount'),
+            productinfo: searchParams.get('productinfo'),
+            firstname: searchParams.get('firstname'),
+            email: searchParams.get('email'),
+            hash: searchParams.get('hash')
+          }
+          verificationResult = await verifyPaymentResponse(paymentData, 'payu')
         }
 
         // Log payment data for debugging
         console.log('Payment Data received:', paymentData)
+        console.log('Verification result:', verificationResult)
 
-        // Verify payment with backend
-        const verifyResponse = await fetch(`${import.meta.env.VITE_BACKEND_API_URL}/api/payment/verify-payment`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(paymentData),
-        })
-
-        const verifyResult = await verifyResponse.json()
-        console.log('Verification result:', verifyResult)
-
-        // Check if payment was successful (handle both verification success and direct success)
-        const isPaymentSuccessful = verifyResult.success && verifyResult.data.success || 
+        // Check if payment was successful
+        const isPaymentSuccessful = verificationResult?.success || 
                                    paymentData.status === 'success' || 
                                    paymentData.unmappedstatus === 'userCancelled'
 
+        // Check if an order with this transaction ID already exists
+        const transactionId = paymentMethod === 'razorpay' ? paymentData.razorpay_payment_id : 
+                            paymentData.mihpayid
+        
+        if (transactionId) {
+          const existingOrderQuery = query(
+            collection(db, "orders"),
+            where("transactionId", "==", transactionId)
+          )
+          const existingOrderSnapshot = await getDocs(existingOrderQuery)
+          
+          if (!existingOrderSnapshot.empty) {
+            console.log('Order with this transaction ID already exists, skipping...')
+            const existingOrder = existingOrderSnapshot.docs[0]
+            setOrderDetails({
+              orderId: existingOrder.id,
+              amount: paymentData.amount,
+              transactionId: transactionId,
+              paymentMethod: paymentMethod
+            })
+            setProcessing(false)
+            processedRef.current = true
+            return
+          }
+        }
+
         if (isPaymentSuccessful) {
           // Get stored order data from sessionStorage
-          const storedOrderData = sessionStorage.getItem('pendingOrderData')
+          const orderData = getOrderData()
+          console.log('Stored order data found:', !!orderData)
+          console.log('Order data details:', orderData ? {
+            userId: orderData.userId,
+            userEmail: orderData.userEmail,
+            items: orderData.items?.length || 0,
+            total: orderData.total,
+            shippingAddress: orderData.shippingAddress
+          } : null)
           
-          if (storedOrderData) {
-            const orderData = JSON.parse(storedOrderData)
+          // Debug: Check what's in sessionStorage
+          console.log('All sessionStorage keys:', Object.keys(sessionStorage))
+          console.log('pendingOrderData in sessionStorage:', sessionStorage.getItem('pendingOrderData'))
+          console.log('paymentProcessing flag:', sessionStorage.getItem('paymentProcessing'))
+          
+          if (orderData) {
+            console.log('Parsed order data:', orderData)
             
             // Create the actual order in database
             const orderRef = await addDoc(collection(db, "orders"), {
               ...orderData,
+              transactionId: paymentMethod === 'razorpay' ? paymentData.razorpay_payment_id : 
+                            paymentData.mihpayid,
               createdAt: serverTimestamp()
             })
 
@@ -114,69 +221,118 @@ export default function PaymentSuccessPage() {
             // Update order status
             await updateOrderStatus(orderRef.id, 'confirmed', {
               paymentStatus: 'paid',
-              transactionId: paymentData.mihpayid,
-              paymentMode: paymentData.mode
+              transactionId: paymentMethod === 'razorpay' ? paymentData.razorpay_payment_id : 
+                            paymentData.mihpayid,
+              paymentMode: paymentMethod === 'razorpay' ? 'online' :
+                          paymentData.mode,
+              paymentMethod: paymentMethod
             })
 
             // Add transaction record
             await addTransaction({
               orderId: orderRef.id,
-              gatewayTransactionId: paymentData.mihpayid,
+              gatewayTransactionId: paymentMethod === 'razorpay' ? paymentData.razorpay_payment_id : 
+                                   paymentData.mihpayid,
               amount: parseFloat(paymentData.amount || '0'),
               status: 'success',
-              paymentMethod: 'payu',
-              customerName: paymentData.firstname,
-              customerEmail: paymentData.email,
-              paymentMode: paymentData.mode
+              paymentMethod: paymentMethod,
+              customerName: paymentMethod === 'razorpay' ? orderData.shippingAddress.firstName + ' ' + orderData.shippingAddress.lastName :
+                           paymentData.firstname,
+              customerEmail: paymentMethod === 'razorpay' ? orderData.userEmail :
+                            paymentData.email,
+              paymentMode: paymentMethod === 'razorpay' ? 'online' :
+                          paymentData.mode
             })
 
             setOrderDetails({
               orderId: orderRef.id,
               amount: paymentData.amount,
-              transactionId: paymentData.mihpayid
+              transactionId: paymentMethod === 'razorpay' ? paymentData.razorpay_payment_id : 
+                            paymentData.mihpayid,
+              paymentMethod: paymentMethod
             })
 
-            // Clear stored order data
-            sessionStorage.removeItem('pendingOrderData')
+            // Clear cart first
+            clearCartRef.current()
 
-            // Clear cart
-            clearCart()
+            // Now remove the razorpay response since processing is complete
+            if (paymentMethod === 'razorpay') {
+              sessionStorage.removeItem('razorpayResponse')
+            }
 
-            toast({
+            // Clear stored order data last
+            clearOrderData()
+            
+            // Clear payment processing flag
+            sessionStorage.removeItem('paymentProcessing')
+
+            toastRef.current({
               title: "Payment Successful!",
               description: "Your order has been confirmed.",
             })
           } else {
-            throw new Error('Order data not found')
+            // If order data is not found, throw an error
+            console.error('Order data not found in sessionStorage. Cannot create order without complete data.')
+            throw new Error('Order data not found. Please try again or contact support.')
           }
         } else {
           throw new Error('Payment verification failed')
         }
+
+        // Mark as processed to prevent multiple attempts
+        console.log('Payment processing completed successfully')
+        processedRef.current = true
+        processingRef.current = false
+        sessionStorage.setItem('paymentProcessed', 'true')
 
       } catch (error: any) {
         console.error('Payment processing error:', error)
         
         // Check if it's a verification error
         if (error?.message?.includes('verification')) {
-          toast({
+          toastRef.current({
             title: "Payment Verification Error",
             description: "Payment verification failed. Please contact support.",
             variant: "destructive",
           })
         } else {
-          toast({
+          toastRef.current({
             title: "Payment Error",
             description: "There was an issue processing your payment.",
             variant: "destructive",
           })
         }
+        
+        // Mark as processed even on error to prevent infinite retries
+        console.log('Payment processing completed with error')
+        processedRef.current = true
+        processingRef.current = false
+        sessionStorage.setItem('paymentProcessed', 'true')
+        
+        // Remove razorpay response on error as well
+        const paymentMethod = searchParams.get('method') || 'payu'
+        if (paymentMethod === 'razorpay') {
+          sessionStorage.removeItem('razorpayResponse')
+        }
+        
+        // Clear payment processing flag on error as well
+        sessionStorage.removeItem('paymentProcessing')
       } finally {
         setProcessing(false)
       }
     }
 
     processPaymentSuccess()
-  }, [searchParams, clearCart, toast, addAddress])
+
+    // Cleanup function to clear the processed flag when component unmounts
+    return () => {
+      sessionStorage.removeItem('paymentProcessed')
+      sessionStorage.removeItem('paymentProcessing')
+      sessionStorage.removeItem('successPageEffectRun')
+      mountedRef.current = false
+      effectRunRef.current = false
+    }
+      }, []) // Empty dependency array to ensure effect runs only once
 
   if (processing) {
     return (
@@ -221,6 +377,10 @@ export default function PaymentSuccessPage() {
                     <div className="flex justify-between">
                       <span>Transaction ID:</span>
                       <span className="font-mono text-xs">{orderDetails.transactionId}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Payment Method:</span>
+                      <span className="font-semibold">{getPaymentMethodDisplayName(orderDetails.paymentMethod)}</span>
                     </div>
                   </div>
                 </div>

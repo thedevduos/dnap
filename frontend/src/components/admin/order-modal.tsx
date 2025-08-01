@@ -154,7 +154,9 @@ export function OrderModal({ open, onOpenChange, order }: OrderModalProps) {
                 </h3>
                 <div className="p-4 border rounded-lg">
                   <p className="font-medium">
-                    {order.paymentMethod === 'payu' ? 'PayU Payment Gateway' : order.paymentMethod}
+                    {order.paymentMethod === 'payu' ? 'PayU Payment Gateway' :
+                 order.paymentMethod === 'razorpay' ? 'Razorpay' :
+                 order.paymentMethod}
                   </p>
                   {order.transactionId && (
                     <p className="text-sm text-muted-foreground mt-1">

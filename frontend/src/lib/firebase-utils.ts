@@ -271,17 +271,57 @@ export const updateTransaction = async (id: string, transactionData: any) => {
   })
 }
 
-export const processRefund = async (transactionId: string, amount: number) => {
-  // Update transaction status
-  await updateDoc(doc(db, "transactions", transactionId), {
-    status: "refunded",
-    refundAmount: amount,
-    refundedAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  })
-  
-  // In a real implementation, you would also call the payment gateway's refund API
-  return { success: true, refundAmount: amount }
+export const processRefund = async (transactionId: string, amount: number, paymentMethod?: string) => {
+  try {
+    // Call backend API to process refund based on payment method
+    const response = await fetch(`${import.meta.env.VITE_BACKEND_API_URL}/api/payment/process-refund`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        transactionId,
+        amount,
+        refundAmount: amount,
+        paymentMethod
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to process refund');
+    }
+
+    const refundResult = await response.json();
+    
+    // The API wraps the response in a 'data' field
+    const refundData = refundResult.data || refundResult;
+    
+    // Prepare update data with validation
+    const updateData: any = {
+      status: "refunded",
+      refundAmount: amount,
+      refundedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    }
+    
+    // Only add refundId and refundStatus if they exist and are not undefined
+    if (refundData.refundId) {
+      updateData.refundId = refundData.refundId;
+    }
+    
+    if (refundData.status) {
+      updateData.refundStatus = refundData.status;
+    }
+    
+    // Update transaction status in Firestore
+    await updateDoc(doc(db, "transactions", transactionId), updateData)
+    
+    return refundData;
+  } catch (error) {
+    console.error('Error processing refund:', error);
+    throw error;
+  }
 }
 
 // Testimonials

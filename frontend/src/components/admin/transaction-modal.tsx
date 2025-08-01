@@ -24,16 +24,16 @@ export function TransactionModal({ open, onOpenChange, transaction }: Transactio
   const handleRefund = async () => {
     setIsProcessingRefund(true)
     try {
-      await processRefund(transaction.id, transaction.amount)
+      await processRefund(transaction.id, transaction.amount, transaction.paymentMethod || 'payu')
       toast({
         title: "Refund Processed",
         description: "Refund has been initiated successfully.",
       })
       onOpenChange(false)
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to process refund.",
+        description: `Failed to process refund: ${error.message || 'Unknown error'}`,
         variant: "destructive",
       })
     } finally {
@@ -116,7 +116,11 @@ export function TransactionModal({ open, onOpenChange, transaction }: Transactio
               </div>
               <div className="flex justify-between">
                 <span>Payment Method</span>
-                <span>{transaction.paymentMethod || "PayU"}</span>
+                <span>
+                  {transaction.paymentMethod === 'payu' ? 'PayU' :
+                   transaction.paymentMethod === 'razorpay' ? 'Razorpay' :
+                   transaction.paymentMethod || "PayU"}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span>Gateway Transaction ID</span>

@@ -242,7 +242,9 @@ export default function OrderDetailPage() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm">
-                    {order.paymentMethod === 'payu' ? 'PayU Payment Gateway' : order.paymentMethod}
+                    {order.paymentMethod === 'payu' ? 'PayU Payment Gateway' :
+                 order.paymentMethod === 'razorpay' ? 'Razorpay' :
+                 order.paymentMethod}
                   </p>
                   {order.transactionId && (
                     <p className="text-xs text-muted-foreground mt-1">

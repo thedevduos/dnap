@@ -40,17 +40,17 @@ export default function AdminPayments() {
     setIsModalOpen(true)
   }
 
-  const handleRefund = async (transactionId: string, amount: number) => {
+  const handleRefund = async (transactionId: string, amount: number, paymentMethod: string) => {
     try {
-      await processRefund(transactionId, amount)
+      await processRefund(transactionId, amount, paymentMethod)
       toast({
         title: "Refund Processed",
         description: "Refund has been initiated successfully.",
       })
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to process refund.",
+        description: `Failed to process refund: ${error.message || 'Unknown error'}`,
         variant: "destructive",
       })
     }
@@ -65,7 +65,12 @@ export default function AdminPayments() {
     return matchesSearch && matchesPaymentMethod
   })
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string, refundStatus?: string) => {
+    // Check for refund status first
+    if (refundStatus === "partial" || refundStatus === "full") {
+      return "bg-purple-100 text-purple-800"
+    }
+    
     switch (status) {
       case "success": return "bg-green-100 text-green-800"
       case "pending": return "bg-yellow-100 text-yellow-800"
@@ -73,6 +78,16 @@ export default function AdminPayments() {
       case "refunded": return "bg-purple-100 text-purple-800"
       default: return "bg-gray-100 text-gray-800"
     }
+  }
+
+  const getStatusDisplay = (status: string, refundStatus?: string) => {
+    if (refundStatus === "partial") {
+      return "Partially Refunded"
+    }
+    if (refundStatus === "full") {
+      return "Fully Refunded"
+    }
+    return status
   }
 
   return (
@@ -96,7 +111,7 @@ export default function AdminPayments() {
         </div>
 
         {/* Analytics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center">
@@ -150,6 +165,20 @@ export default function AdminPayments() {
               </div>
             </CardContent>
           </Card>
+          
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center">
+                <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center">
+                  <span className="text-gray-600 font-bold">#</span>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Total Transactions</p>
+                  <p className="text-2xl font-bold text-gray-600">{analytics.totalTransactions}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Search and Filters */}
@@ -172,7 +201,7 @@ export default function AdminPayments() {
                 <SelectContent>
                   <SelectItem value="all">All Methods</SelectItem>
                   <SelectItem value="payu">PayU</SelectItem>
-                  <SelectItem value="cod">Cash on Delivery</SelectItem>
+                  <SelectItem value="razorpay">Razorpay</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -183,10 +212,17 @@ export default function AdminPayments() {
         <Card>
           <CardHeader>
             <CardTitle>
-              {paymentMethodFilter === "payu" ? "PayU Transactions" : "All Transactions"} ({filteredTransactions.length})
+              {paymentMethodFilter === "all" ? "All Transactions" : 
+               paymentMethodFilter === "payu" ? "PayU Transactions" :
+               paymentMethodFilter === "razorpay" ? "Razorpay Transactions" :
+               "Transactions"} ({filteredTransactions.length})
             </CardTitle>
-            {paymentMethodFilter === "payu" && (
-              <p className="text-sm text-gray-600">PayU payment gateway transactions and refunds</p>
+            {paymentMethodFilter !== "all" && (
+              <p className="text-sm text-gray-600">
+                {paymentMethodFilter === "payu" ? "PayU payment gateway transactions and refunds" :
+                 paymentMethodFilter === "razorpay" ? "Razorpay payment gateway transactions and refunds" :
+                 "Payment gateway transactions and refunds"}
+              </p>
             )}
           </CardHeader>
           <CardContent>
@@ -221,7 +257,7 @@ export default function AdminPayments() {
                         {transaction.id?.slice(-8) || ''}
                       </TableCell>
                       <TableCell className="font-mono text-sm">
-                        #{transaction.orderId?.slice(-8)}
+                        {transaction.orderId ? `#${transaction.orderId.slice(-8)}` : 'N/A'}
                       </TableCell>
                       <TableCell>
                         <div>
@@ -236,16 +272,23 @@ export default function AdminPayments() {
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">
-                          {transaction.paymentMethod || "PayU"}
+                          {transaction.paymentMethod === 'payu' ? 'PayU' :
+                           transaction.paymentMethod === 'razorpay' ? 'Razorpay' :
+                           transaction.paymentMethod || "PayU"}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge className={getStatusColor(transaction.status || '')}>
-                          {transaction.status}
+                        <Badge className={getStatusColor(transaction.status || '', transaction.refundStatus)}>
+                          {getStatusDisplay(transaction.status || '', transaction.refundStatus)}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {transaction.createdAt?.toDate().toLocaleDateString()}
+                        {transaction.createdAt ? 
+                          (typeof transaction.createdAt === 'object' && 'toDate' in transaction.createdAt) 
+                            ? transaction.createdAt.toDate().toLocaleDateString()
+                            : new Date(transaction.createdAt).toLocaleDateString()
+                          : 'N/A'
+                        }
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>
@@ -261,7 +304,7 @@ export default function AdminPayments() {
                             </DropdownMenuItem>
                             {transaction.status === "success" && (
                               <DropdownMenuItem 
-                                onClick={() => handleRefund(transaction.id || '', transaction.amount || 0)}
+                                onClick={() => handleRefund(transaction.id || '', transaction.amount || 0, transaction.paymentMethod || 'payu')}
                                 className="text-red-600"
                               >
                                 Process Refund

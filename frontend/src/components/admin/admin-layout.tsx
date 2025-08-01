@@ -34,7 +34,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 
 interface AdminLayoutProps {
   children: React.ReactNode
@@ -46,10 +46,12 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   const navigate = useNavigate()
   const { logout, user } = useAuth()
   const { toast } = useToast()
+  const loggedInRef = useRef(false)
 
   useEffect(() => {
-    if (user) {
+    if (user && !loggedInRef.current) {
       console.log('User logged in:', user.email)
+      loggedInRef.current = true
     }
   }, [user?.uid])
 

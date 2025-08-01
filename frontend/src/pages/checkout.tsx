@@ -20,6 +20,14 @@ import { db } from "@/lib/firebase"
 import { validateCoupon } from "@/lib/firebase-utils"
 import { Badge } from "@/components/ui/badge"
 import { AddressModal } from "@/components/profile/address-modal"
+import { 
+  handlePayUPayment, 
+  handleRazorpayPayment, 
+  getPaymentMethodDisplayName,
+  getPaymentMethodDescription,
+  storeOrderData,
+  clearOrderData
+} from "@/lib/payment-utils"
 
 interface CheckoutForm {
   email: string
@@ -123,9 +131,14 @@ export default function CheckoutPage() {
     
     // Cleanup function to clear stored order data when component unmounts
     return () => {
-      // Only clear if we're not in the middle of a payment process
-      if (!processing) {
-        sessionStorage.removeItem('pendingOrderData')
+      // Check if payment processing has started
+      const paymentProcessingFlag = sessionStorage.getItem('paymentProcessing')
+      
+      if (!paymentProcessingFlag) {
+        console.log('Clearing pendingOrderData on component unmount - no payment processing')
+        clearOrderData()
+      } else {
+        console.log('Keeping pendingOrderData during payment processing')
       }
     }
   }, [items, navigate, processing, user?.email, toast])
@@ -369,102 +382,78 @@ export default function CheckoutPage() {
         }
       }
 
-      // For PayU, we don't create the order in DB until payment is successful
-      if (formData.paymentMethod === 'payu') {
-        console.log('Creating PayU payment request...')
-        
-        // Create a temporary order ID for the payment request
-        const tempOrderId = `TEMP_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-        
-        const paymentResponse = await fetch(`${import.meta.env.VITE_BACKEND_API_URL}/api/payment/create-payment`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            orderId: tempOrderId,
-            amount: finalTotal,
-            customerName: `${formData.firstName} ${formData.lastName}`,
-            customerEmail: formData.email,
-            customerPhone: formData.phone,
-            productInfo: `DNA Publications - ${items.length} books`
-          }),
-        })
+      // Create a temporary order ID for the payment request
+      const tempOrderId = `TEMP_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      
+      // Store order data in sessionStorage for payment success page
+      const orderData = {
+        userId: user?.uid || null,
+        items: items.map(item => ({
+          bookId: item.id,
+          title: item.title,
+          author: item.author,
+          price: item.price,
+          quantity: item.quantity,
+          imageUrl: item.imageUrl
+        })),
+        shippingAddress: {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          phone: formData.phone,
+          address1: formData.address1,
+          address2: formData.address2,
+          city: formData.city,
+          state: formData.state,
+          postalCode: formData.postalCode,
+          country: formData.country
+        },
+        subtotal: getTotalPrice(),
+        shipping: shipping,
+        tax: tax,
+        total: finalTotal,
+        paymentMethod: formData.paymentMethod,
+        shippingMethod: formData.shippingMethod,
+        shippingMethodDetails: selectedShippingMethod ? {
+          name: selectedShippingMethod.name,
+          price: selectedShippingMethod.price,
+          deliveryTime: selectedShippingMethod.deliveryTime
+        } : null,
+        appliedCoupon: appliedCoupon ? {
+          code: appliedCoupon.code,
+          discountAmount: discount
+        } : null,
+        discount: discount,
+        status: 'pending',
+        userEmail: formData.email,
+        saveAddress: false // Already saved above, so set to false
+      }
+      
+      storeOrderData(orderData)
+      console.log('Order data stored in checkout:', orderData)
+      
+      // Set a flag to indicate payment processing has started
+      sessionStorage.setItem('paymentProcessing', 'true')
+      
+      // Handle different payment methods
+      const paymentData = {
+        orderId: tempOrderId,
+        amount: finalTotal,
+        customerName: `${formData.firstName} ${formData.lastName}`,
+        customerEmail: formData.email,
+        customerPhone: formData.phone,
+        productInfo: `DNA Publications - ${items.length} books`
+      }
 
-        const paymentResult = await paymentResponse.json()
-        console.log('Payment response:', paymentResult)
-        
-        if (paymentResult.success) {
-          console.log('Payment request successful, redirecting to PayU...')
-          
-          // Store order data in sessionStorage for payment success page
-          const orderData = {
-            userId: user?.uid || null,
-            items: items.map(item => ({
-              bookId: item.id,
-              title: item.title,
-              author: item.author,
-              price: item.price,
-              quantity: item.quantity,
-              imageUrl: item.imageUrl
-            })),
-            shippingAddress: {
-              firstName: formData.firstName,
-              lastName: formData.lastName,
-              phone: formData.phone,
-              address1: formData.address1,
-              address2: formData.address2,
-              city: formData.city,
-              state: formData.state,
-              postalCode: formData.postalCode,
-              country: formData.country
-            },
-            subtotal: getTotalPrice(),
-            shipping: shipping,
-            tax: tax,
-            total: finalTotal,
-            paymentMethod: formData.paymentMethod,
-            shippingMethod: formData.shippingMethod,
-            shippingMethodDetails: selectedShippingMethod ? {
-              name: selectedShippingMethod.name,
-              price: selectedShippingMethod.price,
-              deliveryTime: selectedShippingMethod.deliveryTime
-            } : null,
-            appliedCoupon: appliedCoupon ? {
-              code: appliedCoupon.code,
-              discountAmount: discount
-            } : null,
-            discount: discount,
-            status: 'pending',
-            userEmail: formData.email,
-            saveAddress: false // Already saved above, so set to false
-          }
-          
-          sessionStorage.setItem('pendingOrderData', JSON.stringify(orderData))
+      switch (formData.paymentMethod) {
+        case 'payu':
+          console.log('Creating PayU payment request...')
+          await handlePayUPayment(paymentData)
           
           // Show loading message
           toast({
             title: "Redirecting to Payment Gateway",
             description: "Please wait while we redirect you to PayU...",
           })
-          
-          // Create form and submit to PayU with a small delay to show the toast
-          setTimeout(() => {
-            const form = document.createElement('form')
-            form.method = 'POST'
-            form.action = paymentResult.paymentUrl
-            
-            Object.keys(paymentResult.params).forEach(key => {
-              const input = document.createElement('input')
-              input.type = 'hidden'
-              input.name = key
-              input.value = paymentResult.params[key]
-              form.appendChild(input)
-            })
-            
-            document.body.appendChild(form)
-            form.submit()
-          }, 1500)
           
           // Add a timeout in case PayU doesn't respond
           setTimeout(() => {
@@ -477,25 +466,34 @@ export default function CheckoutPage() {
               })
             }
           }, 30000) // 30 seconds timeout
-        } else {
-          console.error('Payment request failed:', paymentResult)
-          throw new Error('Failed to create payment request')
-        }
-      } else {
-        // For demo purposes with other payment methods
-        const demoOrderId = `DEMO_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-        setTimeout(() => {
-          // Don't clear cart here - only clear after successful payment
-          navigate(`/order-confirmation/${demoOrderId}`)
+          break
+
+        case 'razorpay':
+          console.log('Creating Razorpay payment request...')
+          await handleRazorpayPayment(paymentData)
+          
+          // Show loading message
           toast({
-            title: "Order Placed!",
-            description: "Your order has been placed successfully.",
+            title: "Opening Razorpay",
+            description: "Please complete your payment in the Razorpay window...",
           })
-        }, 2000)
+          break
+
+
+
+        default:
+          throw new Error('Unsupported payment method')
       }
 
     } catch (error: any) {
       console.error('Checkout error:', error)
+      
+      // Don't clear sessionStorage if it's a payment processing error
+      // as the user might be redirected back to success/failure page
+      if (!paymentProcessing) {
+        clearOrderData()
+      }
+      
       toast({
         title: "Error",
         description: error.message || "Failed to process order. Please try again.",
@@ -845,22 +843,25 @@ export default function CheckoutPage() {
                       <RadioGroupItem value="payu" id="payu" />
                       <Label htmlFor="payu" className="flex-1">
                         <div>
-                          <p className="font-medium">PayU Payment Gateway</p>
+                          <p className="font-medium">{getPaymentMethodDisplayName('payu')}</p>
                           <p className="text-sm text-muted-foreground">
-                            Pay securely with credit card, debit card, net banking, or UPI
+                            {getPaymentMethodDescription('payu')}
                           </p>
                         </div>
                       </Label>
                     </div>
-                    <div className="flex items-center space-x-2 p-4 border rounded-lg opacity-50">
-                      <RadioGroupItem value="cod" id="cod" disabled />
-                      <Label htmlFor="cod" className="flex-1">
+                    <div className="flex items-center space-x-2 p-4 border rounded-lg">
+                      <RadioGroupItem value="razorpay" id="razorpay" />
+                      <Label htmlFor="razorpay" className="flex-1">
                         <div>
-                          <p className="font-medium">Cash on Delivery</p>
-                          <p className="text-sm text-muted-foreground">Currently unavailable</p>
+                          <p className="font-medium">{getPaymentMethodDisplayName('razorpay')}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {getPaymentMethodDescription('razorpay')}
+                          </p>
                         </div>
                       </Label>
                     </div>
+
                   </RadioGroup>
                 </CardContent>
               </Card>

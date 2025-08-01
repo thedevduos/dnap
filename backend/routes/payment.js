@@ -11,14 +11,24 @@ router.post('/create-payment', async (req, res) => {
       customerName,
       customerEmail,
       customerPhone,
-      productInfo
+      productInfo,
+      paymentMethod
     } = req.body;
 
     // Validate required fields
-    if (!orderId || !amount || !customerName || !customerEmail) {
+    if (!orderId || !amount || !customerName || !customerEmail || !paymentMethod) {
       return res.status(400).json({
         success: false,
         message: 'Missing required payment parameters'
+      });
+    }
+
+    // Validate payment method
+    const validPaymentMethods = ['payu', 'razorpay'];
+    if (!validPaymentMethods.includes(paymentMethod)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid payment method'
       });
     }
 
@@ -28,7 +38,8 @@ router.post('/create-payment', async (req, res) => {
       customerName,
       customerEmail,
       customerPhone,
-      productInfo
+      productInfo,
+      paymentMethod
     });
 
     res.status(200).json(paymentRequest);
@@ -46,9 +57,16 @@ router.post('/create-payment', async (req, res) => {
 // Verify payment response
 router.post('/verify-payment', async (req, res) => {
   try {
-    const paymentResponse = req.body;
+    const { paymentMethod, ...responseData } = req.body;
 
-    const verificationResult = await paymentService.verifyPaymentResponse(paymentResponse);
+    if (!paymentMethod) {
+      return res.status(400).json({
+        success: false,
+        message: 'Payment method is required for verification'
+      });
+    }
+
+    const verificationResult = await paymentService.verifyPaymentResponse(responseData, paymentMethod);
 
     res.status(200).json({
       success: true,
@@ -72,10 +90,11 @@ router.post('/process-refund', async (req, res) => {
       transactionId,
       amount,
       refundAmount,
-      reason
+      reason,
+      paymentMethod
     } = req.body;
 
-    if (!transactionId || !amount) {
+    if (!transactionId || !amount || !paymentMethod) {
       return res.status(400).json({
         success: false,
         message: 'Missing required refund parameters'
@@ -86,7 +105,8 @@ router.post('/process-refund', async (req, res) => {
       transactionId,
       amount,
       refundAmount,
-      reason
+      reason,
+      paymentMethod
     });
 
     res.status(200).json({
@@ -108,8 +128,16 @@ router.post('/process-refund', async (req, res) => {
 router.get('/transaction-status/:txnid', async (req, res) => {
   try {
     const { txnid } = req.params;
+    const { paymentMethod } = req.query;
 
-    const statusResult = await paymentService.getTransactionStatus(txnid);
+    if (!paymentMethod) {
+      return res.status(400).json({
+        success: false,
+        message: 'Payment method is required for status check'
+      });
+    }
+
+    const statusResult = await paymentService.getTransactionStatus(txnid, paymentMethod);
 
     res.status(200).json({
       success: true,
@@ -121,6 +149,26 @@ router.get('/transaction-status/:txnid', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to get transaction status',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+});
+
+// Get all transactions from all payment gateways
+router.get('/all-transactions', async (req, res) => {
+  try {
+    const transactionsResult = await paymentService.getAllTransactions();
+
+    res.status(200).json({
+      success: true,
+      data: transactionsResult.data
+    });
+
+  } catch (error) {
+    console.error('All transactions fetch error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch transactions from payment gateways',
       error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
     });
   }

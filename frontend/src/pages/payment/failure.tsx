@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { XCircle, ArrowLeft, RefreshCw } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useCart } from "@/contexts/cart-context"
+import { getOrderData, clearOrderData } from "@/lib/payment-utils"
 
 export default function PaymentFailurePage() {
   const [searchParams] = useSearchParams()
@@ -19,9 +20,9 @@ export default function PaymentFailurePage() {
     const error = searchParams.get('error') || 'Payment was unsuccessful'
     
     // Get stored order data but don't clear it yet
-    const storedOrderData = sessionStorage.getItem('pendingOrderData')
-    if (storedOrderData) {
-      setOrderData(JSON.parse(storedOrderData))
+    const orderData = getOrderData()
+    if (orderData) {
+      setOrderData(orderData)
     }
     
     toast({
@@ -38,8 +39,9 @@ export default function PaymentFailurePage() {
 
   const handleBackToCart = () => {
     // Clear order data and cart when user chooses to go back to cart
-    sessionStorage.removeItem('pendingOrderData')
+    clearOrderData()
     clearCart()
+    sessionStorage.removeItem('paymentProcessing')
     navigate('/cart')
   }
 
