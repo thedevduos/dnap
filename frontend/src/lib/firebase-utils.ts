@@ -273,6 +273,18 @@ export const updateTransaction = async (id: string, transactionData: any) => {
 
 export const processRefund = async (transactionId: string, amount: number, paymentMethod?: string) => {
   try {
+    // First, find the transaction document by gateway transaction ID
+    const transactionsRef = collection(db, "transactions");
+    const q = query(transactionsRef, where("gatewayTransactionId", "==", transactionId));
+    const querySnapshot = await getDocs(q);
+    
+    if (querySnapshot.empty) {
+      throw new Error(`Transaction with gateway ID ${transactionId} not found`);
+    }
+    
+    const transactionDoc = querySnapshot.docs[0];
+    const transactionData = transactionDoc.data();
+    
     // Call backend API to process refund based on payment method
     const response = await fetch(`${import.meta.env.VITE_BACKEND_API_URL}/api/payment/process-refund`, {
       method: 'POST',
@@ -280,10 +292,10 @@ export const processRefund = async (transactionId: string, amount: number, payme
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        transactionId,
-        amount,
+        transactionId: transactionData.gatewayTransactionId,
+        amount: transactionData.amount,
         refundAmount: amount,
-        paymentMethod
+        paymentMethod: transactionData.paymentMethod || paymentMethod || 'payu'
       }),
     });
 
@@ -314,8 +326,8 @@ export const processRefund = async (transactionId: string, amount: number, payme
       updateData.refundStatus = refundData.status;
     }
     
-    // Update transaction status in Firestore
-    await updateDoc(doc(db, "transactions", transactionId), updateData)
+    // Update transaction status in Firestore using the document ID
+    await updateDoc(doc(db, "transactions", transactionDoc.id), updateData)
     
     return refundData;
   } catch (error) {

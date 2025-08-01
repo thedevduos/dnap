@@ -24,7 +24,7 @@ export function TransactionModal({ open, onOpenChange, transaction }: Transactio
   const handleRefund = async () => {
     setIsProcessingRefund(true)
     try {
-      await processRefund(transaction.id, transaction.amount, transaction.paymentMethod || 'payu')
+      await processRefund(transaction.gatewayTransactionId || transaction.id, transaction.amount, transaction.paymentMethod || 'payu')
       toast({
         title: "Refund Processed",
         description: "Refund has been initiated successfully.",
