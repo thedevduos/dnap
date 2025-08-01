@@ -88,35 +88,24 @@ const verifyPaymentResponse = async (responseData) => {
       hash
     } = responseData;
 
-    console.log('Verifying payment response:', responseData);
+    // Verify hash
+    const calculatedHash = verifyPayUResponse({
+      key,
+      txnid,
+      amount,
+      productinfo,
+      firstname,
+      email,
+      status,
+      salt: PAYU_CONFIG.salt
+    });
 
-    // For test environment, be more lenient with hash verification
-    if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
-      console.log('Test environment detected, skipping hash verification');
-    } else {
-      // Verify hash only in production
-      const calculatedHash = verifyPayUResponse({
-        key,
-        txnid,
-        amount,
-        productinfo,
-        firstname,
-        email,
-        status,
-        salt: PAYU_CONFIG.salt
-      });
-
-      if (hash !== calculatedHash) {
-        console.log('Hash mismatch:', { received: hash, calculated: calculatedHash });
-        throw new Error('Invalid payment response hash');
-      }
+    if (hash !== calculatedHash) {
+      throw new Error('Invalid payment response hash');
     }
 
-    // Check for successful payment status
-    const isSuccess = status === 'success' || unmappedstatus === 'userCancelled';
-
     return {
-      success: isSuccess,
+      success: status === 'success',
       transactionId: mihpayid,
       paymentMode: mode,
       status: unmappedstatus,
