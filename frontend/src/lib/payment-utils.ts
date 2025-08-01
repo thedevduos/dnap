@@ -164,6 +164,7 @@ export const getOrderData = (): any => {
       console.log('Order data retrieved successfully:', parsed);
       return parsed;
     }
+    console.log('No order data found in sessionStorage');
     return null;
   } catch (error) {
     console.error('Failed to retrieve order data:', error);
@@ -174,6 +175,8 @@ export const getOrderData = (): any => {
 export const clearOrderData = (): void => {
   try {
     sessionStorage.removeItem('pendingOrderData');
+    sessionStorage.removeItem('paymentProcessing');
+    sessionStorage.removeItem('successPageEffectRun');
     console.log('Order data cleared successfully');
   } catch (error) {
     console.error('Failed to clear order data:', error);
@@ -181,7 +184,12 @@ export const clearOrderData = (): void => {
 };
 
 export const isOrderDataStored = (): boolean => {
-  return sessionStorage.getItem('pendingOrderData') !== null;
+  try {
+    return sessionStorage.getItem('pendingOrderData') !== null;
+  } catch (error) {
+    console.error('Failed to check order data:', error);
+    return false;
+  }
 };
 
 // Get Payment Method Description

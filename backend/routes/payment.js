@@ -94,18 +94,44 @@ router.post('/process-refund', async (req, res) => {
       paymentMethod
     } = req.body;
 
-    if (!transactionId || !amount || !paymentMethod) {
+    // Validate required fields
+    if (!transactionId) {
       return res.status(400).json({
         success: false,
-        message: 'Missing required refund parameters'
+        message: 'Transaction ID is required for refund processing'
       });
     }
+    
+    if (!amount && !refundAmount) {
+      return res.status(400).json({
+        success: false,
+        message: 'Refund amount is required'
+      });
+    }
+    
+    if (!paymentMethod) {
+      return res.status(400).json({
+        success: false,
+        message: 'Payment method is required for refund processing'
+      });
+    }
+    
+    // Use refundAmount if provided, otherwise use full amount
+    const finalRefundAmount = refundAmount || amount;
+    
+    console.log('Processing refund request:', {
+      transactionId,
+      amount,
+      refundAmount: finalRefundAmount,
+      paymentMethod,
+      reason
+    });
 
     const refundResult = await paymentService.processRefund({
       transactionId,
       amount,
-      refundAmount,
-      reason,
+      refundAmount: finalRefundAmount,
+      reason: reason || 'Admin initiated refund',
       paymentMethod
     });
 

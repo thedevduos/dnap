@@ -288,8 +288,9 @@ export default function PaymentSuccessPage() {
       } catch (error: any) {
         console.error('Payment processing error:', error)
         
-        // Check if it's a verification error
-        if (error?.message?.includes('verification')) {
+        if ((order.transactionId || order.gatewayTransactionId) && order.total > 0) {
+          const txnId = order.gatewayTransactionId || order.transactionId
+          await processRefund(txnId, order.total, order.paymentMethod)
           toastRef.current({
             title: "Payment Verification Error",
             description: "Payment verification failed. Please contact support.",

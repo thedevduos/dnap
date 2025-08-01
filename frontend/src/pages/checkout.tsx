@@ -83,48 +83,58 @@ export default function CheckoutPage() {
   useEffect(() => {
     // Check if we have stored order data from a failed payment
     const storedOrderData = sessionStorage.getItem('pendingOrderData')
-    if (storedOrderData && items.length === 0) {
+    if (storedOrderData) {
       try {
         const orderData = JSON.parse(storedOrderData)
         
-        // Restore form data from stored order
-        if (orderData.shippingAddress) {
-          setFormData(prev => ({
-            ...prev,
-            email: orderData.userEmail || user?.email || '',
-            firstName: orderData.shippingAddress.firstName || '',
-            lastName: orderData.shippingAddress.lastName || '',
-            phone: orderData.shippingAddress.phone || '',
-            address1: orderData.shippingAddress.address1 || '',
-            address2: orderData.shippingAddress.address2 || '',
-            city: orderData.shippingAddress.city || '',
-            state: orderData.shippingAddress.state || '',
-            postalCode: orderData.shippingAddress.postalCode || '',
-            country: orderData.shippingAddress.country || 'India',
-            paymentMethod: orderData.paymentMethod || 'payu',
-            shippingMethod: orderData.shippingMethod || 'standard'
-          }))
-        }
+        // Only restore if cart is empty (coming from failed payment)
+        if (items.length === 0) {
+          // Restore form data from stored order
+          if (orderData.shippingAddress) {
+            setFormData(prev => ({
+              ...prev,
+              email: orderData.userEmail || user?.email || '',
+              firstName: orderData.shippingAddress.firstName || '',
+              lastName: orderData.shippingAddress.lastName || '',
+              phone: orderData.shippingAddress.phone || '',
+              address1: orderData.shippingAddress.address1 || '',
+              address2: orderData.shippingAddress.address2 || '',
+              city: orderData.shippingAddress.city || '',
+              state: orderData.shippingAddress.state || '',
+              postalCode: orderData.shippingAddress.postalCode || '',
+              country: orderData.shippingAddress.country || 'India',
+              paymentMethod: orderData.paymentMethod || 'payu',
+              shippingMethod: orderData.shippingMethod || 'standard'
+            }))
+          }
 
-        // Restore applied coupon if any
-        if (orderData.appliedCoupon) {
-          setAppliedCoupon(orderData.appliedCoupon)
-          setDiscount(orderData.discount || 0)
-        }
+          // Restore applied coupon if any
+          if (orderData.appliedCoupon) {
+            setAppliedCoupon(orderData.appliedCoupon)
+            setDiscount(orderData.discount || 0)
+          }
 
-        // Show toast to inform user
-        toast({
-          title: "Order Data Restored",
-          description: "Your order details have been restored from the previous attempt.",
-        })
+          // Show toast to inform user
+          toast({
+            title: "Order Data Restored",
+            description: "Your order details have been restored from the previous attempt.",
+          })
+          
+          // Redirect to cart if no items
+          navigate('/cart')
+          return
+        }
       } catch (error) {
         console.error('Error restoring order data:', error)
         // If restoration fails, clear the stored data
         sessionStorage.removeItem('pendingOrderData')
       }
-    } else if (items.length === 0) {
-      // If no stored data and no items, redirect to cart
+    }
+    
+    // If no items in cart and no stored data, redirect to cart
+    if (items.length === 0) {
       navigate('/cart')
+      return
     }
 
     loadShippingMethods()

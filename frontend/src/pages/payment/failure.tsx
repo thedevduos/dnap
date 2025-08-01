@@ -33,14 +33,18 @@ export default function PaymentFailurePage() {
   }, [searchParams, toast])
 
   const handleTryAgain = () => {
-    // Navigate back to checkout with preserved order data
+    // Clear payment processing flag and navigate back to checkout
+    sessionStorage.removeItem('paymentProcessing')
+    sessionStorage.removeItem('successPageEffectRun')
     navigate('/checkout')
   }
 
   const handleBackToCart = () => {
     // Clear order data and cart when user chooses to go back to cart
     clearOrderData()
-    clearCart()
+    sessionStorage.removeItem('paymentProcessing')
+    sessionStorage.removeItem('successPageEffectRun')
+    // Don't clear cart here - user might want to try again
     sessionStorage.removeItem('paymentProcessing')
     navigate('/cart')
   }
