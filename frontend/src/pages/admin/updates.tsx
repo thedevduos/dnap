@@ -83,80 +83,123 @@ export default function AdminUpdates() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Manage Updates</h1>
-            <p className="text-gray-600">Add, edit, and manage latest updates</p>
+      <div className="space-y-8">
+        {/* Enhanced Header */}
+        <div className="bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg p-8 shadow-lg">
+          <div className="text-center max-w-4xl mx-auto">
+            <h1 className="text-4xl font-bold mb-4">Manage Updates</h1>
+            <p className="text-xl text-green-100 mb-6">
+              Create and manage promotional banners and announcements that appear at the top of your website
+            </p>
+            <Button 
+              onClick={() => setIsModalOpen(true)}
+              size="lg"
+              className="bg-white text-green-700 hover:bg-green-50 font-semibold px-8 py-3"
+            >
+              <Plus className="h-5 w-5 mr-2" />
+              Add New Update
+            </Button>
           </div>
-          <Button onClick={() => setIsModalOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add New Update
-          </Button>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card className="text-center p-6">
+            <div className="text-3xl font-bold text-green-600 mb-2">
+              {updates.filter(u => u.status === 'active').length}
+            </div>
+            <div className="text-gray-600">Active Updates</div>
+          </Card>
+          <Card className="text-center p-6">
+            <div className="text-3xl font-bold text-blue-600 mb-2">
+              {updates.filter(u => u.type === 'announcement').length}
+            </div>
+            <div className="text-gray-600">Announcements</div>
+          </Card>
+          <Card className="text-center p-6">
+            <div className="text-3xl font-bold text-purple-600 mb-2">
+              {updates.filter(u => u.type === 'news').length}
+            </div>
+            <div className="text-gray-600">News Items</div>
+          </Card>
         </div>
 
         {/* Updates Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>All Updates</CardTitle>
+        <Card className="shadow-lg">
+          <CardHeader className="bg-gray-50 border-b">
+            <CardTitle className="text-2xl font-bold text-gray-900">All Updates</CardTitle>
+            <p className="text-gray-600">Manage your website updates and promotional messages</p>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0">
             {loading ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600 mx-auto"></div>
-                <p className="mt-2 text-gray-600">Loading updates...</p>
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
+                <p className="mt-4 text-gray-600 text-lg">Loading updates...</p>
               </div>
             ) : updates.length === 0 ? (
-              <div className="text-center py-8">
-                <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600">No updates found</p>
+              <div className="text-center py-12">
+                <Calendar className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">No Updates Yet</h3>
+                <p className="text-gray-600 mb-6">Create your first update to start promoting your content</p>
+                <Button onClick={() => setIsModalOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create First Update
+                </Button>
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Text (English)</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {updates.map((update) => (
-                    <TableRow key={update.id}>
-                      <TableCell>{getTypeBadge(update.type || "announcement")}</TableCell>
-                      <TableCell className="max-w-xs truncate">{update.textEnglish}</TableCell>
-                      <TableCell>{getStatusBadge(update.status)}</TableCell>
-                      <TableCell>
-                        {update.createdAt?.toDate?.()?.toLocaleDateString() || "N/A"}
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleEdit(update)}>
-                              <Edit className="h-4 w-4 mr-2" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={() => handleDelete(update.id)}
-                              className="text-red-600"
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-gray-50">
+                      <TableHead className="font-semibold">Type</TableHead>
+                      <TableHead className="font-semibold">Message</TableHead>
+                      <TableHead className="font-semibold">Status</TableHead>
+                      <TableHead className="font-semibold">Created</TableHead>
+                      <TableHead className="font-semibold text-center">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {updates.map((update) => (
+                      <TableRow key={update.id} className="hover:bg-gray-50">
+                        <TableCell>{getTypeBadge(update.type || "announcement")}</TableCell>
+                        <TableCell className="max-w-md">
+                          <div className="font-medium text-gray-900">
+                            {update.textEnglish}
+                          </div>
+                        </TableCell>
+                        <TableCell>{getStatusBadge(update.status)}</TableCell>
+                        <TableCell className="text-gray-600">
+                          {update.createdAt?.toDate?.()?.toLocaleDateString() || "N/A"}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex justify-center">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleEdit(update)}>
+                                  <Edit className="h-4 w-4 mr-2" />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  onClick={() => handleDelete(update.id)}
+                                  className="text-red-600"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </CardContent>
         </Card>

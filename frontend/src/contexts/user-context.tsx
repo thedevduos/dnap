@@ -5,6 +5,7 @@ import { User } from "firebase/auth"
 import { doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, serverTimestamp } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { useAuth } from "./auth-context"
+import { useToast } from "@/hooks/use-toast"
 
 interface UserProfile {
   id: string
@@ -69,16 +70,22 @@ export function useUser() {
 export function UserProvider({ children }: { children: React.ReactNode }) {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
-  const { user } = useAuth()
+  const { user, loading: authLoading, initialized: authInitialized } = useAuth()
+  const { toast } = useToast()
 
   useEffect(() => {
+    if (authLoading || !authInitialized) {
+      // Don't do anything while auth is still loading or not initialized
+      return
+    }
+    
     if (user) {
       loadUserProfile(user)
     } else {
       setUserProfile(null)
       setLoading(false)
     }
-  }, [user])
+  }, [user, authLoading, authInitialized])
 
   const loadUserProfile = async (authUser: User) => {
     try {
@@ -308,8 +315,29 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     try {
       const updatedWishlist = [...userProfile.wishlist, bookId]
       await updateProfile({ wishlist: updatedWishlist })
+      
+      // Get book title for toast message
+      try {
+        const bookDoc = await getDoc(doc(db, "books", bookId))
+        const bookTitle = bookDoc.exists() ? bookDoc.data().title : "Book"
+        
+        toast({
+          title: "Added to Wishlist",
+          description: `${bookTitle} has been added to your wishlist`,
+        })
+      } catch (error) {
+        toast({
+          title: "Added to Wishlist",
+          description: "Book has been added to your wishlist",
+        })
+      }
     } catch (error) {
       console.error("Error adding to wishlist:", error)
+      toast({
+        title: "Error",
+        description: "Failed to add book to wishlist",
+        variant: "destructive",
+      })
       throw error
     }
   }
@@ -320,8 +348,29 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     try {
       const updatedWishlist = userProfile.wishlist.filter(id => id !== bookId)
       await updateProfile({ wishlist: updatedWishlist })
+      
+      // Get book title for toast message
+      try {
+        const bookDoc = await getDoc(doc(db, "books", bookId))
+        const bookTitle = bookDoc.exists() ? bookDoc.data().title : "Book"
+        
+        toast({
+          title: "Removed from Wishlist",
+          description: `${bookTitle} has been removed from your wishlist`,
+        })
+      } catch (error) {
+        toast({
+          title: "Removed from Wishlist",
+          description: "Book has been removed from your wishlist",
+        })
+      }
     } catch (error) {
       console.error("Error removing from wishlist:", error)
+      toast({
+        title: "Error",
+        description: "Failed to remove book from wishlist",
+        variant: "destructive",
+      })
       throw error
     }
   }
@@ -332,19 +381,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
   const isAdmin = userProfile?.role === 'admin' || false
   
-  console.log('User context debug:', { 
-    userProfile: userProfile ? { 
-      email: userProfile.email, 
-      role: userProfile.role,
-      displayName: userProfile.displayName 
-    } : null, 
-    isAdmin, 
-    loading 
-  })
+  // Consider both auth loading and user profile loading, and auth initialization
+  const isLoading = authLoading || loading || !authInitialized
 
   const value = {
     userProfile,
-    loading,
+    loading: isLoading,
     isAdmin,
     updateProfile,
     addAddress,

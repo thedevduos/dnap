@@ -341,7 +341,7 @@ export default function ProfilePage() {
                       <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                       <p className="text-muted-foreground">No orders yet</p>
                       <Button asChild className="mt-4">
-                        <Link to="/shop">Start Shopping</Link>
+                        <Link to="/books">Start Shopping</Link>
                       </Button>
                     </div>
                   ) : (
@@ -421,7 +421,7 @@ export default function ProfilePage() {
                       <Heart className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                       <p className="text-muted-foreground">Your wishlist is empty</p>
                       <Button asChild className="mt-4">
-                        <Link to="/shop">Discover Books</Link>
+                        <Link to="/books">Discover Books</Link>
                       </Button>
                     </div>
                   ) : (

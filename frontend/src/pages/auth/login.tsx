@@ -97,6 +97,7 @@ export default function LoginPage() {
                 onChange={(e) => setCredentials({ ...credentials, email: e.target.value })}
                 placeholder="your@email.com"
                 required
+                autoComplete="email"
               />
             </div>
             <div>
@@ -109,6 +110,7 @@ export default function LoginPage() {
                   onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
                   placeholder="Enter your password"
                   required
+                  autoComplete="current-password"
                 />
                 <Button
                   type="button"

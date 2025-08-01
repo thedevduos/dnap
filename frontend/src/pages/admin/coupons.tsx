@@ -130,6 +130,7 @@ export default function AdminCoupons() {
                     <TableHead>Discount</TableHead>
                     <TableHead>Min Order</TableHead>
                     <TableHead>Usage</TableHead>
+                    <TableHead>Type</TableHead>
                     <TableHead>Expiry</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Actions</TableHead>
@@ -159,6 +160,17 @@ export default function AdminCoupons() {
                       </TableCell>
                       <TableCell>
                         {coupon.usedCount || 0} / {coupon.usageLimit || "∞"}
+                      </TableCell>
+                      <TableCell>
+                        {coupon.oncePerUser ? (
+                          <Badge variant="outline" className="text-xs">
+                            Once per user
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="text-xs">
+                            Multiple use
+                          </Badge>
+                        )}
                       </TableCell>
                       <TableCell>
                         {coupon.expiryDate?.toDate().toLocaleDateString() || "No expiry"}

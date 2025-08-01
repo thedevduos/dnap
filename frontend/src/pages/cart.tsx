@@ -8,42 +8,44 @@ import { Separator } from "@/components/ui/separator"
 import { Trash2, Plus, Minus, ShoppingBag, ArrowRight } from "lucide-react"
 import { useCart } from "@/contexts/cart-context"
 import { useUser } from "@/contexts/user-context"
+import { useAuth } from "@/contexts/auth-context"
 import { Link } from "react-router-dom"
 import { useToast } from "@/hooks/use-toast"
+import { validateCoupon } from "@/lib/firebase-utils"
 
 export default function CartPage() {
   const { items, updateQuantity, removeFromCart, getTotalPrice, getTotalItems } = useCart()
   const { isAdmin } = useUser()
+  const { user } = useAuth()
   const [couponCode, setCouponCode] = useState("")
   const [discount, setDiscount] = useState(0)
+  const [appliedCoupon, setAppliedCoupon] = useState<any>(null)
   const { toast } = useToast()
 
-  const handleApplyCoupon = () => {
-    // Simple coupon logic - in real app, this would be validated against backend
-    const coupons: { [key: string]: number } = {
-      'WELCOME10': 0.1,
-      'SAVE20': 0.2,
-      'FIRST50': 50
-    }
-
-    if (coupons[couponCode.toUpperCase()]) {
-      const couponValue = coupons[couponCode.toUpperCase()]
-      const discountAmount = couponValue < 1 
-        ? Math.round(getTotalPrice() * couponValue)
-        : couponValue
-
-      setDiscount(discountAmount)
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return
+    
+    try {
+      const result = await validateCoupon(couponCode, getTotalPrice(), user?.uid)
+      setAppliedCoupon(result.coupon)
+      setDiscount(result.discountAmount)
       toast({
         title: "Coupon Applied!",
-        description: `You saved ₹${discountAmount}`,
+        description: `You saved ₹${result.discountAmount}`,
       })
-    } else {
+    } catch (error: any) {
       toast({
         title: "Invalid Coupon",
-        description: "Please check your coupon code and try again.",
+        description: error.message,
         variant: "destructive",
       })
     }
+  }
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null)
+    setDiscount(0)
+    setCouponCode("")
   }
 
   if (items.length === 0) {
@@ -57,7 +59,7 @@ export default function CartPage() {
               Looks like you haven't added any books to your cart yet.
             </p>
             <Button asChild size="lg">
-              <Link to="/shop">
+              <Link to="/books">
                 Continue Shopping
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
@@ -166,20 +168,37 @@ export default function CartPage() {
                 <CardTitle>Coupon Code</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Enter coupon code"
-                    value={couponCode}
-                    onChange={(e) => setCouponCode(e.target.value)}
-                  />
-                  <Button onClick={handleApplyCoupon} variant="outline">
-                    Apply
-                  </Button>
-                </div>
-                {discount > 0 && (
-                  <p className="text-sm text-green-600 mt-2">
-                    Coupon applied! You saved ₹{discount}
-                  </p>
+                {appliedCoupon ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <div>
+                        <p className="font-medium text-green-800">{appliedCoupon.code}</p>
+                        <p className="text-sm text-green-600">Saved ₹{discount}</p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleRemoveCoupon}
+                        className="text-green-600 hover:text-green-700"
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Enter coupon code"
+                        value={couponCode}
+                        onChange={(e) => setCouponCode(e.target.value)}
+                      />
+                      <Button onClick={handleApplyCoupon} variant="outline">
+                        Apply
+                      </Button>
+                    </div>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -231,7 +250,7 @@ export default function CartPage() {
                 </Button>
 
                 <Button variant="outline" asChild className="w-full">
-                  <Link to="/shop">Continue Shopping</Link>
+                  <Link to="/books">Continue Shopping</Link>
                 </Button>
 
               </CardContent>

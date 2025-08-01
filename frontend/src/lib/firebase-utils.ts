@@ -12,6 +12,7 @@ import {
   increment,
   setDoc,
   getDoc,
+  arrayUnion,
 } from "firebase/firestore"
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
 import { createUserWithEmailAndPassword } from "firebase/auth"
@@ -29,6 +30,8 @@ interface Coupon {
   discountType: string
   discountValue: number
   maxDiscountAmount?: number
+  oncePerUser?: boolean
+  usedByUsers?: string[]
 }
 
 // Shipping Methods
@@ -70,7 +73,7 @@ export const deleteCoupon = async (id: string) => {
   return await deleteDoc(doc(db, "coupons", id))
 }
 
-export const validateCoupon = async (code: string, orderValue: number) => {
+export const validateCoupon = async (code: string, orderValue: number, userId?: string) => {
   const q = query(collection(db, "coupons"), where("code", "==", code.toUpperCase()))
   const querySnapshot = await getDocs(q)
   
@@ -94,6 +97,11 @@ export const validateCoupon = async (code: string, orderValue: number) => {
     throw new Error("Coupon usage limit reached")
   }
   
+  // Check if user has already used this coupon (for once per user coupons)
+  if (coupon.oncePerUser && userId && coupon.usedByUsers && coupon.usedByUsers.includes(userId)) {
+    throw new Error("You have already used this coupon")
+  }
+  
   if (coupon.minOrderValue && orderValue < coupon.minOrderValue) {
     throw new Error(`Minimum order value of ₹${coupon.minOrderValue} required`)
   }
@@ -115,11 +123,18 @@ export const validateCoupon = async (code: string, orderValue: number) => {
   }
 }
 
-export const applyCoupon = async (couponId: string) => {
-  return await updateDoc(doc(db, "coupons", couponId), {
+export const applyCoupon = async (couponId: string, userId?: string) => {
+  const updateData: any = {
     usedCount: increment(1),
     lastUsed: serverTimestamp(),
-  })
+  }
+  
+  // If userId is provided, add to usedByUsers array for once per user tracking
+  if (userId) {
+    updateData.usedByUsers = arrayUnion(userId)
+  }
+  
+  return await updateDoc(doc(db, "coupons", couponId), updateData)
 }
 
 // Orders

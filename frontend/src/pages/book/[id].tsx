@@ -15,6 +15,7 @@ import { useUser } from "@/contexts/user-context"
 import { useAuth } from "@/contexts/auth-context"
 import { useToast } from "@/hooks/use-toast"
 import { addReview } from "@/lib/firebase-utils"
+import { LoginPopup } from "@/components/ui/login-popup"
 
 interface Review {
   id: string
@@ -47,6 +48,7 @@ export default function BookDetailPage() {
   const [loading, setLoading] = useState(true)
   const [newReview, setNewReview] = useState({ rating: 5, comment: "" })
   const [submittingReview, setSubmittingReview] = useState(false)
+  const [showLoginPopup, setShowLoginPopup] = useState(false)
   
   const { addToCart, isInCart } = useCart()
   const { addToWishlist, removeFromWishlist, isInWishlist, isAdmin } = useUser()
@@ -122,12 +124,61 @@ export default function BookDetailPage() {
   }
 
   const handleWishlistToggle = async () => {
+    if (!user) {
+      setShowLoginPopup(true)
+      return
+    }
+
     if (!book) return
     
     if (isInWishlist(book.id)) {
       await removeFromWishlist(book.id)
     } else {
       await addToWishlist(book.id)
+    }
+  }
+
+  const handleShare = async () => {
+    if (!book) return
+
+    const shareData = {
+      title: book.title,
+      text: `Check out "${book.title}" by ${book.author} on DNA Publications`,
+      url: window.location.href,
+    }
+
+    try {
+      if (navigator.share) {
+        // Use native Web Share API if available
+        await navigator.share(shareData)
+        toast({
+          title: "Shared!",
+          description: "Book shared successfully",
+        })
+      } else {
+        // Fallback: copy URL to clipboard
+        await navigator.clipboard.writeText(window.location.href)
+        toast({
+          title: "Link Copied!",
+          description: "Book link has been copied to your clipboard",
+        })
+      }
+    } catch (error) {
+      console.error("Error sharing:", error)
+      // Fallback: copy URL to clipboard
+      try {
+        await navigator.clipboard.writeText(window.location.href)
+        toast({
+          title: "Link Copied!",
+          description: "Book link has been copied to your clipboard",
+        })
+      } catch (clipboardError) {
+        toast({
+          title: "Error",
+          description: "Failed to share book",
+          variant: "destructive",
+        })
+      }
     }
   }
 
@@ -196,8 +247,8 @@ export default function BookDetailPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Book Not Found</h1>
-          <Link to="/shop">
-            <Button>Back to Shop</Button>
+          <Link to="/books">
+            <Button>Back to Books</Button>
           </Link>
         </div>
       </div>
@@ -209,9 +260,9 @@ export default function BookDetailPage() {
       <div className="container mx-auto px-4 py-8">
         {/* Breadcrumb */}
         <div className="mb-6">
-          <Link to="/shop" className="inline-flex items-center text-muted-foreground hover:text-primary">
+          <Link to="/books" className="inline-flex items-center text-muted-foreground hover:text-primary">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Shop
+            Back to Books
           </Link>
         </div>
 
@@ -298,7 +349,7 @@ export default function BookDetailPage() {
                 >
                   <Heart className={`h-5 w-5 ${isInWishlist(book.id) ? 'fill-red-500 text-red-500' : ''}`} />
                 </Button>
-                <Button variant="outline" size="lg">
+                <Button variant="outline" size="lg" onClick={handleShare}>
                   <Share2 className="h-5 w-5" />
                 </Button>
               </div>
@@ -508,6 +559,11 @@ export default function BookDetailPage() {
           </div>
         )}
       </div>
+      <LoginPopup
+        open={showLoginPopup}
+        onOpenChange={setShowLoginPopup}
+        action="add this book to your wishlist"
+      />
     </div>
   )
 }

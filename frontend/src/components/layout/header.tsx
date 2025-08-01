@@ -17,12 +17,14 @@ import { useAuth } from "@/contexts/auth-context"
 import { useUser } from "@/contexts/user-context"
 import { useToast } from "@/hooks/use-toast"
 import anime from "animejs"
+import { UpdatesBar } from "@/components/layout/updates-bar"
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const location = useLocation()
-  const { user, logout } = useAuth()
-  const { isAdmin } = useUser()
+  
+  const { user, logout, loading: authLoading } = useAuth()
+  const { isAdmin, loading: userLoading } = useUser()
   const { toast } = useToast()
 
   useEffect(() => {
@@ -35,6 +37,25 @@ export function Header() {
       easing: "easeOutQuart",
     })
   }, [])
+
+  // Show loading state while contexts are initializing
+  if (authLoading || userLoading) {
+    return (
+      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <img src="/dnap-cropped.png" alt="DNA Publications" className="h-14 w-auto" />
+            </div>
+            <div className="flex items-center space-x-4">
+              <div className="animate-pulse bg-muted h-8 w-20 rounded"></div>
+              <div className="animate-pulse bg-muted h-8 w-20 rounded"></div>
+            </div>
+          </div>
+        </div>
+      </header>
+    )
+  }
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen)
@@ -76,7 +97,9 @@ export function Header() {
   ]
 
   return (
-    <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b">
+    <div className="sticky top-0 z-50">
+      <UpdatesBar />
+      <header className="bg-background/80 backdrop-blur-md border-b">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           <Link to="/" className="header-item flex items-center space-x-3">
@@ -224,6 +247,7 @@ export function Header() {
           </div>
         )}
       </div>
-    </header>
+      </header>
+    </div>
   )
 }

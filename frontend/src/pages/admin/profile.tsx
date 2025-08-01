@@ -229,6 +229,7 @@ export default function ProfilePage() {
                       onChange={handlePasswordChange}
                       placeholder="Enter current password"
                       className="h-12 border-gray-200 focus:border-orange-500 focus:ring-orange-500 transition-all duration-200 pr-10"
+                      autoComplete="current-password"
                     />
                     <Button
                       type="button"
@@ -255,6 +256,7 @@ export default function ProfilePage() {
                       onChange={handlePasswordChange}
                       placeholder="Enter new password"
                       className="h-12 border-gray-200 focus:border-orange-500 focus:ring-orange-500 transition-all duration-200 pr-10"
+                      autoComplete="new-password"
                     />
                     <Button
                       type="button"
@@ -282,6 +284,7 @@ export default function ProfilePage() {
                       onChange={handlePasswordChange}
                       placeholder="Confirm new password"
                       className="h-12 border-gray-200 focus:border-orange-500 focus:ring-orange-500 transition-all duration-200 pr-10"
+                      autoComplete="new-password"
                     />
                     <Button
                       type="button"

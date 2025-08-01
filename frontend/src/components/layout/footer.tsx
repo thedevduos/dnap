@@ -46,9 +46,7 @@ export function Footer() {
     ],
     services: [
       { name: "Publishing", path: "/pricing" },
-      { name: "E-books", path: "/books" },
-      { name: "Subscriptions", path: "/pricing" },
-      { name: "Author Services", path: "/pricing" },
+      { name: "E-books", path: "/e-books" },
     ],
     support: [
       { name: "Contact Us", path: "/contact" },
@@ -72,13 +70,15 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
           {/* Brand Section */}
           <div className="lg:col-span-2">
-            <div className="flex items-center space-x-3 mb-4">
+            <div className="flex items-center space-x-3 mb-2">
               <img src="/dnap-cropped.png" alt="DNA Publications" className="h-14 w-auto" />
-              <span className="text-3xl font-bold text-primary">DNA Publications</span>
+              <div>
+                <span className="text-3xl font-bold" style={{ color: '#381874' }}>DNA Publications</span>
+                <p className="text-lg font-medium text-muted-foreground mb-4">
+                  The Home of ambitious writers
+                </p>
+              </div>
             </div>
-            <p className="text-muted-foreground mb-6 max-w-md">
-              The home of ambitious writers. Bringing exceptional stories to readers worldwide.
-            </p>
 
             {/* Newsletter Signup */}
             <div className="space-y-2">

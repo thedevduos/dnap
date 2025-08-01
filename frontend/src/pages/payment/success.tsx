@@ -94,7 +94,7 @@ export default function PaymentSuccessPage() {
 
             // Apply coupon usage
             if (orderData.appliedCoupon) {
-              await applyCoupon(orderData.appliedCoupon.id)
+              await applyCoupon(orderData.appliedCoupon.id, orderData.userId)
             }
 
             // Address is already saved before payment, so no need to save again
@@ -216,7 +216,7 @@ export default function PaymentSuccessPage() {
                 </Button>
                 
                 <Button variant="outline" asChild className="w-full">
-                  <Link to="/shop">
+                  <Link to="/books">
                     Continue Shopping
                     <ArrowRight className="w-5 h-5 ml-2" />
                   </Link>

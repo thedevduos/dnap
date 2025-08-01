@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { addUpdate, updateUpdate } from "@/lib/firebase-utils"
+import { Sparkles } from "lucide-react"
 
 interface UpdateModalProps {
   isOpen: boolean
@@ -82,63 +83,104 @@ export function UpdateModal({ isOpen, onClose, update, onSuccess }: UpdateModalP
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>{update ? "Edit Update" : "Add New Update"}</DialogTitle>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="text-center">
+          <DialogTitle className="text-3xl font-bold text-gray-900">
+            {update ? "Edit Update" : "Add New Update"}
+          </DialogTitle>
+          <p className="text-gray-600 mt-2">
+            {update ? "Modify your promotional message" : "Create a new promotional banner for your website"}
+          </p>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <Label htmlFor="type">Type *</Label>
-            <Select
-              value={formData.type}
-              onValueChange={(value) => setFormData({ ...formData, type: value })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="announcement">Announcement</SelectItem>
-                <SelectItem value="news">News</SelectItem>
-                <SelectItem value="event">Event</SelectItem>
-              </SelectContent>
-            </Select>
+        <form onSubmit={handleSubmit} className="space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <Label htmlFor="type" className="text-lg font-semibold">Type *</Label>
+              <Select
+                value={formData.type}
+                onValueChange={(value) => setFormData({ ...formData, type: value })}
+              >
+                <SelectTrigger className="h-12 text-lg">
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="announcement">Announcement</SelectItem>
+                  <SelectItem value="news">News</SelectItem>
+                  <SelectItem value="event">Event</SelectItem>
+                  <SelectItem value="promotion">Promotion</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="status" className="text-lg font-semibold">Status *</Label>
+              <Select
+                value={formData.status}
+                onValueChange={(value) => setFormData({ ...formData, status: value })}
+              >
+                <SelectTrigger className="h-12 text-lg">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div>
-            <Label htmlFor="textEnglish">Text (English) *</Label>
+            <Label htmlFor="textEnglish" className="text-lg font-semibold">
+              Message Text (English) *
+            </Label>
             <Textarea
               id="textEnglish"
               value={formData.textEnglish}
               onChange={(e) => setFormData({ ...formData, textEnglish: e.target.value })}
-              placeholder="Update text in English..."
-              rows={3}
+              placeholder="Enter your promotional message here..."
+              className="h-32 text-lg resize-none"
               required
             />
+            <p className="text-sm text-gray-500 mt-2">
+              This message will appear in the promotional banner at the top of your website
+            </p>
           </div>
 
-          <div>
-            <Label htmlFor="status">Status *</Label>
-            <Select
-              value={formData.status}
-              onValueChange={(value) => setFormData({ ...formData, status: value })}
+          {/* Preview Section */}
+          <div className="bg-gray-50 rounded-lg p-6">
+            <h3 className="text-lg font-semibold mb-4">Preview</h3>
+            <div className="bg-gradient-to-r from-green-600 to-green-700 text-white py-4 px-6 rounded-lg">
+              <div className="flex items-center justify-center space-x-3">
+                <Sparkles className="h-5 w-5 animate-pulse" />
+                <span className="text-lg font-semibold">
+                  {formData.textEnglish || "Your message will appear here..."}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end space-x-4 pt-6 border-t">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              className="px-8 py-3"
             >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex justify-end space-x-2 pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Saving..." : update ? "Update" : "Add Update"}
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="px-8 py-3 bg-green-600 hover:bg-green-700"
+            >
+              {isSubmitting ? (
+                "Saving..."
+              ) : update ? (
+                "Update Changes"
+              ) : (
+                "Create Update"
+              )}
             </Button>
           </div>
         </form>

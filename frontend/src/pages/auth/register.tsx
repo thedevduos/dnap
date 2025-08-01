@@ -159,6 +159,7 @@ export default function RegisterPage() {
                   onChange={(e) => handleInputChange("firstName", e.target.value)}
                   placeholder="John"
                   required
+                  autoComplete="given-name"
                 />
               </div>
               <div>
@@ -169,6 +170,7 @@ export default function RegisterPage() {
                   onChange={(e) => handleInputChange("lastName", e.target.value)}
                   placeholder="Doe"
                   required
+                  autoComplete="family-name"
                 />
               </div>
             </div>
@@ -182,6 +184,7 @@ export default function RegisterPage() {
                 onChange={(e) => handleInputChange("email", e.target.value)}
                 placeholder="your@email.com"
                 required
+                autoComplete="email"
               />
             </div>
 
@@ -194,6 +197,7 @@ export default function RegisterPage() {
                 onChange={(e) => handleInputChange("phone", e.target.value)}
                 placeholder="+91 98765 43210"
                 required
+                autoComplete="tel"
               />
             </div>
 
@@ -207,6 +211,7 @@ export default function RegisterPage() {
                   onChange={(e) => handleInputChange("password", e.target.value)}
                   placeholder="Create a password"
                   required
+                  autoComplete="new-password"
                 />
                 <Button
                   type="button"
@@ -230,6 +235,7 @@ export default function RegisterPage() {
                   onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
                   placeholder="Confirm your password"
                   required
+                  autoComplete="new-password"
                 />
                 <Button
                   type="button"

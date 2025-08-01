@@ -13,7 +13,7 @@ const transporter = nodemailer.createTransport({
 
 // Default email template for welcome emails
 const createWelcomeEmailTemplate = (userData) => {
-  const loginLink = 'https://stage.dnap.in/admin/login';
+  const loginLink = 'https://stage.dnap.in/auth/login';
   
   return `
     <!DOCTYPE html>

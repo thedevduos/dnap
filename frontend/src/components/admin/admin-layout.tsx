@@ -54,23 +54,26 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   }, [user?.uid])
 
   const navigation = [
-    { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
-    { name: "Profile", href: "/admin/profile", icon: User },
-    { name: "Books", href: "/admin/books", icon: BookOpen },
-    { name: "Users", href: "/admin/users", icon: Users },
-    { name: "Team", href: "/admin/team", icon: Users },
-    { name: "Orders", href: "/admin/orders", icon: ShoppingCart },
-    { name: "Customers", href: "/admin/customers", icon: CustomersIcon },
-    { name: "Shipping", href: "/admin/shipping", icon: Truck },
-    { name: "Coupons", href: "/admin/coupons", icon: Ticket },
-    { name: "Payments", href: "/admin/payments", icon: CreditCard },
-    { name: "Analytics", href: "/admin/analytics", icon: BarChart3 },
-    { name: "Careers", href: "/admin/careers", icon: Briefcase },
-    { name: "Messages", href: "/admin/messages", icon: MessageSquare },
-    { name: "Emails", href: "/admin/emails", icon: Mail },
-    { name: "Reviews", href: "/admin/reviews", icon: Star },
-    { name: "Testimonials", href: "/admin/testimonials", icon: Star },
-    { name: "Updates", href: "/admin/updates", icon: Calendar },
+    // Site Management
+    { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard, section: "overview" },
+    { name: "Profile", href: "/admin/profile", icon: User, section: "overview" },
+    { name: "Updates", href: "/admin/updates", icon: Calendar, section: "site-management" },
+    { name: "Emails", href: "/admin/emails", icon: Mail, section: "site-management" },
+    { name: "Testimonials", href: "/admin/testimonials", icon: Star, section: "site-management" },
+    { name: "Team", href: "/admin/team", icon: Users, section: "site-management" },
+    { name: "Careers", href: "/admin/careers", icon: Briefcase, section: "site-management" },
+    { name: "Messages", href: "/admin/messages", icon: MessageSquare, section: "site-management" },
+    { name: "Reviews", href: "/admin/reviews", icon: Star, section: "site-management" },
+    
+    // Ecommerce Management
+    { name: "Books", href: "/admin/books", icon: BookOpen, section: "ecommerce" },
+    { name: "Orders", href: "/admin/orders", icon: ShoppingCart, section: "ecommerce" },
+    { name: "Customers", href: "/admin/customers", icon: CustomersIcon, section: "ecommerce" },
+    { name: "Users", href: "/admin/users", icon: Users, section: "ecommerce" },
+    { name: "Shipping", href: "/admin/shipping", icon: Truck, section: "ecommerce" },
+    { name: "Coupons", href: "/admin/coupons", icon: Ticket, section: "ecommerce" },
+    { name: "Payments", href: "/admin/payments", icon: CreditCard, section: "ecommerce" },
+    { name: "Analytics", href: "/admin/analytics", icon: BarChart3, section: "ecommerce" },
   ]
 
   const handleLogout = async () => {
@@ -88,6 +91,66 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         variant: "destructive",
       })
     }
+  }
+
+  // Group navigation items by section
+  const groupedNavigation = navigation.reduce((groups, item) => {
+    const section = item.section || 'other'
+    if (!groups[section]) {
+      groups[section] = []
+    }
+    groups[section].push(item)
+    return groups
+  }, {} as Record<string, typeof navigation>)
+
+  const getSectionDisplayName = (section: string) => {
+    switch (section) {
+      case 'overview':
+        return 'Overview'
+      case 'site-management':
+        return 'Site Management'
+      case 'ecommerce':
+        return 'Ecommerce Management'
+      default:
+        return section.replace(/([A-Z])/g, ' $1').trim()
+    }
+  }
+
+  const renderNavigationItems = (items: typeof navigation) => {
+    return items.map((item) => (
+      <Link
+        key={item.name}
+        to={item.href}
+        className={cn(
+          "group flex items-center px-2 py-2 text-sm font-medium rounded-md",
+          location.pathname === item.href
+            ? "bg-orange-600 text-white"
+            : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
+        )}
+        onClick={() => setSidebarOpen(false)}
+      >
+        <item.icon className="mr-3 h-5 w-5 flex-shrink-0" />
+        {item.name}
+      </Link>
+    ))
+  }
+
+  const renderDesktopNavigationItems = (items: typeof navigation) => {
+    return items.map((item) => (
+      <Link
+        key={item.name}
+        to={item.href}
+        className={cn(
+          "group flex items-center px-2 py-2 text-sm font-medium rounded-md",
+          location.pathname === item.href
+            ? "bg-orange-600 text-white"
+            : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
+        )}
+      >
+        <item.icon className="mr-3 h-5 w-5 flex-shrink-0" />
+        {item.name}
+      </Link>
+    ))
   }
 
   return (
@@ -108,21 +171,14 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             </Button>
           </div>
           <nav className="flex-1 space-y-1 px-2 py-4">
-            {navigation.map((item) => (
-              <Link
-                key={item.name}
-                to={item.href}
-                className={cn(
-                  "group flex items-center px-2 py-2 text-sm font-medium rounded-md",
-                  location.pathname === item.href
-                    ? "bg-orange-600 text-white"
-                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
-                )}
-                onClick={() => setSidebarOpen(false)}
-              >
-                <item.icon className="mr-3 h-5 w-5 flex-shrink-0" />
-                {item.name}
-              </Link>
+            {Object.entries(groupedNavigation).map(([section, items], index) => (
+              <div key={section} className="space-y-1">
+                {index > 0 && <div className="border-t border-gray-200 my-4" />}
+                <h3 className="px-2 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  {getSectionDisplayName(section)}
+                </h3>
+                {renderNavigationItems(items)}
+              </div>
             ))}
           </nav>
         </div>
@@ -140,20 +196,14 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             </Link>
           </div>
           <nav className="flex-1 space-y-1 px-2 py-4">
-            {navigation.map((item) => (
-              <Link
-                key={item.name}
-                to={item.href}
-                className={cn(
-                  "group flex items-center px-2 py-2 text-sm font-medium rounded-md",
-                  location.pathname === item.href
-                    ? "bg-orange-600 text-white"
-                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
-                )}
-              >
-                <item.icon className="mr-3 h-5 w-5 flex-shrink-0" />
-                {item.name}
-              </Link>
+            {Object.entries(groupedNavigation).map(([section, items], index) => (
+              <div key={section} className="space-y-1">
+                {index > 0 && <div className="border-t border-gray-200 my-4" />}
+                <h3 className="px-2 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  {getSectionDisplayName(section)}
+                </h3>
+                {renderDesktopNavigationItems(items)}
+              </div>
             ))}
           </nav>
         </div>

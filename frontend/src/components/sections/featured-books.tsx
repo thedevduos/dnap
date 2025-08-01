@@ -9,14 +9,17 @@ import { useFeaturedBooks } from "@/hooks/use-featured-books"
 import { Link } from "react-router-dom"
 import { useCart } from "@/contexts/cart-context"
 import { useUser } from "@/contexts/user-context"
+import { useAuth } from "@/contexts/auth-context"
+import { LoginPopup } from "@/components/ui/login-popup"
 import anime from "animejs"
 
 export function FeaturedBooks() {
   const sectionRef = useRef<HTMLElement>(null)
-  const [hoveredBook, setHoveredBook] = useState<number | null>(null)
+  const [showLoginPopup, setShowLoginPopup] = useState(false)
   const { books: featuredBooks, loading } = useFeaturedBooks()
   const { addToCart, isInCart } = useCart()
   const { addToWishlist, removeFromWishlist, isInWishlist } = useUser()
+  const { user } = useAuth()
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -65,6 +68,11 @@ export function FeaturedBooks() {
   }
 
   const handleAddToCart = (book: any) => {
+    if (!user) {
+      setShowLoginPopup(true)
+      return
+    }
+    
     addToCart({
       id: book.id,
       title: book.title,
@@ -76,10 +84,19 @@ export function FeaturedBooks() {
   }
 
   const handleWishlistToggle = async (book: any) => {
-    if (isInWishlist(book.id)) {
-      await removeFromWishlist(book.id)
-    } else {
-      await addToWishlist(book.id)
+    if (!user) {
+      setShowLoginPopup(true)
+      return
+    }
+
+    try {
+      if (isInWishlist(book.id)) {
+        await removeFromWishlist(book.id)
+      } else {
+        await addToWishlist(book.id)
+      }
+    } catch (error) {
+      console.error("Error toggling wishlist:", error)
     }
   }
 
@@ -112,15 +129,15 @@ export function FeaturedBooks() {
             <Card
               key={book.id}
               className="book-card group hover:shadow-2xl transition-all duration-500 overflow-hidden border-0 bg-background/80 backdrop-blur-sm"
-              onMouseEnter={() => setHoveredBook(book.id)}
-              onMouseLeave={() => setHoveredBook(null)}
             >
               <div className="relative overflow-hidden">
-                <img
-                  src={book.imageUrl}
-                  alt={book.title}
-                  className="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500"
-                />
+                <Link to={`/book/${book.id}`} className="block">
+                  <img
+                    src={book.imageUrl}
+                    alt={book.title}
+                    className="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500 cursor-pointer"
+                  />
+                </Link>
                 <Badge className={`absolute top-3 left-3 ${getBadgeColor(book.category)} text-white`}>
                   {book.category}
                 </Badge>
@@ -134,24 +151,6 @@ export function FeaturedBooks() {
                     <Heart className={`h-4 w-4 ${isInWishlist(book.id) ? 'fill-red-500 text-red-500' : ''}`} />
                   </Button>
                 </div>
-
-                {/* Hover overlay */}
-                <div
-                  className={`absolute inset-0 bg-black/60 flex items-center justify-center transition-opacity duration-300 ${
-                    hoveredBook === book.id ? "opacity-100" : "opacity-0"
-                  }`}
-                >
-                  <div className="flex space-x-2">
-                    <Button size="sm" variant="secondary">
-                      <Eye className="h-4 w-4 mr-1" />
-                      Preview
-                    </Button>
-                    <Button size="sm" onClick={() => handleAddToCart(book)}>
-                      <ShoppingCart className="h-4 w-4 mr-1" />
-                      {isInCart(book.id) ? "In Cart" : "Buy"}
-                    </Button>
-                  </div>
-                </div>
               </div>
 
               <CardContent className="p-6">
@@ -161,7 +160,9 @@ export function FeaturedBooks() {
                   </Badge>
                 </div>
 
-                <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">{book.title}</h3>
+                <Link to={`/book/${book.id}`} className="block">
+                  <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors cursor-pointer">{book.title}</h3>
+                </Link>
 
                 <p className="text-muted-foreground mb-2">by {book.author}</p>
 
@@ -171,13 +172,13 @@ export function FeaturedBooks() {
                   <div className="flex items-center space-x-1">
                     <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                     <span className="text-sm font-medium">{book.rating}</span>
-                    <span className="text-xs text-muted-foreground">(124)</span>
+                    {/* <span className="text-xs text-muted-foreground">(124)</span> */}
                   </div>
                   <span className="text-lg font-bold text-primary">{book.price}</span>
                 </div>
 
                 <div className="flex space-x-2">
-                  <Button className="flex-1 group">
+                  <Button className="flex-1 group" onClick={() => handleAddToCart(book)}>
                     <ShoppingCart className="h-4 w-4 mr-2 group-hover:animate-bounce" />
                     {isInCart(book.id) ? "In Cart" : "Add to Cart"}
                   </Button>
@@ -193,13 +194,19 @@ export function FeaturedBooks() {
 
         <div className="text-center mt-12">
           <Button size="lg" variant="outline" className="group bg-transparent" asChild>
-            <Link to="/shop">
+            <Link to="/books">
               View All Books
               <Eye className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
             </Link>
           </Button>
         </div>
       </div>
+
+      <LoginPopup
+        open={showLoginPopup}
+        onOpenChange={setShowLoginPopup}
+        action="add items to your cart and wishlist"
+      />
     </section>
   )
 }

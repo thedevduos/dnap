@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { X, Sparkles } from "lucide-react"
+import { X, Sparkles, ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useUpdates } from "@/hooks/use-updates"
 import anime from "animejs"
@@ -24,7 +24,7 @@ export function UpdatesBar() {
       // Auto-rotate updates
       const rotateInterval = setInterval(() => {
         setCurrentUpdate((prev) => (prev + 1) % updates.length)
-      }, 3000)
+      }, 5000) // Increased to 5 seconds for better readability
 
       return () => clearInterval(rotateInterval)
     }
@@ -42,26 +42,75 @@ export function UpdatesBar() {
     }
   }, [currentUpdate, updates])
 
+  const handlePrevious = () => {
+    setCurrentUpdate((prev) => (prev - 1 + updates.length) % updates.length)
+  }
+
+  const handleNext = () => {
+    setCurrentUpdate((prev) => (prev + 1) % updates.length)
+  }
+
   if (!isVisible || updates.length === 0) return null
 
   return (
-    <div className="updates-bar bg-gradient-to-r from-primary to-orange-500 text-primary-foreground py-2 px-4 relative overflow-hidden">
-      <div className="container mx-auto flex items-center justify-between">
-        <div className="flex items-center space-x-2 flex-1">
-          <Sparkles className="h-4 w-4 animate-pulse" />
-          <span className="update-text text-sm font-medium">
+    <div className="updates-bar bg-gradient-to-r from-green-600 to-green-700 text-white py-4 px-4 relative overflow-hidden shadow-lg">
+      <div className="container mx-auto flex items-center justify-center relative">
+        {/* Navigation Arrows */}
+        {updates.length > 1 && (
+          <>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handlePrevious}
+              className="absolute left-0 text-white/70 hover:text-white hover:bg-white/20 h-8 w-8 p-0 rounded-full"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleNext}
+              className="absolute right-0 text-white/70 hover:text-white hover:bg-white/20 h-8 w-8 p-0 rounded-full"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </>
+        )}
+
+        {/* Main Content */}
+        <div className="flex items-center justify-center space-x-3 max-w-4xl mx-auto">
+          <Sparkles className="h-5 w-5 animate-pulse flex-shrink-0" />
+          <span className="update-text text-lg font-semibold text-center leading-relaxed">
             {updates[currentUpdate]?.textEnglish || "Welcome to DNA Publications!"}
           </span>
         </div>
+
+        {/* Close Button */}
         <Button
           variant="ghost"
           size="sm"
           onClick={() => setIsVisible(false)}
-          className="text-primary-foreground hover:bg-white/20 h-6 w-6 p-0"
+          className="absolute right-4 text-white/70 hover:text-white hover:bg-white/20 h-8 w-8 p-0 rounded-full"
         >
-          <X className="h-3 w-3" />
+          <X className="h-4 w-4" />
         </Button>
       </div>
+
+      {/* Progress Indicator */}
+      {updates.length > 1 && (
+        <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2">
+          <div className="flex space-x-1">
+            {updates.map((_, index) => (
+              <div
+                key={index}
+                className={`h-1 w-8 rounded-full transition-all duration-300 ${
+                  index === currentUpdate ? 'bg-white' : 'bg-white/30'
+                }`}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Animated background pattern */}
       <div className="absolute inset-0 opacity-10">

@@ -24,7 +24,7 @@ const auth = getAuth(app);
 
 // Email template function
 const createWelcomeEmailTemplate = (userData) => {
-  const loginLink = 'https://stage.dnap.in/admin/login';
+  const loginLink = 'https://stage.dnap.in/auth/login';
   
   return `
     <!DOCTYPE html>
@@ -158,7 +158,7 @@ const sendWelcomeEmail = async (userData) => {
       console.log('=== FALLBACK: EMAIL DETAILS (Backend URL not configured) ===');
       console.log('To:', userData.email);
       console.log('Subject:', `Welcome to DNA Publications Admin Panel - ${userData.name}`);
-      console.log('Login URL:', 'https://stage.dnap.in/admin/login');
+      console.log('Login URL:', 'https://stage.dnap.in/auth/login');
       console.log('Username:', userData.email);
       console.log('Password:', userData.mobile);
       console.log('Role:', userData.role);
@@ -194,7 +194,7 @@ const sendWelcomeEmail = async (userData) => {
     console.log('=== FALLBACK: EMAIL DETAILS (Backend unavailable) ===');
     console.log('To:', userData.email);
     console.log('Subject:', `Welcome to DNA Publications Admin Panel - ${userData.name}`);
-    console.log('Login URL:', 'https://stage.dnap.in/admin/login');
+    console.log('Login URL:', 'https://stage.dnap.in/auth/login');
     console.log('Username:', userData.email);
     console.log('Password:', userData.mobile);
     console.log('Role:', userData.role);

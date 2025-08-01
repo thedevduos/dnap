@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
 import { addCoupon, updateCoupon } from "@/lib/firebase-utils"
 
@@ -27,6 +28,7 @@ export function CouponModal({ isOpen, onClose, coupon }: CouponModalProps) {
     usageLimit: "",
     expiryDate: "",
     status: "active",
+    oncePerUser: false,
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { toast } = useToast()
@@ -43,6 +45,7 @@ export function CouponModal({ isOpen, onClose, coupon }: CouponModalProps) {
         usageLimit: coupon.usageLimit?.toString() || "",
         expiryDate: coupon.expiryDate?.toDate().toISOString().split('T')[0] || "",
         status: coupon.status || "active",
+        oncePerUser: coupon.oncePerUser || false,
       })
     } else {
       setFormData({
@@ -55,6 +58,7 @@ export function CouponModal({ isOpen, onClose, coupon }: CouponModalProps) {
         usageLimit: "",
         expiryDate: "",
         status: "active",
+        oncePerUser: false,
       })
     }
   }, [coupon, isOpen])
@@ -83,7 +87,9 @@ export function CouponModal({ isOpen, onClose, coupon }: CouponModalProps) {
         usageLimit: parseInt(formData.usageLimit) || 0,
         expiryDate: formData.expiryDate ? new Date(formData.expiryDate) : null,
         status: formData.status,
+        oncePerUser: formData.oncePerUser,
         usedCount: coupon?.usedCount || 0,
+        usedByUsers: coupon?.usedByUsers || [],
       }
 
       if (coupon) {
@@ -244,6 +250,17 @@ export function CouponModal({ isOpen, onClose, coupon }: CouponModalProps) {
                 onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
               />
             </div>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="oncePerUser"
+              checked={formData.oncePerUser}
+              onCheckedChange={(checked) => setFormData({ ...formData, oncePerUser: checked as boolean })}
+            />
+            <Label htmlFor="oncePerUser" className="text-sm font-normal">
+              Once per user (each user can only use this coupon once)
+            </Label>
           </div>
 
           <div className="flex justify-end space-x-2 pt-4">

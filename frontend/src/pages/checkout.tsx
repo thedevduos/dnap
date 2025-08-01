@@ -210,7 +210,7 @@ export default function CheckoutPage() {
     if (!couponCode.trim()) return
     
     try {
-      const result = await validateCoupon(couponCode, getTotalPrice())
+      const result = await validateCoupon(couponCode, getTotalPrice(), user?.uid)
       setAppliedCoupon(result.coupon)
       setDiscount(result.discountAmount)
       toast({

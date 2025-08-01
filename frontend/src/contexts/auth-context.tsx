@@ -23,6 +23,7 @@ interface AuthContextType {
   loginWithGoogle: () => Promise<void>
   logout: () => Promise<void>
   loading: boolean
+  initialized: boolean
 }
 
 interface RegisterData {
@@ -41,26 +42,33 @@ export function useAuth() {
   if (context === undefined) {
     throw new Error("useAuth must be used within an AuthProvider")
   }
+  
+  // Check if the provider has been initialized
+  if (!context.initialized) {
+    return {
+      user: null,
+      login: async () => {},
+      register: async () => {},
+      loginWithGoogle: async () => {},
+      logout: async () => {},
+      loading: true,
+      initialized: false
+    }
+  }
+  
   return context
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [initialized, setInitialized] = useState(false)
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      console.log('Auth state changed:', {
-        user: user ? {
-          email: user.email,
-          photoURL: user.photoURL,
-          displayName: user.displayName,
-          uid: user.uid,
-          providerData: user.providerData
-        } : null
-      })
       setUser(user)
       setLoading(false)
+      setInitialized(true)
     })
 
     return unsubscribe
@@ -141,6 +149,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loginWithGoogle,
     logout,
     loading,
+    initialized,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

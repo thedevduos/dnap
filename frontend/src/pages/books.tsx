@@ -4,19 +4,33 @@ import { useEffect, useRef, useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Heart, ShoppingCart, Search, BookOpen } from "lucide-react"
 import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Slider } from "@/components/ui/slider"
+import { Heart, ShoppingCart, Search, BookOpen, Filter, Grid, List, Star, Eye } from "lucide-react"
 import { useBooks } from "@/hooks/use-books"
+import { useCart } from "@/contexts/cart-context"
 import { useUser } from "@/contexts/user-context"
+import { useAuth } from "@/contexts/auth-context"
 import { Link } from "react-router-dom"
+import { LoginPopup } from "@/components/ui/login-popup"
 import anime from "animejs"
 
 export default function BooksPage() {
   const sectionRef = useRef<HTMLElement>(null)
   const [hoveredBook, setHoveredBook] = useState<number | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
+  const [selectedCategory, setSelectedCategory] = useState("all")
+  const [selectedAuthor, setSelectedAuthor] = useState("all")
+  const [priceRange, setPriceRange] = useState([0, 1000])
+  const [sortBy, setSortBy] = useState("newest")
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
+  const [showFilters, setShowFilters] = useState(false)
+  const [showLoginPopup, setShowLoginPopup] = useState(false)
   const { books, loading } = useBooks()
-  const { isAdmin } = useUser()
+  const { isAdmin, addToWishlist, removeFromWishlist, isInWishlist } = useUser()
+  const { user } = useAuth()
+  const { addToCart, isInCart } = useCart()
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -45,12 +59,37 @@ export default function BooksPage() {
     return () => observer.disconnect()
   }, [])
 
-  const filteredBooks = books.filter(
-    (book: any) =>
-      book.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      book.author?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      book.category?.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
+  // Get unique categories and authors
+  const categories = [...new Set(books.map(book => book.category).filter(Boolean))]
+  const authors = [...new Set(books.map(book => book.author).filter(Boolean))]
+
+  // Filter and sort books
+  const filteredBooks = books
+    .filter((book: any) => {
+      const matchesSearch = book.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           book.author?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           book.category?.toLowerCase().includes(searchTerm.toLowerCase())
+      const matchesCategory = selectedCategory === "all" || book.category === selectedCategory
+      const matchesAuthor = selectedAuthor === "all" || book.author === selectedAuthor
+      const matchesPrice = book.price >= priceRange[0] && book.price <= priceRange[1]
+      
+      return matchesSearch && matchesCategory && matchesAuthor && matchesPrice
+    })
+    .sort((a: any, b: any) => {
+      switch (sortBy) {
+        case "price-low":
+          return a.price - b.price
+        case "price-high":
+          return b.price - a.price
+        case "rating":
+          return (b.rating || 0) - (a.rating || 0)
+        case "title":
+          return a.title.localeCompare(b.title)
+        case "newest":
+        default:
+          return new Date(b.createdAt?.toDate() || 0).getTime() - new Date(a.createdAt?.toDate() || 0).getTime()
+      }
+    })
 
   const getBadgeColor = (badge: string) => {
     switch (badge) {
@@ -69,6 +108,34 @@ export default function BooksPage() {
       default:
         return "bg-orange-500"
     }
+  }
+
+  const handleWishlistToggle = async (bookId: string) => {
+    if (!user) {
+      setShowLoginPopup(true)
+      return
+    }
+
+    try {
+      if (isInWishlist(bookId)) {
+        await removeFromWishlist(bookId)
+      } else {
+        await addToWishlist(bookId)
+      }
+    } catch (error) {
+      console.error("Error toggling wishlist:", error)
+    }
+  }
+
+  const handleAddToCart = (book: any) => {
+    addToCart({
+      id: book.id,
+      title: book.title,
+      author: book.author,
+      price: book.price,
+      imageUrl: book.imageUrl,
+      category: book.category
+    })
   }
 
   return (
@@ -104,7 +171,7 @@ export default function BooksPage() {
           )}
 
           {/* Search Bar */}
-          <div className="max-w-md mx-auto relative">
+          <div className="max-w-md mx-auto relative mb-8">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
               placeholder="Search books, authors, or genres..."
@@ -113,106 +180,282 @@ export default function BooksPage() {
               className="pl-10"
             />
           </div>
+
+          {/* Filter Toggle and View Mode */}
+          <div className="flex justify-between items-center mb-8">
+            <Button
+              variant="outline"
+              onClick={() => setShowFilters(!showFilters)}
+              className="md:hidden"
+            >
+              <Filter className="h-4 w-4 mr-2" />
+              Filters
+            </Button>
+
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-muted-foreground">
+                {filteredBooks.length} books found
+              </span>
+              
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="newest">Newest First</SelectItem>
+                  <SelectItem value="price-low">Price: Low to High</SelectItem>
+                  <SelectItem value="price-high">Price: High to Low</SelectItem>
+                  <SelectItem value="rating">Highest Rated</SelectItem>
+                  <SelectItem value="title">Title A-Z</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <div className="flex border rounded-md">
+                <Button
+                  variant={viewMode === "grid" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode("grid")}
+                >
+                  <Grid className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={viewMode === "list" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode("list")}
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {loading ? (
-          <div className="text-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
-            <p className="mt-4 text-muted-foreground">Loading books...</p>
-          </div>
-        ) : filteredBooks.length === 0 ? (
-          <div className="text-center py-20">
-            <BookOpen className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-xl font-semibold mb-2">No Books Available</h3>
-            <p className="text-muted-foreground">
-              {searchTerm ? "No books match your search criteria." : "No books have been added yet."}
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-            {filteredBooks.map((book: any, index: number) => (
-              <Card
-                key={book.id}
-                className="book-card group hover:shadow-2xl transition-all duration-500 overflow-hidden border-0 bg-background/80 backdrop-blur-sm"
-                onMouseEnter={() => setHoveredBook(index)}
-                onMouseLeave={() => setHoveredBook(null)}
-              >
-                <div className="relative overflow-hidden">
-                  <img
-                    src={book.imageUrl}
-                    alt={book.title}
-                    className="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500"
-                  />
-                  {book.category && (
-                    <Badge className={`absolute top-3 left-3 ${getBadgeColor(book.category)} text-white`}>
-                      {book.category}
-                    </Badge>
-                  )}
-                  <div className="absolute top-3 right-3">
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      className="opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                    >
-                      <Heart className="h-4 w-4" />
-                    </Button>
-                  </div>
-
-                  {/* Hover overlay */}
-                  <div
-                    className={`absolute inset-0 bg-black/60 flex items-center justify-center transition-opacity duration-300 ${
-                      hoveredBook === index ? "opacity-100" : "opacity-0"
-                    }`}
-                  >
-                    <Button size="sm" asChild disabled={isAdmin}>
-                      <Link to={isAdmin ? "#" : `/book/${book.id}`}>
-                        <ShoppingCart className="h-4 w-4 mr-1" />
-                        {isAdmin ? "Admin Cannot Purchase" : "Buy Now"}
-                      </Link>
-                    </Button>
-                  </div>
+        <div className="flex gap-8">
+          {/* Filters Sidebar */}
+          <div className={`w-64 space-y-6 ${showFilters ? 'block' : 'hidden md:block'}`}>
+            <Card>
+              <CardContent className="p-4">
+                <h3 className="font-semibold mb-4">Filters</h3>
+                
+                {/* Category Filter */}
+                <div className="mb-4">
+                  <label className="text-sm font-medium mb-2 block">Category</label>
+                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Categories</SelectItem>
+                      {categories.map(category => (
+                        <SelectItem key={category} value={category}>{category}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
-                <CardContent className="p-6">
-                  <div className="mb-2">
-                    <Badge variant="outline" className="text-xs">
-                      {book.category}
-                    </Badge>
-                  </div>
+                {/* Author Filter */}
+                <div className="mb-4">
+                  <label className="text-sm font-medium mb-2 block">Author</label>
+                  <Select value={selectedAuthor} onValueChange={setSelectedAuthor}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Authors</SelectItem>
+                      {authors.map(author => (
+                        <SelectItem key={author} value={author}>{author}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                  <h3 className="text-xl font-bold mb-2 group-hover:text-orange-600 transition-colors">
-                    <Link to={`/book/${book.id}`} className="hover:text-orange-600">
-                      {book.title}
-                    </Link>
-                  </h3>
+                {/* Price Range */}
+                <div className="mb-4">
+                  <label className="text-sm font-medium mb-2 block">
+                    Price Range: ₹{priceRange[0]} - ₹{priceRange[1]}
+                  </label>
+                  <Slider
+                    value={priceRange}
+                    onValueChange={setPriceRange}
+                    max={1000}
+                    min={0}
+                    step={10}
+                    className="mt-2"
+                  />
+                </div>
 
-                  <p className="text-muted-foreground mb-2">by {book.author}</p>
-
-                  <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{book.description}</p>
-
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center space-x-1">
-                      {/* <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                      <span className="text-sm font-medium">4.8</span>
-                      <span className="text-xs text-muted-foreground">(124)</span> */}
-                    </div>
-                    <span className="text-lg font-bold text-orange-600">₹{book.price}</span>
-                  </div>
-
-                  <div className="flex space-x-2">
-                    <Button className="flex-1 group bg-orange-600 hover:bg-orange-700" disabled={isAdmin}>
-                      <ShoppingCart className="h-4 w-4 mr-2 group-hover:animate-bounce" />
-                      <Link to={isAdmin ? "#" : `/book/${book.id}`}>
-                        {isAdmin ? "Admin Cannot Purchase" : "Add to Cart"}
-                      </Link>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                {/* Clear Filters */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSearchTerm("")
+                    setSelectedCategory("all")
+                    setSelectedAuthor("all")
+                    setPriceRange([0, 1000])
+                  }}
+                  className="w-full"
+                >
+                  Clear Filters
+                </Button>
+              </CardContent>
+            </Card>
           </div>
-        )}
+
+          {/* Books Grid/List */}
+          <div className="flex-1">
+            {loading ? (
+              <div className="text-center py-20">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
+                <p className="mt-4 text-muted-foreground">Loading books...</p>
+              </div>
+            ) : filteredBooks.length === 0 ? (
+              <div className="text-center py-20">
+                <BookOpen className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-xl font-semibold mb-2">No Books Available</h3>
+                <p className="text-muted-foreground">
+                  {searchTerm || selectedCategory !== "all" || selectedAuthor !== "all" || priceRange[0] !== 0 || priceRange[1] !== 1000 
+                    ? "No books match your search criteria." 
+                    : "No books have been added yet."}
+                </p>
+              </div>
+            ) : (
+              <div className={viewMode === "grid" 
+                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8" 
+                : "space-y-4"
+              }>
+                {filteredBooks.map((book: any, index: number) => (
+                  <Card
+                    key={book.id}
+                    className={`book-card group hover:shadow-2xl transition-all duration-500 overflow-hidden border-0 bg-background/80 backdrop-blur-sm ${
+                      viewMode === "list" ? "flex" : ""
+                    }`}
+                    onMouseEnter={() => setHoveredBook(index)}
+                    onMouseLeave={() => setHoveredBook(null)}
+                  >
+                    <div className={`relative overflow-hidden ${
+                      viewMode === "list" ? "w-32 h-40 flex-shrink-0" : "h-64"
+                    }`}>
+                      <img
+                        src={book.imageUrl}
+                        alt={book.title}
+                        className={`w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 ${
+                          viewMode === "list" ? "group-hover:scale-105" : ""
+                        }`}
+                      />
+                      {book.category && (
+                        <Badge className={`absolute top-3 left-3 ${getBadgeColor(book.category)} text-white`}>
+                          {book.category}
+                        </Badge>
+                      )}
+                      <div className="absolute top-3 right-3">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className={`opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
+                            isInWishlist(book.id) ? "text-red-500" : ""
+                          }`}
+                          onClick={() => handleWishlistToggle(book.id)}
+                        >
+                          <Heart className={`h-4 w-4 ${isInWishlist(book.id) ? "fill-current" : ""}`} />
+                        </Button>
+                      </div>
+
+                      {/* Hover overlay */}
+                      <div
+                        className={`absolute inset-0 bg-black/60 flex items-center justify-center transition-opacity duration-300 ${
+                          hoveredBook === index ? "opacity-100" : "opacity-0"
+                        }`}
+                      >
+                        <Button size="sm" asChild disabled={isAdmin}>
+                          <Link to={isAdmin ? "#" : `/book/${book.id}`}>
+                            <ShoppingCart className="h-4 w-4 mr-1" />
+                            {isAdmin ? "Admin Cannot Purchase" : "Buy Now"}
+                          </Link>
+                        </Button>
+                      </div>
+                    </div>
+
+                    <CardContent className={`p-6 ${viewMode === "list" ? "flex-1" : ""}`}>
+                      <div className={viewMode === "list" ? "flex justify-between h-full" : ""}>
+                        <div className={viewMode === "list" ? "flex-1" : ""}>
+                          <div className="mb-2">
+                            <Badge variant="outline" className="text-xs">
+                              {book.category}
+                            </Badge>
+                          </div>
+
+                          <h3 className="text-xl font-bold mb-2 group-hover:text-orange-600 transition-colors">
+                            <Link to={`/book/${book.id}`} className="hover:text-orange-600">
+                              {book.title}
+                            </Link>
+                          </h3>
+
+                          <p className="text-muted-foreground mb-2">by {book.author}</p>
+
+                          {viewMode === "list" && (
+                            <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+                              {book.description}
+                            </p>
+                          )}
+
+                          <div className="flex items-center mb-3">
+                            <div className="flex items-center">
+                              {[...Array(5)].map((_, i) => (
+                                <Star
+                                  key={i}
+                                  className={`h-4 w-4 ${
+                                    i < Math.floor(book.rating || 4.5)
+                                      ? "fill-yellow-400 text-yellow-400"
+                                      : "text-gray-300"
+                                  }`}
+                                />
+                              ))}
+                            </div>
+                            <span className="text-sm text-muted-foreground ml-2">
+                              ({book.rating || 4.5})
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className={viewMode === "list" ? "flex flex-col justify-between items-end" : ""}>
+                          <div className="text-xl font-bold text-orange-600 mb-3">
+                            ₹{book.price}
+                          </div>
+
+                          <div className={`flex gap-2 ${viewMode === "list" ? "flex-col" : ""}`}>
+                            <Button
+                              size="sm"
+                              onClick={() => handleAddToCart(book)}
+                              disabled={isInCart(book.id) || isAdmin}
+                              className="flex-1"
+                            >
+                              <ShoppingCart className="h-4 w-4 mr-1" />
+                              {isInCart(book.id) ? "In Cart" : isAdmin ? "Admin Cannot Purchase" : "Add to Cart"}
+                            </Button>
+                            <Button variant="outline" size="sm" asChild>
+                              <Link to={`/book/${book.id}`}>
+                                <Eye className="h-4 w-4 mr-1" />
+                                View
+                              </Link>
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
+
+      <LoginPopup
+        open={showLoginPopup}
+        onOpenChange={setShowLoginPopup}
+        action="add items to your wishlist"
+      />
     </section>
   )
 }

@@ -120,26 +120,19 @@ export default function ContactPage() {
   // ]
 
   return (
-    <section ref={sectionRef} className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
-      {/* Hero Section */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-orange-500 to-amber-600 py-20">
-        <div className="absolute inset-0 bg-black/10"></div>
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="text-center max-w-4xl mx-auto">
-            <h1 className="text-5xl md:text-6xl font-bold text-white mb-6">
-              Let's Start Your
-              <span className="block text-yellow-200">Publishing Journey</span>
-            </h1>
-            <p className="text-xl text-orange-100 max-w-2xl mx-auto leading-relaxed">
-              Ready to bring your story to life? We're here to help you every step of the way. 
-              Get in touch and let's make your publishing dreams a reality.
-            </p>
-          </div>
+    <section ref={sectionRef} className="py-20 bg-background min-h-screen">
+      <div className="container mx-auto px-4">
+        <div className="text-center mb-16">
+          <h1 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-orange-500 to-amber-500 bg-clip-text text-transparent">
+            Contact Us
+          </h1>
+          <p className="text-lg text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+            Ready to bring your story to life? We're here to help you every step of the way. 
+            Get in touch and let's make your publishing dreams a reality.
+          </p>
         </div>
-      </div>
 
-      {/* Main Content */}
-      <div className="container mx-auto px-4 py-16">
+                {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
           
           {/* Left Column - Contact Info */}
