@@ -13,8 +13,8 @@ import { CreditCard, Truck, MapPin, Mail, Edit, Trash2, Plus } from "lucide-reac
 import { useCart } from "@/contexts/cart-context"
 import { useUser } from "@/contexts/user-context"
 import { useAuth } from "@/contexts/auth-context"
-import { useNavigate } from "react-router-dom"
 import { useToast } from "@/hooks/use-toast"
+import { useNavigate } from "react-router-dom"
 import { collection, query, where, getDocs } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { validateCoupon } from "@/lib/firebase-utils"
@@ -38,7 +38,7 @@ interface CheckoutForm {
 }
 
 export default function CheckoutPage() {
-  const { items, getTotalPrice, getTotalItems, clearCart } = useCart()
+  const { items, getTotalPrice, getTotalItems } = useCart()
   const { userProfile, addAddress, removeAddress, isAdmin } = useUser()
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -73,9 +73,52 @@ export default function CheckoutPage() {
   const [showAddressForm, setShowAddressForm] = useState(false)
 
   useEffect(() => {
-    if (items.length === 0) {
+    // Check if we have stored order data from a failed payment
+    const storedOrderData = sessionStorage.getItem('pendingOrderData')
+    if (storedOrderData && items.length === 0) {
+      try {
+        const orderData = JSON.parse(storedOrderData)
+        
+        // Restore form data from stored order
+        if (orderData.shippingAddress) {
+          setFormData(prev => ({
+            ...prev,
+            email: orderData.userEmail || user?.email || '',
+            firstName: orderData.shippingAddress.firstName || '',
+            lastName: orderData.shippingAddress.lastName || '',
+            phone: orderData.shippingAddress.phone || '',
+            address1: orderData.shippingAddress.address1 || '',
+            address2: orderData.shippingAddress.address2 || '',
+            city: orderData.shippingAddress.city || '',
+            state: orderData.shippingAddress.state || '',
+            postalCode: orderData.shippingAddress.postalCode || '',
+            country: orderData.shippingAddress.country || 'India',
+            paymentMethod: orderData.paymentMethod || 'payu',
+            shippingMethod: orderData.shippingMethod || 'standard'
+          }))
+        }
+
+        // Restore applied coupon if any
+        if (orderData.appliedCoupon) {
+          setAppliedCoupon(orderData.appliedCoupon)
+          setDiscount(orderData.discount || 0)
+        }
+
+        // Show toast to inform user
+        toast({
+          title: "Order Data Restored",
+          description: "Your order details have been restored from the previous attempt.",
+        })
+      } catch (error) {
+        console.error('Error restoring order data:', error)
+        // If restoration fails, clear the stored data
+        sessionStorage.removeItem('pendingOrderData')
+      }
+    } else if (items.length === 0) {
+      // If no stored data and no items, redirect to cart
       navigate('/cart')
     }
+
     loadShippingMethods()
     
     // Cleanup function to clear stored order data when component unmounts
@@ -85,7 +128,7 @@ export default function CheckoutPage() {
         sessionStorage.removeItem('pendingOrderData')
       }
     }
-  }, [items, navigate, processing])
+  }, [items, navigate, processing, user?.email, toast])
 
   useEffect(() => {
     if (userProfile) {
@@ -442,7 +485,7 @@ export default function CheckoutPage() {
         // For demo purposes with other payment methods
         const demoOrderId = `DEMO_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
         setTimeout(() => {
-          clearCart()
+          // Don't clear cart here - only clear after successful payment
           navigate(`/order-confirmation/${demoOrderId}`)
           toast({
             title: "Order Placed!",

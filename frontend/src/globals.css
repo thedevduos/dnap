@@ -107,6 +107,64 @@ html {
   background: hsl(var(--primary) / 0.8);
 }
 
+/* Admin sidebar scrollbar - responsive based on device */
+.admin-sidebar {
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: #d1d5db #f3f4f6; /* Firefox */
+}
+
+.admin-sidebar::-webkit-scrollbar {
+  width: 6px; /* Thinner on mobile */
+  height: 6px;
+}
+
+@media (min-width: 768px) {
+  .admin-sidebar::-webkit-scrollbar {
+    width: 8px; /* Standard width on tablet */
+    height: 8px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .admin-sidebar::-webkit-scrollbar {
+    width: 10px; /* Slightly wider on desktop */
+    height: 10px;
+  }
+}
+
+.admin-sidebar::-webkit-scrollbar-track {
+  background: #f3f4f6; /* Light gray background */
+  border-radius: 3px;
+}
+
+.admin-sidebar::-webkit-scrollbar-thumb {
+  background: #d1d5db; /* Medium gray thumb */
+  border-radius: 3px;
+  border: 1px solid #f3f4f6;
+}
+
+.admin-sidebar::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af; /* Darker on hover */
+}
+
+.admin-sidebar::-webkit-scrollbar-corner {
+  background: #f3f4f6;
+}
+
+/* Ensure scrollbar is always visible when content overflows */
+.admin-sidebar {
+  overflow-y: scroll !important;
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+}
+
+/* Hide scrollbar on very small screens but keep functionality */
+@media (max-width: 640px) {
+  .admin-sidebar::-webkit-scrollbar {
+    width: 0px;
+    height: 0px;
+  }
+}
+
 /* Line clamp utility */
 .line-clamp-2 {
   display: -webkit-box;

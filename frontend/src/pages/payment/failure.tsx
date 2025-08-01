@@ -1,21 +1,28 @@
 "use client"
 
-import { useEffect } from "react"
-import { useSearchParams, Link } from "react-router-dom"
+import { useEffect, useState } from "react"
+import { useSearchParams, useNavigate } from "react-router-dom"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { XCircle, ArrowLeft, RefreshCw } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { useCart } from "@/contexts/cart-context"
 
 export default function PaymentFailurePage() {
   const [searchParams] = useSearchParams()
   const { toast } = useToast()
+  const navigate = useNavigate()
+  const { clearCart } = useCart()
+  const [_orderData, setOrderData] = useState<any>(null)
 
   useEffect(() => {
     const error = searchParams.get('error') || 'Payment was unsuccessful'
     
-    // Clear stored order data since payment failed
-    sessionStorage.removeItem('pendingOrderData')
+    // Get stored order data but don't clear it yet
+    const storedOrderData = sessionStorage.getItem('pendingOrderData')
+    if (storedOrderData) {
+      setOrderData(JSON.parse(storedOrderData))
+    }
     
     toast({
       title: "Payment Failed",
@@ -23,6 +30,18 @@ export default function PaymentFailurePage() {
       variant: "destructive",
     })
   }, [searchParams, toast])
+
+  const handleTryAgain = () => {
+    // Navigate back to checkout with preserved order data
+    navigate('/checkout')
+  }
+
+  const handleBackToCart = () => {
+    // Clear order data and cart when user chooses to go back to cart
+    sessionStorage.removeItem('pendingOrderData')
+    clearCart()
+    navigate('/cart')
+  }
 
   const txnid = searchParams.get('txnid')
   const orderId = txnid?.split('_')[1]
@@ -58,18 +77,14 @@ export default function PaymentFailurePage() {
               </div>
 
               <div className="space-y-3">
-                <Button asChild size="lg" className="w-full">
-                  <Link to="/checkout">
-                    <RefreshCw className="w-5 h-5 mr-2" />
-                    Try Again
-                  </Link>
+                <Button onClick={handleTryAgain} size="lg" className="w-full">
+                  <RefreshCw className="w-5 h-5 mr-2" />
+                  Try Again
                 </Button>
                 
-                <Button variant="outline" asChild className="w-full">
-                  <Link to="/cart">
-                    <ArrowLeft className="w-5 h-5 mr-2" />
-                    Back to Cart
-                  </Link>
+                <Button variant="outline" onClick={handleBackToCart} className="w-full">
+                  <ArrowLeft className="w-5 h-5 mr-2" />
+                  Back to Cart
                 </Button>
               </div>
 

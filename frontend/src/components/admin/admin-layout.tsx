@@ -159,8 +159,8 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       <div className={cn("fixed inset-0 z-50 lg:hidden", sidebarOpen ? "block" : "hidden")}>
         <div className="fixed inset-0 bg-gray-600 bg-opacity-75" onClick={() => setSidebarOpen(false)} />
         <div className="fixed inset-y-0 left-0 flex w-64 flex-col bg-white">
-          <div className="flex h-16 items-center justify-between px-4 border-b">
-            <Link to="/admin/dashboard" className="flex items-center space-x-2">
+          <div className="flex h-16 items-center justify-between px-4 border-b flex-shrink-0">
+            <Link to="/" className="flex items-center space-x-2">
               <div>
                 <span className="text-lg font-bold">Admin Dashboard</span>
                 <p className="text-xs text-gray-500">DNA Publications Platform</p>
@@ -170,7 +170,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
               <X className="h-5 w-5" />
             </Button>
           </div>
-          <nav className="flex-1 space-y-1 px-2 py-4">
+          <nav className="flex-1 space-y-1 px-2 py-4 overflow-y-auto admin-sidebar min-h-0">
             {Object.entries(groupedNavigation).map(([section, items], index) => (
               <div key={section} className="space-y-1">
                 {index > 0 && <div className="border-t border-gray-200 my-4" />}
@@ -186,16 +186,16 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
       {/* Desktop sidebar */}
       <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
-        <div className="flex flex-col flex-grow bg-white border-r border-gray-200">
-          <div className="flex h-16 items-center px-4 border-b">
-            <Link to="/admin/dashboard" className="flex items-center space-x-2">
+        <div className="flex flex-col flex-grow bg-white border-r border-gray-200 min-h-0">
+          <div className="flex h-16 items-center px-4 border-b flex-shrink-0">
+            <Link to="/" className="flex items-center space-x-2">
               <div>
                 <span className="text-lg font-bold">Admin Dashboard</span>
                 <p className="text-xs text-gray-500">DNA Publications Platform</p>
               </div>
             </Link>
           </div>
-          <nav className="flex-1 space-y-1 px-2 py-4">
+          <nav className="flex-1 space-y-1 px-2 py-4 overflow-y-auto admin-sidebar min-h-0">
             {Object.entries(groupedNavigation).map(([section, items], index) => (
               <div key={section} className="space-y-1">
                 {index > 0 && <div className="border-t border-gray-200 my-4" />}
@@ -220,56 +220,44 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           {/* Pushes the right section to the far right */}
 
           <div className="flex items-center space-x-4 justify-end">
-            <Button variant="outline" asChild>
-              <Link to="/" target="_blank" rel="noopener noreferrer">View Site</Link>
-            </Button>
-            
             {/* Profile Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="p-0 rounded-full hover:bg-gray-100">
+                <Button variant="ghost" className="header-item hidden md:flex items-center space-x-2">
                   {user?.photoURL ? (
                     <img
-                      src={`https://images.weserv.nl/?url=${encodeURIComponent(user.photoURL)}&w=36&h=36&fit=cover&mask=circle`}
+                      src={user.photoURL}
                       alt="Profile"
-                      className="w-9 h-9 rounded-full object-cover border border-gray-200 shadow-sm"
-                      loading="lazy"
-                      onError={(e) => {
-                        // Hide the image and show fallback
-                        e.currentTarget.style.display = 'none'
-                        const fallback = e.currentTarget.nextElementSibling
-                        if (fallback) {
-                          fallback.classList.remove('hidden')
-                        }
-                      }}
+                      className="w-6 h-6 rounded-full object-cover"
                     />
-                  ) : null}
-                  <div className={`w-9 h-9 bg-gradient-to-br from-orange-500 to-amber-600 rounded-full flex items-center justify-center ${user?.photoURL ? 'hidden' : ''}`}>
-                    {user?.displayName ? (
-                      <span className="text-white font-semibold text-sm">
-                        {user.displayName.charAt(0).toUpperCase()}
-                      </span>
-                    ) : (
-                      <User className="w-5 h-5 text-white" />
-                    )}
-                  </div>
+                  ) : (
+                    <User className="w-5 h-5" />
+                  )}
+                  <span>{user?.displayName || user?.email?.split('@')[0]}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel className="font-normal">
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">
-                      {user?.displayName || user?.email?.split('@')[0] || 'Administrator'}
-                    </p>
-                    <p className="text-xs leading-none text-muted-foreground">
-                      {user?.email}
-                    </p>
-                  </div>
-                </DropdownMenuLabel>
+                <DropdownMenuLabel>My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
+                <DropdownMenuItem asChild>
+                  <Link to="/profile">
+                    <User className="mr-2 h-4 w-4" />
+                    Profile & Orders
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/">
+                    <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                    </svg>
+                    Go to Homepage
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="mr-2 h-4 w-4" />
-                  <span>Sign out</span>
+                  Sign out
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

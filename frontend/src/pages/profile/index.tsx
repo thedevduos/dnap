@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -18,7 +18,8 @@ import {
   Edit, 
   Trash2,
   Eye,
-  Star
+  Star,
+  Mail
 } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { useUser } from "@/contexts/user-context"
@@ -27,6 +28,7 @@ import { useOrders } from "@/hooks/use-orders"
 import { useWishlist } from "@/hooks/use-wishlist"
 import { AddressModal } from "@/components/profile/address-modal"
 import { Link } from "react-router-dom"
+import { checkSubscriberStatus, unsubscribeFromNewsletter, subscribeToNewsletter, updateSubscriberStatus } from "@/lib/firebase-utils"
 
 export default function ProfilePage() {
   const { user, logout } = useAuth()
@@ -42,6 +44,13 @@ export default function ProfilePage() {
     firstName: userProfile?.firstName || "",
     lastName: userProfile?.lastName || "",
     phone: userProfile?.phone || "",
+  })
+  const [newsletterStatus, setNewsletterStatus] = useState<{
+    isSubscribed: boolean
+    loading: boolean
+  }>({
+    isSubscribed: false,
+    loading: true
   })
 
   const handleProfileUpdate = async () => {
@@ -102,6 +111,102 @@ export default function ProfilePage() {
     }
   }
 
+  const checkNewsletterSubscription = async () => {
+    if (!user?.email) return
+    
+    try {
+      const subscriber = await checkSubscriberStatus(user.email)
+      setNewsletterStatus({
+        isSubscribed: (subscriber as any)?.status === "active",
+        loading: false
+      })
+    } catch (error) {
+      setNewsletterStatus({
+        isSubscribed: false,
+        loading: false
+      })
+    }
+  }
+
+  const handleNewsletterUnsubscribe = async () => {
+    if (!user?.email) return
+    
+    try {
+      await unsubscribeFromNewsletter(user.email)
+      setNewsletterStatus({
+        isSubscribed: false,
+        loading: false
+      })
+      toast({
+        title: "Unsubscribed",
+        description: "You have been unsubscribed from our newsletter.",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to unsubscribe. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleNewsletterSubscribe = async () => {
+    if (!user?.email) {
+      toast({
+        title: "Error",
+        description: "Email address not found. Please try again.",
+        variant: "destructive",
+      })
+      return
+    }
+    
+    try {
+      await subscribeToNewsletter(user.email)
+      setNewsletterStatus({
+        isSubscribed: true,
+        loading: false
+      })
+      toast({
+        title: "Newsletter Subscription Success",
+        description: "Thank you for subscribing to our newsletter.",
+      })
+    } catch (error: any) {
+      if (error.message === "Email already subscribed") {
+        // If email already exists, update the status to active
+        try {
+          const subscriber = await checkSubscriberStatus(user.email)
+          if (subscriber) {
+            await updateSubscriberStatus(subscriber.id, "active")
+            setNewsletterStatus({
+              isSubscribed: true,
+              loading: false
+            })
+            toast({
+              title: "Newsletter Subscription Success",
+              description: "Thank you for subscribing to our newsletter.",
+            })
+          }
+        } catch (updateError) {
+          toast({
+            title: "Error",
+            description: "Failed to subscribe. Please try again.",
+            variant: "destructive",
+          })
+        }
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to subscribe. Please try again.",
+          variant: "destructive",
+        })
+      }
+    }
+  }
+
+  useEffect(() => {
+    checkNewsletterSubscription()
+  }, [user?.email])
+
   const getOrderStatusColor = (status: string) => {
     switch (status) {
       case "pending": return "bg-yellow-100 text-yellow-800"
@@ -123,7 +228,7 @@ export default function ProfilePage() {
           </div>
 
           <Tabs defaultValue="profile" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="profile" className="flex items-center gap-2">
                 <User className="h-4 w-4" />
                 Profile
@@ -139,6 +244,10 @@ export default function ProfilePage() {
               <TabsTrigger value="wishlist" className="flex items-center gap-2">
                 <Heart className="h-4 w-4" />
                 Wishlist
+              </TabsTrigger>
+              <TabsTrigger value="newsletter" className="flex items-center gap-2">
+                <Mail className="h-4 w-4" />
+                Newsletter
               </TabsTrigger>
             </TabsList>
 
@@ -471,6 +580,90 @@ export default function ProfilePage() {
                           </CardContent>
                         </Card>
                       ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Newsletter Tab */}
+            <TabsContent value="newsletter">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Newsletter Preferences</CardTitle>
+                  <p className="text-gray-600">Manage your newsletter subscription preferences</p>
+                </CardHeader>
+                <CardContent>
+                  {newsletterStatus.loading ? (
+                    <div className="text-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                      <p className="mt-2 text-muted-foreground">Checking subscription status...</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      <div className="flex items-center justify-between p-4 border rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <Mail className="h-5 w-5 text-primary" />
+                          <div>
+                            <h3 className="font-medium">Newsletter Subscription</h3>
+                            <p className="text-sm text-muted-foreground">
+                              {newsletterStatus.isSubscribed 
+                                ? "You are currently subscribed to our newsletter"
+                                : "You are not subscribed to our newsletter"
+                              }
+                            </p>
+                          </div>
+                        </div>
+                        <Badge variant={newsletterStatus.isSubscribed ? "default" : "secondary"}>
+                          {newsletterStatus.isSubscribed ? "Subscribed" : "Not Subscribed"}
+                        </Badge>
+                      </div>
+
+                      {newsletterStatus.isSubscribed ? (
+                        <div className="space-y-4">
+                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <h4 className="font-medium text-blue-900 mb-2">What you'll receive:</h4>
+                            <ul className="text-sm text-blue-800 space-y-1">
+                              <li>• Latest book releases and updates</li>
+                              <li>• Exclusive discounts and promotions</li>
+                              <li>• Author interviews and behind-the-scenes content</li>
+                              <li>• Industry news and insights</li>
+                            </ul>
+                          </div>
+                          
+                          <Button 
+                            variant="outline" 
+                            onClick={handleNewsletterUnsubscribe}
+                            className="w-full"
+                          >
+                            Unsubscribe from Newsletter
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                            <h4 className="font-medium text-gray-900 mb-2">Stay updated with:</h4>
+                            <ul className="text-sm text-gray-700 space-y-1">
+                              <li>• Latest book releases and updates</li>
+                              <li>• Exclusive discounts and promotions</li>
+                              <li>• Author interviews and behind-the-scenes content</li>
+                              <li>• Industry news and insights</li>
+                            </ul>
+                          </div>
+                          
+                          <div className="text-center">
+                            <p className="text-sm text-muted-foreground mb-4">
+                              Subscribe to our newsletter to receive updates and exclusive offers.
+                            </p>
+                            <Button 
+                              onClick={handleNewsletterSubscribe}
+                              className="w-full"
+                            >
+                              Subscribe to Newsletter
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </CardContent>

@@ -20,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { CreditCard, Search, MoreHorizontal, Eye, RefreshCw, Download } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useTransactions } from "@/hooks/use-transactions"
 import { processRefund } from "@/lib/firebase-utils"
 import { useToast } from "@/hooks/use-toast"
@@ -32,6 +33,7 @@ export default function AdminPayments() {
   const [searchTerm, setSearchTerm] = useState("")
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null)
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState("all")
 
   const handleViewTransaction = (transaction: any) => {
     setSelectedTransaction(transaction)
@@ -54,11 +56,14 @@ export default function AdminPayments() {
     }
   }
 
-  const filteredTransactions = transactions.filter(transaction => 
-            transaction.id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    transaction.orderId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    transaction.customerEmail?.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const filteredTransactions = transactions.filter(transaction => {
+    const matchesSearch = transaction.id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         transaction.orderId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         transaction.customerEmail?.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesPaymentMethod = paymentMethodFilter === "all" || 
+                                transaction.paymentMethod?.toLowerCase() === paymentMethodFilter.toLowerCase()
+    return matchesSearch && matchesPaymentMethod
+  })
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -147,17 +152,29 @@ export default function AdminPayments() {
           </Card>
         </div>
 
-        {/* Search */}
+        {/* Search and Filters */}
         <Card>
           <CardContent className="p-4">
-            <div className="relative max-w-sm">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder="Search transactions..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
+            <div className="flex gap-4">
+              <div className="relative flex-1 max-w-sm">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input
+                  placeholder="Search transactions..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Select value={paymentMethodFilter} onValueChange={setPaymentMethodFilter}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Payment Method" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Methods</SelectItem>
+                  <SelectItem value="payu">PayU</SelectItem>
+                  <SelectItem value="cod">Cash on Delivery</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </CardContent>
         </Card>
@@ -165,7 +182,12 @@ export default function AdminPayments() {
         {/* Transactions Table */}
         <Card>
           <CardHeader>
-            <CardTitle>All Transactions ({filteredTransactions.length})</CardTitle>
+            <CardTitle>
+              {paymentMethodFilter === "payu" ? "PayU Transactions" : "All Transactions"} ({filteredTransactions.length})
+            </CardTitle>
+            {paymentMethodFilter === "payu" && (
+              <p className="text-sm text-gray-600">PayU payment gateway transactions and refunds</p>
+            )}
           </CardHeader>
           <CardContent>
             {loading ? (

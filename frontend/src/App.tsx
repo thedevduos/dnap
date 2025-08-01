@@ -24,6 +24,7 @@ import LoginPage from "@/pages/auth/login"
 import RegisterPage from "@/pages/auth/register"
 import ProfilePage from "@/pages/profile/index"
 import OrderDetailPage from "@/pages/order/[id]"
+import OrderConfirmationPage from "@/pages/order-confirmation/[id]"
 import PaymentSuccessPage from "@/pages/payment/success"
 import PaymentFailurePage from "@/pages/payment/failure"
 import TeamPage from "@/pages/team"
@@ -126,6 +127,7 @@ export default function App() {
                                     <OrderDetailPage />
                                   </ProtectedRoute>
                                 } />
+                                <Route path="/order-confirmation/:id" element={<OrderConfirmationPage />} />
                                 <Route path="/payment/success" element={<PaymentSuccessPage />} />
                                 <Route path="/payment/failure" element={<PaymentFailurePage />} />
                                 <Route path="/team" element={<TeamPage />} />

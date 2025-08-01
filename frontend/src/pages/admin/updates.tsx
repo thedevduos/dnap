@@ -18,9 +18,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Label } from "@/components/ui/label"
 import { Calendar, Plus, MoreHorizontal, Edit, Trash2 } from "lucide-react"
 import { useUpdatesAdmin } from "@/hooks/use-updates-admin"
-import { deleteUpdate } from "@/lib/firebase-utils"
+import { deleteUpdate, updateUpdate } from "@/lib/firebase-utils"
 import { useToast } from "@/hooks/use-toast"
 import { AdminLayout } from "@/components/admin/admin-layout"
 import { UpdateModal } from "@/components/admin/update-modal"
@@ -30,6 +32,7 @@ export default function AdminUpdates() {
   const { toast } = useToast()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedUpdate, setSelectedUpdate] = useState<any>(null)
+  const [statusFilter, setStatusFilter] = useState("all")
 
   const handleEdit = (update: any) => {
     setSelectedUpdate(update)
@@ -52,21 +55,28 @@ export default function AdminUpdates() {
     }
   }
 
+  const handleStatusUpdate = async (id: string, status: string) => {
+    try {
+      await updateUpdate(id, { status })
+      toast({
+        title: "Success",
+        description: `Update ${status === 'active' ? 'activated' : 'deactivated'} successfully`,
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update status",
+        variant: "destructive",
+      })
+    }
+  }
+
   const handleModalClose = () => {
     setIsModalOpen(false)
     setSelectedUpdate(null)
   }
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "active":
-        return <Badge className="bg-green-600">Active</Badge>
-      case "inactive":
-        return <Badge variant="secondary">Inactive</Badge>
-      default:
-        return <Badge variant="secondary">Inactive</Badge>
-    }
-  }
+
 
   const getTypeBadge = (type: string) => {
     switch (type) {
@@ -80,6 +90,11 @@ export default function AdminUpdates() {
         return <Badge variant="outline">{type}</Badge>
     }
   }
+
+  const filteredUpdates = updates.filter(update => {
+    if (statusFilter === "all") return true
+    return update.status === statusFilter
+  })
 
   return (
     <AdminLayout>
@@ -120,8 +135,27 @@ export default function AdminUpdates() {
         {/* Updates Table */}
         <Card>
           <CardHeader>
-            <CardTitle>All Updates</CardTitle>
-            <p className="text-gray-600">Manage your website updates and promotional messages</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>All Updates</CardTitle>
+                <p className="text-gray-600">Manage your website updates and promotional messages</p>
+              </div>
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <Label htmlFor="status-filter" className="text-sm font-medium">Filter by Status:</Label>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="p-0">
             {loading ? (
@@ -129,15 +163,24 @@ export default function AdminUpdates() {
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
                 <p className="mt-4 text-gray-600 text-lg">Loading updates...</p>
               </div>
-            ) : updates.length === 0 ? (
+            ) : filteredUpdates.length === 0 ? (
               <div className="text-center py-12">
                 <Calendar className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">No Updates Yet</h3>
-                <p className="text-gray-600 mb-6">Create your first update to start promoting your content</p>
-                <Button onClick={() => setIsModalOpen(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create First Update
-                </Button>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  {statusFilter === "all" ? "No Updates Yet" : `No ${statusFilter} Updates`}
+                </h3>
+                <p className="text-gray-600 mb-6">
+                  {statusFilter === "all" 
+                    ? "Create your first update to start promoting your content"
+                    : `No updates found with ${statusFilter} status`
+                  }
+                </p>
+                {statusFilter === "all" && (
+                  <Button onClick={() => setIsModalOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create First Update
+                  </Button>
+                )}
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -152,7 +195,7 @@ export default function AdminUpdates() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {updates.map((update) => (
+                    {filteredUpdates.map((update) => (
                       <TableRow key={update.id} className="hover:bg-gray-50">
                         <TableCell>{getTypeBadge(update.type || "announcement")}</TableCell>
                         <TableCell className="max-w-md">
@@ -160,7 +203,20 @@ export default function AdminUpdates() {
                             {update.textEnglish}
                           </div>
                         </TableCell>
-                        <TableCell>{getStatusBadge(update.status)}</TableCell>
+                        <TableCell>
+                          <Select
+                            value={update.status || "inactive"}
+                            onValueChange={(value) => handleStatusUpdate(update.id, value)}
+                          >
+                            <SelectTrigger className="w-32">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="active">Active</SelectItem>
+                              <SelectItem value="inactive">Inactive</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
                         <TableCell className="text-gray-600">
                           {update.createdAt?.toDate?.()?.toLocaleDateString() || "N/A"}
                         </TableCell>

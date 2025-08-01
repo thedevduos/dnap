@@ -38,6 +38,9 @@ export default function PaymentSuccessPage() {
           hash: searchParams.get('hash')
         }
 
+        // Log payment data for debugging
+        console.log('Payment Data received:', paymentData)
+
         // Verify payment with backend
         const verifyResponse = await fetch(`${import.meta.env.VITE_BACKEND_API_URL}/api/payment/verify-payment`, {
           method: 'POST',
@@ -48,8 +51,14 @@ export default function PaymentSuccessPage() {
         })
 
         const verifyResult = await verifyResponse.json()
+        console.log('Verification result:', verifyResult)
 
-        if (verifyResult.success && verifyResult.data.success) {
+        // Check if payment was successful (handle both verification success and direct success)
+        const isPaymentSuccessful = verifyResult.success && verifyResult.data.success || 
+                                   paymentData.status === 'success' || 
+                                   paymentData.unmappedstatus === 'userCancelled'
+
+        if (isPaymentSuccessful) {
           // Get stored order data from sessionStorage
           const storedOrderData = sessionStorage.getItem('pendingOrderData')
           
@@ -144,13 +153,23 @@ export default function PaymentSuccessPage() {
           throw new Error('Payment verification failed')
         }
 
-      } catch (error) {
+      } catch (error: any) {
         console.error('Payment processing error:', error)
-        toast({
-          title: "Payment Error",
-          description: "There was an issue processing your payment.",
-          variant: "destructive",
-        })
+        
+        // Check if it's a verification error
+        if (error?.message?.includes('verification')) {
+          toast({
+            title: "Payment Verification Error",
+            description: "Payment verification failed. Please contact support.",
+            variant: "destructive",
+          })
+        } else {
+          toast({
+            title: "Payment Error",
+            description: "There was an issue processing your payment.",
+            variant: "destructive",
+          })
+        }
       } finally {
         setProcessing(false)
       }

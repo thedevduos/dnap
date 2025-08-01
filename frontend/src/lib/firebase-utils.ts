@@ -424,6 +424,31 @@ export const deleteSubscriber = async (id: string) => {
   return await deleteDoc(doc(db, "subscribers", id))
 }
 
+export const checkSubscriberStatus = async (email: string) => {
+  const q = query(collection(db, "subscribers"), where("email", "==", email))
+  const querySnapshot = await getDocs(q)
+  
+  if (querySnapshot.empty) {
+    return null
+  }
+  
+  const subscriber = querySnapshot.docs[0]
+  return {
+    id: subscriber.id,
+    ...subscriber.data()
+  }
+}
+
+export const unsubscribeFromNewsletter = async (email: string) => {
+  const subscriber = await checkSubscriberStatus(email)
+  
+  if (!subscriber) {
+    throw new Error("Email not found in subscribers list")
+  }
+  
+  return await updateSubscriberStatus(subscriber.id, "unsubscribed")
+}
+
 // File Upload
 export const uploadImage = async (file: File, folder: string): Promise<string> => {
   const timestamp = Date.now()

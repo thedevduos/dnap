@@ -18,7 +18,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { BookOpen, Plus, MoreHorizontal, Edit, Trash2, Star } from "lucide-react"
+import { BookOpen, Plus, MoreHorizontal, Edit, Trash2, Star, Grid, List } from "lucide-react"
 import { useBooks } from "@/hooks/use-books"
 import { deleteBook, toggleFeaturedBook, getFeaturedBooksCount } from "@/lib/firebase-utils"
 import { useToast } from "@/hooks/use-toast"
@@ -30,6 +30,7 @@ export default function AdminBooks() {
   const { toast } = useToast()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedBook, setSelectedBook] = useState<any>(null)
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
 
   const handleEdit = (book: any) => {
     setSelectedBook(book)
@@ -86,11 +87,12 @@ export default function AdminBooks() {
     }
   }
 
-  const renderStars = (rating: number) => {
+  const renderStars = (rating: number, size: "sm" | "md" = "md") => {
+    const starSize = size === "sm" ? "h-3 w-3" : "h-4 w-4"
     return Array.from({ length: 5 }, (_, i) => (
       <Star 
         key={i} 
-        className={`h-4 w-4 ${i < rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`} 
+        className={`${starSize} ${i < rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`} 
       />
     ))
   }
@@ -103,13 +105,31 @@ export default function AdminBooks() {
             <h1 className="text-2xl font-bold text-gray-900">Manage Books</h1>
             <p className="text-gray-600">Add, edit, and manage book collection</p>
           </div>
-          <Button onClick={() => setIsModalOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add New Book
-          </Button>
+          <div className="flex items-center space-x-4">
+            <div className="flex border rounded-md">
+              <Button
+                variant={viewMode === "grid" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("grid")}
+              >
+                <Grid className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === "list" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("list")}
+              >
+                <List className="h-4 w-4" />
+              </Button>
+            </div>
+            <Button onClick={() => setIsModalOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add New Book
+            </Button>
+          </div>
         </div>
 
-        {/* Books Table */}
+        {/* Books Display */}
         <Card>
           <CardHeader>
             <CardTitle>All Books</CardTitle>
@@ -125,7 +145,7 @@ export default function AdminBooks() {
                 <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-600">No books found</p>
               </div>
-            ) : (
+            ) : viewMode === "list" ? (
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -199,6 +219,73 @@ export default function AdminBooks() {
                   ))}
                 </TableBody>
               </Table>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
+                {books.map((book) => (
+                  <Card key={book.id} className="group hover:shadow-lg transition-all duration-300">
+                    <div className="aspect-[3/4] relative overflow-hidden rounded-t-lg">
+                      <img
+                        src={book.imageUrl}
+                        alt={book.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      {book.isFeatured && (
+                        <div className="absolute top-2 right-2">
+                          <Badge className="bg-yellow-500 text-white">
+                            Featured
+                          </Badge>
+                        </div>
+                      )}
+                    </div>
+                    <CardContent className="p-3">
+                      <div className="mb-1">
+                        <Badge variant="outline" className="text-xs">
+                          {book.category}
+                        </Badge>
+                      </div>
+                      
+                      <h3 className="font-semibold mb-1 line-clamp-2 text-sm">{book.title}</h3>
+                      <p className="text-xs text-muted-foreground mb-2">by {book.author}</p>
+                      
+                      <div className="flex items-center mb-2">
+                        <div className="flex items-center">
+                          {renderStars(Math.floor(book.rating || 4.5), "sm")}
+                        </div>
+                        <span className="text-xs text-muted-foreground ml-1">
+                          ({book.rating || 4.5})
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm font-bold text-primary">₹{book.price}</span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleToggleFeatured(book)}
+                          className={`h-6 w-6 ${book.isFeatured ? "text-yellow-500" : "text-gray-400"}`}
+                        >
+                          <Star className={`h-3 w-3 ${book.isFeatured ? "fill-current" : ""}`} />
+                        </Button>
+                      </div>
+
+                      <div className="flex gap-1">
+                        <Button size="sm" onClick={() => handleEdit(book)} className="flex-1 text-xs h-8">
+                          <Edit className="h-3 w-3 mr-1" />
+                          Edit
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="icon"
+                          onClick={() => handleDelete(book.id)}
+                          className="text-red-600 hover:text-red-700 h-8 w-8"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             )}
           </CardContent>
         </Card>

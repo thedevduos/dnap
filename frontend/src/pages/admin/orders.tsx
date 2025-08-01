@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -20,10 +20,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Package, Search, MoreHorizontal, Eye, Edit, RefreshCw, Truck } from "lucide-react"
+import { Package, Search, MoreHorizontal, Eye, Edit, RefreshCw, Truck, X } from "lucide-react"
 import { Trash2 } from "lucide-react"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useOrdersAdmin } from "@/hooks/use-orders-admin"
-import { updateOrderStatus, deleteOrder } from "@/lib/firebase-utils"
+import { updateOrderStatus, deleteOrder, processRefund } from "@/lib/firebase-utils"
 import { useToast } from "@/hooks/use-toast"
 import { AdminLayout } from "@/components/admin/admin-layout"
 import { OrderModal } from "@/components/admin/order-modal"
@@ -35,6 +36,7 @@ export default function AdminOrders() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState<any>(null)
+  const [activeTab, setActiveTab] = useState("all")
 
   const handleStatusUpdate = async (orderId: string, newStatus: string) => {
     try {
@@ -74,13 +76,51 @@ export default function AdminOrders() {
       }
     }
   }
+
+  const handleCancelOrder = async (order: any) => {
+    // Prevent cancellation of delivered orders
+    if (order.status === "delivered") {
+      toast({
+        title: "Cannot Cancel Order",
+        description: "Delivered orders cannot be cancelled.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (window.confirm("Are you sure you want to cancel this order? This will automatically trigger a refund via PayU.")) {
+      try {
+        // Update order status to cancelled
+        await updateOrderStatus(order.id, "cancelled")
+        
+        // Process refund via PayU if payment was made
+        if (order.paymentMethod === 'payu' && order.transactionId) {
+          await processRefund(order.transactionId, order.total)
+        }
+        
+        toast({
+          title: "Order Cancelled",
+          description: "Order has been cancelled and refund initiated via PayU.",
+        })
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to cancel order and process refund.",
+          variant: "destructive",
+        })
+      }
+    }
+  }
   const filteredOrders = orders.filter(order => {
     const matchesSearch = order.id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          order.shippingAddress?.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          order.shippingAddress?.lastName?.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === "all" || order.status === statusFilter
-    return matchesSearch && matchesStatus
+    const matchesTab = activeTab === "all" || order.status === activeTab
+    return matchesSearch && matchesStatus && matchesTab
   })
+
+  const cancelledOrders = orders.filter(order => order.status === "cancelled")
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -194,10 +234,15 @@ export default function AdminOrders() {
           </CardContent>
         </Card>
 
-        {/* Orders Table */}
+        {/* Orders Table with Tabs */}
         <Card>
           <CardHeader>
-            <CardTitle>All Orders ({filteredOrders.length})</CardTitle>
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="all">All Orders ({orders.length})</TabsTrigger>
+                <TabsTrigger value="cancelled">Cancelled Orders ({cancelledOrders.length})</TabsTrigger>
+              </TabsList>
+            </Tabs>
           </CardHeader>
           <CardContent>
             {loading ? (
@@ -208,7 +253,9 @@ export default function AdminOrders() {
             ) : filteredOrders.length === 0 ? (
               <div className="text-center py-8">
                 <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600">No orders found</p>
+                <p className="text-gray-600">
+                  {activeTab === "cancelled" ? "No cancelled orders found" : "No orders found"}
+                </p>
               </div>
             ) : (
               <Table>
@@ -267,18 +314,31 @@ export default function AdminOrders() {
                               <Eye className="h-4 w-4 mr-2" />
                               View Details
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleStatusUpdate(order.id || '', "confirmed")}>
-                              <Edit className="h-4 w-4 mr-2" />
-                              Mark Confirmed
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleStatusUpdate(order.id || '', "shipped")}>
-                              <Edit className="h-4 w-4 mr-2" />
-                              Mark Shipped
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleStatusUpdate(order.id || '', "delivered")}>
-                              <Edit className="h-4 w-4 mr-2" />
-                              Mark Delivered
-                            </DropdownMenuItem>
+                            {order.status !== "cancelled" && order.status !== "delivered" && (
+                              <>
+                                <DropdownMenuItem onClick={() => handleStatusUpdate(order.id || '', "confirmed")}>
+                                  <Edit className="h-4 w-4 mr-2" />
+                                  Mark Confirmed
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleStatusUpdate(order.id || '', "shipped")}>
+                                  <Edit className="h-4 w-4 mr-2" />
+                                  Mark Shipped
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleStatusUpdate(order.id || '', "delivered")}>
+                                  <Edit className="h-4 w-4 mr-2" />
+                                  Mark Delivered
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                            {order.status !== "cancelled" && order.status !== "delivered" && (
+                              <DropdownMenuItem 
+                                onClick={() => handleCancelOrder(order)}
+                                className="text-red-600"
+                              >
+                                <X className="h-4 w-4 mr-2" />
+                                Cancel Order
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuItem 
                               onClick={() => handleDeleteOrder(order.id || '')}
                               className="text-red-600"
