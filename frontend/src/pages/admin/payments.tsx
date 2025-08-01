@@ -163,6 +163,128 @@ export default function AdminPayments() {
     }
   }
 
+  const renderTransactionsTable = () => {
+    if (loading) {
+      return (
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Loading transactions...</p>
+        </div>
+      )
+    }
+
+    if (filteredTransactions.length === 0) {
+      return (
+        <div className="text-center py-8">
+          <CreditCard className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">No Transactions Found</h3>
+          <p className="text-gray-600">
+            {searchTerm || paymentMethodFilter !== "all" 
+              ? "No transactions match your search criteria." 
+              : activeTab === "firestore" 
+                ? "No transactions found in database."
+                : activeTab === "gateway"
+                  ? "No transactions found from payment gateways."
+                  : "No transactions found."}
+          </p>
+        </div>
+      )
+    }
+
+    return (
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Transaction ID</TableHead>
+            <TableHead>Order ID</TableHead>
+            <TableHead>Customer</TableHead>
+            <TableHead>Amount</TableHead>
+            <TableHead>Payment Method</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Date</TableHead>
+            <TableHead>Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {filteredTransactions.map((transaction) => (
+            <TableRow key={`${transaction.id}-${transaction.paymentMethod}`}>
+              <TableCell className="font-mono text-sm">
+                <div>
+                  <span>{(transaction.gatewayTransactionId || transaction.id)?.slice(-8) || 'N/A'}</span>
+                  {activeTab === "all" && (
+                    <div className="text-xs text-muted-foreground">
+                      {firestoreTransactions?.some(ft => ft.id === transaction.id) ? 'DB' : 'Gateway'}
+                    </div>
+                  )}
+                </div>
+              </TableCell>
+              <TableCell className="font-mono text-sm">
+                {transaction.orderId ? `#${transaction.orderId.toString().slice(-8)}` : 'N/A'}
+              </TableCell>
+              <TableCell>
+                <div>
+                  <p className="font-medium">{transaction.customerName || 'Unknown'}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {transaction.customerEmail || 'No email'}
+                  </p>
+                </div>
+              </TableCell>
+              <TableCell className="font-medium">
+                ₹{typeof transaction.amount === 'number' ? transaction.amount.toLocaleString() : transaction.amount || '0'}
+              </TableCell>
+              <TableCell>
+                <Badge variant="outline">
+                  {transaction.paymentMethod === 'razorpay' ? 'Razorpay' : 
+                   transaction.paymentMethod === 'payu' ? 'PayU' : 
+                   transaction.paymentMethod || 'Unknown'}
+                </Badge>
+              </TableCell>
+              <TableCell>
+                <Badge className={getStatusColor(transaction.status || '', transaction.refundStatus)}>
+                  {getStatusDisplay(transaction.status || '', transaction.refundStatus)}
+                </Badge>
+              </TableCell>
+              <TableCell>
+                {formatDate(transaction.createdAt)}
+              </TableCell>
+              <TableCell>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <DropdownMenuItem onClick={() => handleViewTransaction(transaction)}>
+                      <Eye className="h-4 w-4 mr-2" />
+                      View Details
+                    </DropdownMenuItem>
+                    {canProcessRefund(transaction) && (
+                      <DropdownMenuItem 
+                        onClick={() => handleRefund(transaction)}
+                        disabled={processingRefund === (transaction.gatewayTransactionId || transaction.id)}
+                        className="text-red-600"
+                      >
+                        {processingRefund === (transaction.gatewayTransactionId || transaction.id) 
+                          ? "Processing..." 
+                          : "Process Refund"}
+                      </DropdownMenuItem>
+                    )}
+                    {!canProcessRefund(transaction) && transaction.status === "success" && (
+                      <DropdownMenuItem disabled>
+                        Already Refunded
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    )
+  }
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -329,120 +451,6 @@ export default function AdminPayments() {
           </Card>
         </Tabs>
       </div>
-            {loading ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600 mx-auto"></div>
-                <p className="mt-2 text-gray-600">Loading transactions...</p>
-              </div>
-            ) : filteredTransactions.length === 0 ? (
-              <div className="text-center py-8">
-                <CreditCard className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600">No transactions found</p>
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Transaction ID</TableHead>
-                    <TableHead>Order ID</TableHead>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Payment Method</TableHead>
-                <h3 className="text-lg font-semibold mb-2">No Transactions Found</h3>
-                <p className="text-gray-600">
-                  {searchTerm || paymentMethodFilter !== "all" 
-                    ? "No transactions match your search criteria." 
-                    : activeTab === "firestore" 
-                      ? "No transactions found in database."
-                      : activeTab === "gateway"
-                        ? "No transactions found from payment gateways."
-                        : "No transactions found."}
-                </p>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredTransactions.map((transaction) => (
-                    <TableRow key={transaction.id || ''}>
-                      <TableCell className="font-mono text-sm">
-                        {transaction.id?.slice(-8) || ''}
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">
-                        {transaction.orderId ? `#${transaction.orderId.slice(-8)}` : 'N/A'}
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">{transaction.customerName}</p>
-                          <p className="text-sm text-muted-foreground">
-                    <TableRow key={`${transaction.id}-${transaction.paymentMethod}`}>
-                          </p>
-                        <div>
-                          <span>{(transaction.gatewayTransactionId || transaction.id)?.slice(-8) || 'N/A'}</span>
-                          {activeTab === "all" && (
-                            <div className="text-xs text-muted-foreground">
-                              {firestoreTransactions?.some(ft => ft.id === transaction.id) ? 'DB' : 'Gateway'}
-                            </div>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {transaction.orderId ? `#${transaction.orderId.toString().slice(-8)}` : 'N/A'}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">
-                          <p className="font-medium">{transaction.customerName || 'Unknown'}</p>
-                           transaction.paymentMethod === 'razorpay' ? 'Razorpay' :
-                            {transaction.customerEmail || 'No email'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={getStatusColor(transaction.status || '', transaction.refundStatus)}>
-                        ₹{typeof transaction.amount === 'number' ? transaction.amount.toLocaleString() : transaction.amount || '0'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {transaction.createdAt ? 
-                          (typeof transaction.createdAt === 'object' && 'toDate' in transaction.createdAt) 
-                            ? transaction.createdAt.toDate().toLocaleDateString()
-                            : new Date(transaction.createdAt).toLocaleDateString()
-                          : 'N/A'
-                        }
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                        {formatDate(transaction.createdAt)}
-                              View Details
-                            </DropdownMenuItem>
-                            {transaction.status === "success" && (
-                              <DropdownMenuItem 
-                                onClick={() => handleRefund(transaction.id || '', transaction.amount || 0, transaction.paymentMethod || 'payu')}
-                                className="text-red-600"
-                              >
-                                Process Refund
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                            {canProcessRefund(transaction) && (
-                  ))}
-                                onClick={() => handleRefund(transaction)}
-                                disabled={processingRefund === (transaction.gatewayTransactionId || transaction.id)}
-              </Table>
-            )}
-                                {processingRefund === (transaction.gatewayTransactionId || transaction.id) 
-                                  ? "Processing..." 
-                                  : "Process Refund"}
-        </Card>
-      </div>
-                            {!canProcessRefund(transaction) && transaction.status === "success" && (
-                              <DropdownMenuItem disabled>
-                                Already Refunded
-                              </DropdownMenuItem>
-                            )}
 
       <TransactionModal
         open={isModalOpen}
@@ -451,8 +459,4 @@ export default function AdminPayments() {
       />
     </AdminLayout>
   )
-      <>
-      </>
-    )
-  }
 }
