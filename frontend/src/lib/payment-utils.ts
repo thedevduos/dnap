@@ -86,9 +86,9 @@ export const handleRazorpayPayment = async (paymentData: any): Promise<void> => 
       key: result.keyId,
       amount: result.amount,
       currency: result.currency,
-      name: result.name,
-      description: result.description,
-      order_id: result.orderId,
+      name: 'DNA Publications',
+      description: result.productInfo || 'DNA Publications Books',
+      order_id: result.razorpayOrderId,
       handler: function (response: any) {
         console.log('Razorpay payment successful:', response);
         // Store the response for verification
@@ -96,9 +96,9 @@ export const handleRazorpayPayment = async (paymentData: any): Promise<void> => 
         window.location.href = `${window.location.origin}/payment/success?method=razorpay`;
       },
       prefill: {
-        name: result.prefill.name,
-        email: result.prefill.email,
-        contact: result.prefill.contact
+        name: result.customerName,
+        email: result.customerEmail,
+        contact: result.customerPhone
       },
       theme: {
         color: '#3B82F6'
