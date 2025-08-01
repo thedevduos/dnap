@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { collection, onSnapshot, orderBy, query, where } from "firebase/firestore"
+import { collection, onSnapshot, orderBy, query } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 
 interface Transaction {
@@ -31,6 +31,8 @@ interface PaymentGatewayTransaction {
   method?: string
   refundStatus?: string
   orderId?: string
+  refundAmount?: number
+  gatewayTransactionId?: string
 }
 
 export function useTransactions() {
@@ -147,7 +149,8 @@ export function useTransactions() {
               customerEmail: t.customerEmail || 'unknown@example.com',
               paymentMethod: 'payu',
               createdAt: t.createdAt || new Date().toISOString(),
-              orderId: t.orderId || ''
+              orderId: t.orderId || '',
+              refundAmount: typeof t.refundAmount === 'number' ? t.refundAmount : parseFloat(t.refundAmount || '0')
             }))
             allPgTransactions.push(...payuTransactions)
           }
@@ -165,7 +168,8 @@ export function useTransactions() {
               currency: t.currency || 'INR',
               method: t.method || 'online',
               refundStatus: t.refundStatus || null,
-              orderId: t.orderId || ''
+              orderId: t.orderId || '',
+              refundAmount: typeof t.refundAmount === 'number' ? t.refundAmount : parseFloat(t.refundAmount || '0')
             }))
             allPgTransactions.push(...razorpayTransactions)
           }

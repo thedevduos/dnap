@@ -46,7 +46,7 @@ interface CheckoutForm {
 }
 
 export default function CheckoutPage() {
-  const { items, getTotalPrice, getTotalItems } = useCart()
+  const { items, getTotalPrice, getTotalItems, restoreCartFromOrderData } = useCart()
   const { userProfile, addAddress, removeAddress, isAdmin } = useUser()
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -80,6 +80,27 @@ export default function CheckoutPage() {
   const [editingAddress, setEditingAddress] = useState<any>(null)
   const [showAddressForm, setShowAddressForm] = useState(false)
 
+  // Separate useEffect for restoring cart items from failed payment
+  useEffect(() => {
+    const storedOrderData = sessionStorage.getItem('pendingOrderData')
+    console.log('Checking for stored order data:', !!storedOrderData, 'Cart items:', items.length)
+    
+    if (storedOrderData && items.length === 0) {
+      try {
+        const orderData = JSON.parse(storedOrderData)
+        console.log('Found stored order data:', orderData)
+        
+        // Restore cart items if cart is empty (coming from failed payment)
+        if (orderData.items && orderData.items.length > 0) {
+          console.log('Restoring cart items from stored order data')
+          restoreCartFromOrderData(orderData)
+        }
+      } catch (error) {
+        console.error('Error restoring cart items:', error)
+      }
+    }
+  }, [items.length, restoreCartFromOrderData])
+
   useEffect(() => {
     // Check if we have stored order data from a failed payment
     const storedOrderData = sessionStorage.getItem('pendingOrderData')
@@ -87,42 +108,29 @@ export default function CheckoutPage() {
       try {
         const orderData = JSON.parse(storedOrderData)
         
-        // Only restore if cart is empty (coming from failed payment)
-        if (items.length === 0) {
-          // Restore form data from stored order
-          if (orderData.shippingAddress) {
-            setFormData(prev => ({
-              ...prev,
-              email: orderData.userEmail || user?.email || '',
-              firstName: orderData.shippingAddress.firstName || '',
-              lastName: orderData.shippingAddress.lastName || '',
-              phone: orderData.shippingAddress.phone || '',
-              address1: orderData.shippingAddress.address1 || '',
-              address2: orderData.shippingAddress.address2 || '',
-              city: orderData.shippingAddress.city || '',
-              state: orderData.shippingAddress.state || '',
-              postalCode: orderData.shippingAddress.postalCode || '',
-              country: orderData.shippingAddress.country || 'India',
-              paymentMethod: orderData.paymentMethod || 'payu',
-              shippingMethod: orderData.shippingMethod || 'standard'
-            }))
-          }
+        // Restore form data from stored order
+        if (orderData.shippingAddress) {
+          setFormData(prev => ({
+            ...prev,
+            email: orderData.userEmail || user?.email || '',
+            firstName: orderData.shippingAddress.firstName || '',
+            lastName: orderData.shippingAddress.lastName || '',
+            phone: orderData.shippingAddress.phone || '',
+            address1: orderData.shippingAddress.address1 || '',
+            address2: orderData.shippingAddress.address2 || '',
+            city: orderData.shippingAddress.city || '',
+            state: orderData.shippingAddress.state || '',
+            postalCode: orderData.shippingAddress.postalCode || '',
+            country: orderData.shippingAddress.country || 'India',
+            paymentMethod: orderData.paymentMethod || 'payu',
+            shippingMethod: orderData.shippingMethod || 'standard'
+          }))
+        }
 
-          // Restore applied coupon if any
-          if (orderData.appliedCoupon) {
-            setAppliedCoupon(orderData.appliedCoupon)
-            setDiscount(orderData.discount || 0)
-          }
-
-          // Show toast to inform user
-          toast({
-            title: "Order Data Restored",
-            description: "Your order details have been restored from the previous attempt.",
-          })
-          
-          // Redirect to cart if no items
-          navigate('/cart')
-          return
+        // Restore applied coupon if any
+        if (orderData.appliedCoupon) {
+          setAppliedCoupon(orderData.appliedCoupon)
+          setDiscount(orderData.discount || 0)
         }
       } catch (error) {
         console.error('Error restoring order data:', error)

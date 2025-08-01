@@ -156,6 +156,46 @@ export const storeOrderData = (orderData: any): void => {
   }
 };
 
+export const storeCartData = (cartItems: any[], formData: any, appliedCoupon?: any, discount?: number): void => {
+  try {
+    const orderData = {
+      items: cartItems.map(item => ({
+        bookId: item.id,
+        title: item.title,
+        author: item.author,
+        price: item.price,
+        quantity: item.quantity,
+        imageUrl: item.imageUrl,
+        category: item.category || 'book'
+      })),
+      shippingAddress: {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        phone: formData.phone,
+        address1: formData.address1,
+        address2: formData.address2,
+        city: formData.city,
+        state: formData.state,
+        postalCode: formData.postalCode,
+        country: formData.country
+      },
+      paymentMethod: formData.paymentMethod,
+      shippingMethod: formData.shippingMethod,
+      userEmail: formData.email,
+      appliedCoupon: appliedCoupon ? {
+        code: appliedCoupon.code,
+        discountAmount: discount
+      } : null,
+      discount: discount || 0
+    };
+    
+    sessionStorage.setItem('pendingOrderData', JSON.stringify(orderData));
+    console.log('Cart data stored successfully:', orderData);
+  } catch (error) {
+    console.error('Failed to store cart data:', error);
+  }
+};
+
 export const getOrderData = (): any => {
   try {
     const data = sessionStorage.getItem('pendingOrderData');
@@ -188,6 +228,19 @@ export const isOrderDataStored = (): boolean => {
     return sessionStorage.getItem('pendingOrderData') !== null;
   } catch (error) {
     console.error('Failed to check order data:', error);
+    return false;
+  }
+};
+
+export const hasStoredOrderData = (): boolean => {
+  try {
+    const data = sessionStorage.getItem('pendingOrderData');
+    if (!data) return false;
+    
+    const orderData = JSON.parse(data);
+    return orderData && orderData.items && orderData.items.length > 0;
+  } catch (error) {
+    console.error('Failed to check stored order data:', error);
     return false;
   }
 };
