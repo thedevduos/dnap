@@ -6,14 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { XCircle, ArrowLeft, RefreshCw } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import { useCart } from "@/contexts/cart-context"
+// import { useCart } from "@/contexts/cart-context"
 import { getOrderData, clearOrderData } from "@/lib/payment-utils"
 
 export default function PaymentFailurePage() {
   const [searchParams] = useSearchParams()
   const { toast } = useToast()
   const navigate = useNavigate()
-  const { clearCart } = useCart()
+  // const { clearCart } = useCart()
   const [_orderData, setOrderData] = useState<any>(null)
 
   useEffect(() => {
@@ -33,14 +33,19 @@ export default function PaymentFailurePage() {
   }, [searchParams, toast])
 
   const handleTryAgain = () => {
-    // Navigate back to checkout with preserved order data
+    // Clear payment processing flag and navigate back to checkout
+    // Don't clear order data - let checkout page restore it
+    sessionStorage.removeItem('paymentProcessing')
+    sessionStorage.removeItem('successPageEffectRun')
     navigate('/checkout')
   }
 
   const handleBackToCart = () => {
     // Clear order data and cart when user chooses to go back to cart
     clearOrderData()
-    clearCart()
+    sessionStorage.removeItem('paymentProcessing')
+    sessionStorage.removeItem('successPageEffectRun')
+    // Don't clear cart here - user might want to try again
     sessionStorage.removeItem('paymentProcessing')
     navigate('/cart')
   }

@@ -19,6 +19,7 @@ interface CartContextType {
   removeFromCart: (id: string) => void
   updateQuantity: (id: string, quantity: number) => void
   clearCart: () => void
+  restoreCartFromOrderData: (orderData: any) => void
   getTotalItems: () => number
   getTotalPrice: () => number
   isInCart: (id: string) => boolean
@@ -110,6 +111,28 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     })
   }
 
+  const restoreCartFromOrderData = (orderData: any) => {
+    console.log('Restoring cart from order data:', orderData)
+    if (orderData.items && orderData.items.length > 0) {
+      const restoredItems: CartItem[] = orderData.items.map((item: any) => ({
+        id: item.bookId,
+        title: item.title,
+        author: item.author,
+        price: item.price,
+        imageUrl: item.imageUrl,
+        category: item.category || 'book',
+        quantity: item.quantity
+      }))
+      
+      console.log('Restored cart items:', restoredItems)
+      setItems(restoredItems)
+      toast({
+        title: "Cart Restored",
+        description: "Your cart items have been restored from the previous order attempt.",
+      })
+    }
+  }
+
   const getTotalItems = () => {
     return items.reduce((total, item) => total + item.quantity, 0)
   }
@@ -128,6 +151,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     removeFromCart,
     updateQuantity,
     clearCart,
+    restoreCartFromOrderData,
     getTotalItems,
     getTotalPrice,
     isInCart,

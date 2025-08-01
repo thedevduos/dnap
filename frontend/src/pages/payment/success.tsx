@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { CheckCircle, Package, ArrowRight } from "lucide-react"
 import { useCart } from "@/contexts/cart-context"
-import { updateOrderStatus, addTransaction } from "@/lib/firebase-utils"
+import { updateOrderStatus, addTransaction, processRefund } from "@/lib/firebase-utils"
 import { useToast } from "@/hooks/use-toast"
 import { collection, addDoc, serverTimestamp, doc, updateDoc, increment, query, where, getDocs } from "firebase/firestore"
 import { db } from "@/lib/firebase"
@@ -288,8 +288,9 @@ export default function PaymentSuccessPage() {
       } catch (error: any) {
         console.error('Payment processing error:', error)
         
-        // Check if it's a verification error
-        if (error?.message?.includes('verification')) {
+        if ((orderDetails?.transactionId || orderDetails?.gatewayTransactionId) && orderDetails?.total > 0) {
+          const txnId = orderDetails.gatewayTransactionId || orderDetails.transactionId
+          await processRefund(txnId, orderDetails.total, orderDetails.paymentMethod)
           toastRef.current({
             title: "Payment Verification Error",
             description: "Payment verification failed. Please contact support.",

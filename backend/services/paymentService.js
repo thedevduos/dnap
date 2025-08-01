@@ -245,67 +245,136 @@ const verifyRazorpayResponse = async (responseData) => {
 // Process refund
 const processRefund = async (transactionData) => {
   try {
+    console.log('Processing refund with data:', transactionData);
+    
     const {
       transactionId,
       amount,
       refundAmount = amount,
+      reason = 'Admin initiated refund',
       paymentMethod
     } = transactionData;
+    
+    // Validate inputs
+    if (!transactionId) {
+      throw new Error('Transaction ID is required for refund processing');
+    }
+    
+    if (!refundAmount || refundAmount <= 0) {
+      throw new Error('Valid refund amount is required');
+    }
+    
+    if (!paymentMethod) {
+      throw new Error('Payment method is required for refund processing');
+    }
 
     switch (paymentMethod) {
       case 'payu':
-        return await processPayURefund(transactionId, amount, refundAmount);
+        return await processPayURefund(transactionId, amount, refundAmount, reason);
       
       case 'razorpay':
-        return await processRazorpayRefund(transactionId, amount, refundAmount);
+        return await processRazorpayRefund(transactionId, amount, refundAmount, reason);
       
       default:
-        throw new Error('Unsupported payment method for refund');
+        throw new Error(`Unsupported payment method: ${paymentMethod}`);
     }
 
   } catch (error) {
     console.error('Error processing refund:', error);
-    throw new Error('Failed to process refund');
+    throw new Error(`Failed to process refund: ${error.message}`);
   }
 };
 
 // Process PayU refund
-const processPayURefund = async (transactionId, amount, refundAmount) => {
-  // In a real implementation, you would call PayU's refund API
-  console.log('Processing PayU refund:', { transactionId, amount, refundAmount });
-  
-  await new Promise(resolve => setTimeout(resolve, 2000));
-
-  return {
-    success: true,
-    refundId: `REF_PAYU_${Date.now()}`,
-    refundAmount,
-    status: 'processed',
-    message: 'PayU refund processed successfully'
-  };
+const processPayURefund = async (transactionId, amount, refundAmount, reason) => {
+  try {
+    // In a real implementation, you would call PayU's refund API
+    console.log('Processing PayU refund:', { transactionId, amount, refundAmount, reason });
+    
+    // Validate PayU specific requirements
+    if (!transactionId || typeof transactionId !== 'string') {
+      throw new Error('Valid PayU transaction ID is required');
+    }
+    
+    // Simulate API call delay
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Simulate success response
+    const refundId = `REF_PAYU_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    console.log('PayU refund processed successfully:', refundId);
+    
+    return {
+      success: true,
+      refundId: refundId,
+      refundAmount: refundAmount,
+      status: 'processed',
+      message: 'PayU refund processed successfully',
+      transactionId: transactionId,
+      processedAt: new Date().toISOString()
+    };
+  } catch (error) {
+    console.error('PayU refund processing error:', error);
+    throw new Error(`PayU refund failed: ${error.message}`);
+  }
 };
+  
+
 
 // Process Razorpay refund
-const processRazorpayRefund = async (transactionId, amount, refundAmount) => {
+const processRazorpayRefund = async (transactionId, amount, refundAmount, reason) => {
   if (!razorpay) {
     throw new Error('Razorpay is not configured. Please check your environment variables.');
   }
 
   try {
+    console.log('Processing Razorpay refund:', { transactionId, amount, refundAmount, reason });
+    
+    // Validate Razorpay specific requirements
+    if (!transactionId || typeof transactionId !== 'string') {
+      throw new Error('Valid Razorpay payment ID is required');
+    }
+    
+    // Convert refund amount to paise (Razorpay expects amount in paise)
+    const refundAmountInPaise = Math.round(refundAmount * 100);
+    
+    if (refundAmountInPaise <= 0) {
+      throw new Error('Refund amount must be greater than 0');
+    }
+    
+    console.log('Creating Razorpay refund for payment:', transactionId, 'amount:', refundAmountInPaise, 'paise');
+    
     const refund = await razorpay.payments.refund(transactionId, {
-      amount: Math.round(refundAmount * 100) // Convert to paise
+      amount: refundAmountInPaise,
+      notes: {
+        reason: reason || 'Admin initiated refund',
+        processed_by: 'admin',
+        processed_at: new Date().toISOString()
+      }
     });
 
+    console.log('Razorpay refund response:', refund);
+    
     return {
       success: true,
       refundId: refund.id,
-      refundAmount: refund.amount / 100, // Convert from paise to rupees
+      refundAmount: Math.round(refund.amount / 100), // Convert from paise to rupees
       status: refund.status,
-      message: 'Razorpay refund processed successfully'
+      message: 'Razorpay refund processed successfully',
+      transactionId: transactionId,
+      processedAt: new Date().toISOString()
     };
   } catch (error) {
     console.error('Razorpay refund error:', error);
-    throw new Error('Failed to process Razorpay refund');
+    
+    // Handle specific Razorpay errors
+    if (error.statusCode === 400) {
+      throw new Error(`Razorpay refund failed: ${error.error?.description || 'Invalid request'}`);
+    } else if (error.statusCode === 404) {
+      throw new Error('Payment not found in Razorpay. Please check the transaction ID.');
+    } else {
+      throw new Error(`Razorpay refund failed: ${error.message || 'Unknown error'}`);
+    }
   }
 };
 
@@ -365,10 +434,26 @@ const getRazorpayTransactionStatus = async (paymentId) => {
 // Get all transactions from payment gateways
 const getAllTransactions = async () => {
   try {
-    const [payuTransactions, razorpayTransactions] = await Promise.all([
-      getPayUAllTransactions(),
-      getRazorpayAllTransactions()
-    ]);
+    console.log('Fetching all transactions from payment gateways...');
+    
+    let payuTransactions = { success: false, transactions: [] };
+    let razorpayTransactions = { success: false, transactions: [] };
+    
+    // Fetch PayU transactions with error handling
+    try {
+      payuTransactions = await getPayUAllTransactions();
+    } catch (error) {
+      console.error('Error fetching PayU transactions:', error);
+      payuTransactions = { success: false, transactions: [], error: error.message };
+    }
+    
+    // Fetch Razorpay transactions with error handling
+    try {
+      razorpayTransactions = await getRazorpayAllTransactions();
+    } catch (error) {
+      console.error('Error fetching Razorpay transactions:', error);
+      razorpayTransactions = { success: false, transactions: [], error: error.message };
+    }
 
     return {
       success: true,
@@ -379,61 +464,119 @@ const getAllTransactions = async () => {
     };
   } catch (error) {
     console.error('Error fetching all transactions:', error);
-    throw new Error('Failed to fetch transactions from payment gateways');
+    return {
+      success: false,
+      error: error.message,
+      data: {
+        payu: { success: false, transactions: [] },
+        razorpay: { success: false, transactions: [] }
+      }
+    };
   }
 };
 
 // Get all PayU transactions
 const getPayUAllTransactions = async () => {
-  // In a real implementation, you would call PayU's transaction list API
-  // For now, return mock data
-  return {
-    success: true,
-    transactions: [
-      {
-        id: 'PAYU_TXN_001',
-        amount: 200,
-        status: 'success',
-        customerName: 'John Doe',
-        customerEmail: 'john@example.com',
-        paymentMethod: 'payu',
-        createdAt: new Date().toISOString()
-      }
-    ]
-  };
+  try {
+    // In a real implementation, you would call PayU's transaction list API
+    // For now, return mock data with proper structure
+    console.log('Fetching PayU transactions...');
+    
+    return {
+      success: true,
+      transactions: [
+        {
+          id: 'PAYU_TXN_001',
+          amount: 299,
+          status: 'success',
+          customerName: 'John Doe',
+          customerEmail: 'john@example.com',
+          paymentMethod: 'payu',
+          createdAt: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+          orderId: 'ORDER_001'
+        },
+        {
+          id: 'PAYU_TXN_002',
+          amount: 599,
+          status: 'success',
+          customerName: 'Jane Smith',
+          customerEmail: 'jane@example.com',
+          paymentMethod: 'payu',
+          createdAt: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
+          orderId: 'ORDER_002'
+        }
+      ]
+    };
+  } catch (error) {
+    console.error('Error in getPayUAllTransactions:', error);
+    return {
+      success: false,
+      transactions: [],
+      error: error.message
+    };
+  }
 };
 
 // Get all Razorpay transactions
 const getRazorpayAllTransactions = async () => {
-  if (!razorpay) {
-    throw new Error('Razorpay is not configured. Please check your environment variables.');
-  }
-
   try {
+    if (!razorpay) {
+      console.warn('Razorpay is not configured. Please check your environment variables.');
+      return {
+        success: false,
+        transactions: [],
+        error: 'Razorpay is not configured'
+      };
+    }
+
+    console.log('Fetching Razorpay transactions...');
+    
     const payments = await razorpay.payments.all({
-      count: 100 // Limit to last 100 transactions
+      count: 50, // Limit to last 50 transactions
+      skip: 0
     });
 
-    const transactions = payments.items.map(payment => ({
-      id: payment.id,
-      amount: payment.amount / 100, // Convert from paise to rupees
-      status: payment.status,
-      customerName: payment.notes?.customer_name || 'Unknown',
-      customerEmail: payment.email || 'unknown@example.com',
-      paymentMethod: 'razorpay',
-      createdAt: new Date(payment.created_at * 1000).toISOString(),
-      currency: payment.currency,
-      method: payment.method,
-      refundStatus: payment.refund_status
-    }));
+    if (!payments || !payments.items) {
+      return {
+        success: true,
+        transactions: []
+      };
+    }
 
+    const transactions = payments.items
+      .filter(payment => payment && payment.id) // Filter out invalid payments
+      .map(payment => {
+        try {
+          return {
+            id: payment.id,
+            amount: Math.round((payment.amount || 0) / 100), // Convert from paise to rupees
+            status: payment.status || 'pending',
+            customerName: payment.notes?.customer_name || 'Unknown',
+            customerEmail: payment.email || 'unknown@example.com',
+            paymentMethod: 'razorpay',
+            createdAt: new Date((payment.created_at || 0) * 1000).toISOString(),
+            currency: payment.currency || 'INR',
+            method: payment.method || 'online',
+            refundStatus: payment.refund_status || null,
+            orderId: payment.order_id || null
+          };
+        } catch (error) {
+          console.warn('Error processing Razorpay payment:', payment.id, error);
+          return null;
+        }
+      })
+      .filter(Boolean); // Remove null entries
     return {
       success: true,
       transactions
     };
   } catch (error) {
     console.error('Razorpay transactions fetch error:', error);
-    throw new Error('Failed to fetch Razorpay transactions');
+    return {
+      success: false,
+      transactions: [],
+      error: error.message || 'Failed to fetch Razorpay transactions'
+    };
   }
 };
 

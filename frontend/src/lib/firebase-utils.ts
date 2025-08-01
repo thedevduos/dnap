@@ -273,41 +273,119 @@ export const updateTransaction = async (id: string, transactionData: any) => {
 
 export const processRefund = async (transactionId: string, amount: number, paymentMethod?: string) => {
   try {
-    // First, find the transaction document by gateway transaction ID
-    const transactionsRef = collection(db, "transactions");
-    const q = query(transactionsRef, where("gatewayTransactionId", "==", transactionId));
-    const querySnapshot = await getDocs(q);
+    console.log('Processing refund for transaction:', transactionId, 'amount:', amount, 'method:', paymentMethod)
     
-    if (querySnapshot.empty) {
-      throw new Error(`Transaction with gateway ID ${transactionId} not found`);
+    // Try multiple approaches to find the transaction
+    let transactionDoc = null
+    let transactionData = null
+    
+    // First, try to find by gatewayTransactionId
+    try {
+      const transactionsRef = collection(db, "transactions")
+      const q1 = query(transactionsRef, where("gatewayTransactionId", "==", transactionId))
+      const querySnapshot1 = await getDocs(q1)
+      
+      if (!querySnapshot1.empty) {
+        transactionDoc = querySnapshot1.docs[0]
+        transactionData = transactionDoc.data()
+        console.log('Found transaction by gatewayTransactionId:', transactionData)
+      }
+    } catch (error) {
+      console.warn('Error querying by gatewayTransactionId:', error)
     }
     
-    const transactionDoc = querySnapshot.docs[0];
-    const transactionData = transactionDoc.data();
+    // If not found, try to find by transactionId field
+    if (!transactionDoc) {
+      try {
+        const transactionsRef = collection(db, "transactions")
+        const q2 = query(transactionsRef, where("transactionId", "==", transactionId))
+        const querySnapshot2 = await getDocs(q2)
+        
+        if (!querySnapshot2.empty) {
+          transactionDoc = querySnapshot2.docs[0]
+          transactionData = transactionDoc.data()
+          console.log('Found transaction by transactionId:', transactionData)
+        }
+      } catch (error) {
+        console.warn('Error querying by transactionId:', error)
+      }
+    }
+    
+    // If still not found, try to find by document ID
+    if (!transactionDoc) {
+      try {
+        const docRef = doc(db, "transactions", transactionId)
+        const docSnap = await getDoc(docRef)
+        
+        if (docSnap.exists()) {
+          transactionDoc = docSnap
+          transactionData = docSnap.data()
+          console.log('Found transaction by document ID:', transactionData)
+        }
+      } catch (error) {
+        console.warn('Error querying by document ID:', error)
+      }
+    }
+    
+    if (!transactionDoc || !transactionData) {
+      console.error('Transaction not found with ID:', transactionId)
+      throw new Error(`Transaction with ID ${transactionId} not found in database`)
+    }
+    
+    // Determine the actual gateway transaction ID to use for refund
+    const gatewayTxnId = transactionData.gatewayTransactionId || 
+                        transactionData.transactionId || 
+                        transactionId
+    
+    // Determine payment method
+    const refundPaymentMethod = transactionData.paymentMethod || paymentMethod || 'payu'
+    
+    console.log('Processing refund with gateway ID:', gatewayTxnId, 'method:', refundPaymentMethod)
     
     // Call backend API to process refund based on payment method
-    const response = await fetch(`${import.meta.env.VITE_BACKEND_API_URL}/api/payment/process-refund`, {
+    const backendUrl = import.meta.env.VITE_BACKEND_API_URL
+    if (!backendUrl) {
+      throw new Error('Backend API URL not configured')
+    }
+
+    const response = await fetch(`${backendUrl}/api/payment/process-refund`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        transactionId: transactionData.gatewayTransactionId,
-        amount: transactionData.amount,
+        transactionId: gatewayTxnId,
+        amount: transactionData.amount || amount,
         refundAmount: amount,
-        paymentMethod: transactionData.paymentMethod || paymentMethod || 'payu'
+        paymentMethod: refundPaymentMethod,
+        reason: 'Admin initiated refund'
       }),
-    });
+    })
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Failed to process refund');
+      const errorText = await response.text()
+      let errorMessage = 'Failed to process refund'
+      
+      try {
+        const errorData = JSON.parse(errorText)
+        errorMessage = errorData.message || errorMessage
+      } catch (e) {
+        errorMessage = errorText || errorMessage
+      }
+      
+      throw new Error(errorMessage)
     }
 
-    const refundResult = await response.json();
+    const refundResult = await response.json()
     
-    // The API wraps the response in a 'data' field
-    const refundData = refundResult.data || refundResult;
+    console.log('Refund API response:', refundResult)
+    
+    // Handle different response structures
+    const refundData = refundResult.data || refundResult
+    
+    if (!refundData.success && refundResult.success !== true) {
+      throw new Error(refundData.message || 'Refund processing failed')
+    }
     
     // Prepare update data with validation
     const updateData: any = {
@@ -315,24 +393,42 @@ export const processRefund = async (transactionId: string, amount: number, payme
       refundAmount: amount,
       refundedAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
+      refundReason: 'Admin initiated refund',
+      refundMethod: refundPaymentMethod
     }
     
-    // Only add refundId and refundStatus if they exist and are not undefined
-    if (refundData.refundId) {
-      updateData.refundId = refundData.refundId;
+    // Add refund details if available
+    if (refundData.refundId || refundData.id) {
+      updateData.refundId = refundData.refundId || refundData.id
     }
     
-    if (refundData.status) {
-      updateData.refundStatus = refundData.status;
+    if (refundData.status || refundData.refundStatus) {
+      updateData.refundStatus = refundData.status || refundData.refundStatus
     }
     
-    // Update transaction status in Firestore using the document ID
-    await updateDoc(doc(db, "transactions", transactionDoc.id), updateData)
+    console.log('Updating transaction with data:', updateData)
     
-    return refundData;
+    // Update transaction status in Firestore
+    await updateDoc(transactionDoc.ref, updateData)
+    
+    console.log('Transaction updated successfully in Firestore')
+    
+    return {
+      success: true,
+      refundId: refundData.refundId || refundData.id,
+      refundAmount: amount,
+      status: refundData.status || 'processed',
+      message: refundData.message || 'Refund processed successfully'
+    }
   } catch (error) {
-    console.error('Error processing refund:', error);
-    throw error;
+    console.error('Error processing refund:', error)
+    
+    // Provide more specific error messages
+    if (error instanceof Error) {
+      throw new Error(`Refund failed: ${error.message}`)
+    } else {
+      throw new Error('Refund processing failed due to an unknown error')
+    }
   }
 }
 

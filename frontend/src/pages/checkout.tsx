@@ -46,7 +46,7 @@ interface CheckoutForm {
 }
 
 export default function CheckoutPage() {
-  const { items, getTotalPrice, getTotalItems } = useCart()
+  const { items, getTotalPrice, getTotalItems, restoreCartFromOrderData } = useCart()
   const { userProfile, addAddress, removeAddress, isAdmin } = useUser()
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -80,10 +80,31 @@ export default function CheckoutPage() {
   const [editingAddress, setEditingAddress] = useState<any>(null)
   const [showAddressForm, setShowAddressForm] = useState(false)
 
+  // Separate useEffect for restoring cart items from failed payment
+  useEffect(() => {
+    const storedOrderData = sessionStorage.getItem('pendingOrderData')
+    console.log('Checking for stored order data:', !!storedOrderData, 'Cart items:', items.length)
+    
+    if (storedOrderData && items.length === 0) {
+      try {
+        const orderData = JSON.parse(storedOrderData)
+        console.log('Found stored order data:', orderData)
+        
+        // Restore cart items if cart is empty (coming from failed payment)
+        if (orderData.items && orderData.items.length > 0) {
+          console.log('Restoring cart items from stored order data')
+          restoreCartFromOrderData(orderData)
+        }
+      } catch (error) {
+        console.error('Error restoring cart items:', error)
+      }
+    }
+  }, [items.length, restoreCartFromOrderData])
+
   useEffect(() => {
     // Check if we have stored order data from a failed payment
     const storedOrderData = sessionStorage.getItem('pendingOrderData')
-    if (storedOrderData && items.length === 0) {
+    if (storedOrderData) {
       try {
         const orderData = JSON.parse(storedOrderData)
         
@@ -111,20 +132,17 @@ export default function CheckoutPage() {
           setAppliedCoupon(orderData.appliedCoupon)
           setDiscount(orderData.discount || 0)
         }
-
-        // Show toast to inform user
-        toast({
-          title: "Order Data Restored",
-          description: "Your order details have been restored from the previous attempt.",
-        })
       } catch (error) {
         console.error('Error restoring order data:', error)
         // If restoration fails, clear the stored data
         sessionStorage.removeItem('pendingOrderData')
       }
-    } else if (items.length === 0) {
-      // If no stored data and no items, redirect to cart
+    }
+    
+    // If no items in cart and no stored data, redirect to cart
+    if (items.length === 0) {
       navigate('/cart')
+      return
     }
 
     loadShippingMethods()
