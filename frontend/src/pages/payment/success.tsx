@@ -140,7 +140,7 @@ export default function PaymentSuccessPage() {
             const existingOrder = existingOrderSnapshot.docs[0]
             setOrderDetails({
               orderId: existingOrder.id,
-              amount: paymentData.amount,
+              amount: existingOrder.data().total || paymentData.amount,
               transactionId: transactionId,
               paymentMethod: paymentMethod
             })
@@ -246,7 +246,7 @@ export default function PaymentSuccessPage() {
 
             setOrderDetails({
               orderId: orderRef.id,
-              amount: paymentData.amount,
+              amount: orderData.total,
               transactionId: paymentMethod === 'razorpay' ? paymentData.razorpay_payment_id : 
                             paymentData.mihpayid,
               paymentMethod: paymentMethod
