@@ -83,23 +83,16 @@ export default function AdminUpdates() {
 
   return (
     <AdminLayout>
-      <div className="space-y-8">
-        {/* Enhanced Header */}
-        <div className="bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg p-8 shadow-lg">
-          <div className="text-center max-w-4xl mx-auto">
-            <h1 className="text-4xl font-bold mb-4">Manage Updates</h1>
-            <p className="text-xl text-green-100 mb-6">
-              Create and manage promotional banners and announcements that appear at the top of your website
-            </p>
-            <Button 
-              onClick={() => setIsModalOpen(true)}
-              size="lg"
-              className="bg-white text-green-700 hover:bg-green-50 font-semibold px-8 py-3"
-            >
-              <Plus className="h-5 w-5 mr-2" />
-              Add New Update
-            </Button>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Manage Updates</h1>
+            <p className="text-gray-600">Create and manage promotional banners and announcements</p>
           </div>
+          <Button onClick={() => setIsModalOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add New Update
+          </Button>
         </div>
 
         {/* Stats Cards */}
@@ -125,9 +118,9 @@ export default function AdminUpdates() {
         </div>
 
         {/* Updates Table */}
-        <Card className="shadow-lg">
-          <CardHeader className="bg-gray-50 border-b">
-            <CardTitle className="text-2xl font-bold text-gray-900">All Updates</CardTitle>
+        <Card>
+          <CardHeader>
+            <CardTitle>All Updates</CardTitle>
             <p className="text-gray-600">Manage your website updates and promotional messages</p>
           </CardHeader>
           <CardContent className="p-0">

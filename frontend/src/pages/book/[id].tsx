@@ -359,7 +359,7 @@ export default function BookDetailPage() {
                 <div className="text-center">
                   <Truck className="h-6 w-6 mx-auto mb-2 text-primary" />
                   <p className="text-sm font-medium">Free Shipping</p>
-                  <p className="text-xs text-muted-foreground">On orders over ₹500</p>
+                  <p className="text-xs text-muted-foreground">On orders over ₹1000</p>
                 </div>
                 <div className="text-center">
                   <Shield className="h-6 w-6 mx-auto mb-2 text-primary" />

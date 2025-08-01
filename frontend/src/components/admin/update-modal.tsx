@@ -85,7 +85,7 @@ export function UpdateModal({ isOpen, onClose, update, onSuccess }: UpdateModalP
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader className="text-center">
-          <DialogTitle className="text-3xl font-bold text-gray-900">
+          <DialogTitle className="text-xl font-bold text-gray-900">
             {update ? "Edit Update" : "Add New Update"}
           </DialogTitle>
           <p className="text-gray-600 mt-2">
@@ -93,15 +93,15 @@ export function UpdateModal({ isOpen, onClose, update, onSuccess }: UpdateModalP
           </p>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <Label htmlFor="type" className="text-lg font-semibold">Type *</Label>
+              <Label htmlFor="type" className="text-sm font-medium">Type *</Label>
               <Select
                 value={formData.type}
                 onValueChange={(value) => setFormData({ ...formData, type: value })}
               >
-                <SelectTrigger className="h-12 text-lg">
+                <SelectTrigger className="h-10">
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -114,12 +114,12 @@ export function UpdateModal({ isOpen, onClose, update, onSuccess }: UpdateModalP
             </div>
 
             <div>
-              <Label htmlFor="status" className="text-lg font-semibold">Status *</Label>
+              <Label htmlFor="status" className="text-sm font-medium">Status *</Label>
               <Select
                 value={formData.status}
                 onValueChange={(value) => setFormData({ ...formData, status: value })}
               >
-                <SelectTrigger className="h-12 text-lg">
+                <SelectTrigger className="h-10">
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -131,7 +131,7 @@ export function UpdateModal({ isOpen, onClose, update, onSuccess }: UpdateModalP
           </div>
 
           <div>
-            <Label htmlFor="textEnglish" className="text-lg font-semibold">
+            <Label htmlFor="textEnglish" className="text-sm font-medium">
               Message Text (English) *
             </Label>
             <Textarea
@@ -139,7 +139,7 @@ export function UpdateModal({ isOpen, onClose, update, onSuccess }: UpdateModalP
               value={formData.textEnglish}
               onChange={(e) => setFormData({ ...formData, textEnglish: e.target.value })}
               placeholder="Enter your promotional message here..."
-              className="h-32 text-lg resize-none"
+              className="h-32 resize-none"
               required
             />
             <p className="text-sm text-gray-500 mt-2">
@@ -149,11 +149,11 @@ export function UpdateModal({ isOpen, onClose, update, onSuccess }: UpdateModalP
 
           {/* Preview Section */}
           <div className="bg-gray-50 rounded-lg p-6">
-            <h3 className="text-lg font-semibold mb-4">Preview</h3>
+            <h3 className="text-sm font-medium mb-4">Preview</h3>
             <div className="bg-gradient-to-r from-green-600 to-green-700 text-white py-4 px-6 rounded-lg">
               <div className="flex items-center justify-center space-x-3">
                 <Sparkles className="h-5 w-5 animate-pulse" />
-                <span className="text-lg font-semibold">
+                <span className="font-medium">
                   {formData.textEnglish || "Your message will appear here..."}
                 </span>
               </div>
@@ -165,14 +165,14 @@ export function UpdateModal({ isOpen, onClose, update, onSuccess }: UpdateModalP
               type="button"
               variant="outline"
               onClick={onClose}
-              className="px-8 py-3"
+              className="px-6 py-2"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="px-8 py-3 bg-green-600 hover:bg-green-700"
+              className="px-6 py-2 bg-green-600 hover:bg-green-700"
             >
               {isSubmitting ? (
                 "Saving..."
