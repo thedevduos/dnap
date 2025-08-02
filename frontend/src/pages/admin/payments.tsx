@@ -234,9 +234,10 @@ export default function AdminPayments() {
               </TableCell>
               <TableCell>
                 <Badge variant="outline">
-                  {transaction.paymentMethod === 'razorpay' ? 'Razorpay' : 
-                   transaction.paymentMethod === 'payu' ? 'PayU' : 
-                   transaction.paymentMethod || 'Unknown'}
+                      {transaction.paymentMethod === 'razorpay' ? 'Razorpay' :
+    transaction.paymentMethod === 'payu' ? 'PayU' :
+    transaction.paymentMethod === 'zoho' ? 'Zoho Pay' :
+    transaction.paymentMethod || 'Unknown'}
                 </Badge>
               </TableCell>
               <TableCell>
@@ -409,8 +410,9 @@ export default function AdminPayments() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Methods</SelectItem>
-                  <SelectItem value="payu">PayU</SelectItem>
-                  <SelectItem value="razorpay">Razorpay</SelectItem>
+                                          <SelectItem value="payu">PayU</SelectItem>
+                        <SelectItem value="razorpay">Razorpay</SelectItem>
+                        <SelectItem value="zoho">Zoho Pay</SelectItem>
                 </SelectContent>
               </Select>
             </div>

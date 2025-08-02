@@ -53,6 +53,7 @@ import AdminPayments from "@/pages/admin/payments"
 import AdminCustomers from "@/pages/admin/customers"
 import AdminAnalytics from "@/pages/admin/analytics"
 import AdminReviews from "@/pages/admin/reviews"
+import AdminZohoConnection from "@/pages/admin/zoho-connection"
 
 import "./globals.css"
 
@@ -90,6 +91,7 @@ export default function App() {
                             <Route path="/messages" element={<AdminMessages />} />
                             <Route path="/emails" element={<AdminEmails />} />
                             <Route path="/profile" element={<AdminProfile />} />
+                            <Route path="/zoho-connection" element={<AdminZohoConnection />} />
                           </Routes>
                         </ProtectedRoute>
                       }

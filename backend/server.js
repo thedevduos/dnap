@@ -23,6 +23,10 @@ const emailService = require('./services/emailService');
 // Import route handlers
 const paymentRoutes = require('./routes/payment');
 const whatsappRoutes = require('./routes/whatsapp');
+const zohoRoutes = require('./routes/zoho');
+
+// Import Zoho service for automated token refresh
+const zohoService = require('./services/zohoService');
 
 // Function to update last activity
 const updateActivity = () => {
@@ -71,6 +75,74 @@ if (KEEP_ALIVE_URL && KEEP_ALIVE_URL.includes('onrender.com')) {
   keepAliveInterval = setInterval(sendKeepAlive, KEEP_ALIVE_INTERVAL);
   console.log(`[Keep-Alive] Monitoring started (checking every ${KEEP_ALIVE_INTERVAL / 60000} minutes)`);
 }
+
+// Automated Zoho token refresh
+const ZOHO_REFRESH_INTERVAL = 60 * 60 * 1000; // 60 minutes in milliseconds
+let zohoRefreshInterval = null;
+
+// Function to refresh Zoho token automatically
+const refreshZohoTokenAutomatically = async () => {
+  try {
+    console.log('[Zoho Auto-Refresh] Starting automatic token refresh...');
+    const newToken = await zohoService.refreshZohoToken();
+    console.log(`[Zoho Auto-Refresh] Token refreshed successfully at ${new Date().toISOString()}`);
+    console.log(`[Zoho Auto-Refresh] New token: ${newToken.substring(0, 20)}...`);
+  } catch (error) {
+    console.error('[Zoho Auto-Refresh] Failed to refresh token:', error.message);
+    // Don't throw error to prevent the interval from stopping
+  }
+};
+
+// Check if token needs refresh on startup
+const checkTokenOnStartup = async () => {
+  try {
+    console.log('[Zoho Auto-Refresh] Checking token status on startup...');
+    const credentials = await zohoService.getZohoCredentials();
+    
+    if (!credentials.token_expires_at) {
+      console.log('[Zoho Auto-Refresh] No token expiration found, refreshing token...');
+      await refreshZohoTokenAutomatically();
+      return;
+    }
+    
+    const now = Date.now();
+    const timeUntilExpiry = credentials.token_expires_at - now;
+    const threeMinutesInMs = 3 * 60 * 1000; // 3 minutes buffer
+    
+    if (timeUntilExpiry <= threeMinutesInMs) {
+      console.log(`[Zoho Auto-Refresh] Token expires in ${Math.round(timeUntilExpiry / 60000)} minutes, refreshing now...`);
+      await refreshZohoTokenAutomatically();
+    } else {
+      console.log(`[Zoho Auto-Refresh] Token is still valid for ${Math.round(timeUntilExpiry / 60000)} minutes, skipping initial refresh`);
+    }
+  } catch (error) {
+    console.error('[Zoho Auto-Refresh] Error checking token on startup:', error.message);
+    // If we can't check the token, refresh it to be safe
+    console.log('[Zoho Auto-Refresh] Refreshing token as fallback...');
+    await refreshZohoTokenAutomatically();
+  }
+};
+
+// Start automated Zoho token refresh
+const startZohoTokenRefresh = async () => {
+  try {
+    // Check token status on startup (only refresh if needed)
+    await checkTokenOnStartup();
+    
+    // Set up interval for automatic refresh every 60 minutes
+    zohoRefreshInterval = setInterval(refreshZohoTokenAutomatically, ZOHO_REFRESH_INTERVAL);
+    
+    console.log(`[Zoho Auto-Refresh] Automated token refresh started (every ${ZOHO_REFRESH_INTERVAL / 60000} minutes)`);
+    console.log(`[Zoho Auto-Refresh] Next refresh scheduled for: ${new Date(Date.now() + ZOHO_REFRESH_INTERVAL).toISOString()}`);
+  } catch (error) {
+    console.error('[Zoho Auto-Refresh] Failed to start automated refresh:', error.message);
+  }
+};
+
+// Start the automated refresh
+startZohoTokenRefresh().catch(error => {
+  console.error('[Zoho Auto-Refresh] Failed to start automated refresh:', error.message);
+});
 
 // Middleware
 app.use(helmet());
@@ -206,6 +278,56 @@ app.use('/api/payment', paymentRoutes);
 // WhatsApp routes
 app.use('/api/whatsapp', whatsappRoutes);
 
+// Zoho routes
+app.use('/api/zoho', zohoRoutes);
+
+// Zoho auto-refresh status endpoint
+app.get('/api/zoho/auto-refresh-status', async (req, res) => {
+  try {
+    const now = Date.now();
+    
+    // Get the actual token expiration time
+    const credentials = await zohoService.getZohoCredentials();
+    let nextRefreshTime, timeUntilNextRefresh, lastRefreshTime;
+    
+    if (credentials.token_expires_at) {
+      // Calculate next refresh based on token expiration (with 3-minute buffer)
+      const threeMinutesInMs = 3 * 60 * 1000;
+      nextRefreshTime = new Date(credentials.token_expires_at - threeMinutesInMs);
+      timeUntilNextRefresh = Math.round((credentials.token_expires_at - threeMinutesInMs - now) / 60000);
+      lastRefreshTime = credentials.updatedAt || new Date(now - ZOHO_REFRESH_INTERVAL).toISOString();
+    } else {
+      // Fallback to interval-based calculation
+      const nextRefresh = now + ZOHO_REFRESH_INTERVAL;
+      nextRefreshTime = new Date(nextRefresh);
+      timeUntilNextRefresh = Math.round((nextRefresh - now) / 60000);
+      lastRefreshTime = new Date(now - ZOHO_REFRESH_INTERVAL).toISOString();
+    }
+    
+    // Ensure timeUntilNextRefresh is not negative
+    if (timeUntilNextRefresh < 0) {
+      timeUntilNextRefresh = 0;
+    }
+    
+    res.json({
+      success: true,
+      autoRefreshEnabled: true,
+      refreshInterval: ZOHO_REFRESH_INTERVAL / 60000, // in minutes
+      nextRefreshTime: nextRefreshTime.toISOString(),
+      timeUntilNextRefresh: timeUntilNextRefresh,
+      lastRefreshTime: lastRefreshTime,
+      tokenExpiresAt: credentials.token_expires_at ? new Date(credentials.token_expires_at).toISOString() : null
+    });
+  } catch (error) {
+    console.error('Error getting auto-refresh status:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get auto-refresh status',
+      error: error.message
+    });
+  }
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
@@ -233,12 +355,17 @@ const server = app.listen(PORT, () => {
   console.log(`⏰ Keep-alive monitoring: ${(KEEP_ALIVE_URL && KEEP_ALIVE_URL.includes('onrender.com')) ? 'ENABLED' : 'DISABLED'}`);
 });
 
-// Ignore shutdown signals (SIGTERM, SIGINT, etc.)
-const ignoreSignal = (signal) => {
-  console.log(`Received ${signal}, ignoring shutdown as per Render keep-alive policy.`);
+// Ignore shutdown signals to keep server running
+const ignoreShutdownSignal = (signal) => {
+  console.log(`\n🚫 Received ${signal} signal - IGNORING to keep server alive`);
+  console.log(`🔄 Keep-alive monitoring: ${keepAliveInterval ? 'ACTIVE' : 'INACTIVE'}`);
+  console.log(`🔄 Zoho token refresh: ${zohoRefreshInterval ? 'ACTIVE' : 'INACTIVE'}`);
+  console.log(`⏰ Server will continue running to maintain keep-alive and token refresh`);
 };
-process.on('SIGTERM', () => ignoreSignal('SIGTERM'));
-process.on('SIGINT', () => ignoreSignal('SIGINT'));
-process.on('SIGQUIT', () => ignoreSignal('SIGQUIT'));
+
+// Handle shutdown signals - IGNORE THEM
+process.on('SIGTERM', () => ignoreShutdownSignal('SIGTERM'));
+process.on('SIGINT', () => ignoreShutdownSignal('SIGINT'));
+process.on('SIGQUIT', () => ignoreShutdownSignal('SIGQUIT'));
 
 module.exports = app;

@@ -24,7 +24,7 @@ router.post('/create-payment', async (req, res) => {
     }
 
     // Validate payment method
-    const validPaymentMethods = ['payu', 'razorpay'];
+    const validPaymentMethods = ['payu', 'razorpay', 'zoho'];
     if (!validPaymentMethods.includes(paymentMethod)) {
       return res.status(400).json({
         success: false,
@@ -196,6 +196,33 @@ router.get('/all-transactions', async (req, res) => {
       success: false,
       message: 'Failed to fetch transactions from payment gateways',
       error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+});
+
+// Test Zoho Payments configuration
+router.get('/test-zoho', async (req, res) => {
+  try {
+    console.log('Testing Zoho Payments configuration...');
+    
+    // Import Zoho service
+    const zohoService = require('../services/zohoService');
+    
+    // Test connection
+    const testResult = await zohoService.testZohoConnection();
+    
+    res.status(200).json({
+      success: true,
+      message: 'Zoho Payments configuration test completed',
+      result: testResult
+    });
+    
+  } catch (error) {
+    console.error('Zoho test error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Zoho Payments test failed',
+      error: error.message
     });
   }
 });

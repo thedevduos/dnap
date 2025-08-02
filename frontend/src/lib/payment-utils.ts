@@ -1,9 +1,11 @@
-// No import needed - using browser-based Razorpay checkout script
+// Import Firebase utilities for Zoho credentials
+import { getZohoCredentials } from './firebase-utils'
 
 declare global {
   interface Window {
-    Razorpay: any;
-  }
+  Razorpay: any;
+  ZPayments: any;
+}
 }
 
 // Load Razorpay script
@@ -112,6 +114,191 @@ export const handleRazorpayPayment = async (paymentData: any): Promise<void> => 
   }
 };
 
+// Zoho Pay Payment Handler
+export const handleZohoPayment = async (paymentData: any): Promise<void> => {
+  console.log('🚀 Starting Zoho payment process...', paymentData);
+  
+  const response = await fetch(`${import.meta.env.VITE_BACKEND_API_URL}/api/payment/create-payment`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      ...paymentData,
+      paymentMethod: 'zoho'
+    }),
+  });
+
+  const result = await response.json();
+  console.log('📡 Backend response:', result);
+  
+  if (result.success) {
+    // Use Zoho Payments Checkout Widget instead of URL redirection
+    if (result.session_data && result.session_data.session_id) {
+      console.log('✅ Session data received:', result.session_data);
+      // Initialize Zoho Payments Checkout Widget
+      await initializeZohoPaymentsWidget(result.session_data);
+    } else {
+      console.error('❌ No session data in response:', result);
+      throw new Error('Zoho Pay session data not received');
+    }
+  } else {
+    console.error('❌ Backend error:', result.message);
+    throw new Error(result.message || 'Failed to create Zoho Pay payment');
+  }
+};
+
+// Initialize Zoho Payments Checkout Widget
+const initializeZohoPaymentsWidget = async (sessionData: any): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    try {
+      console.log('🔄 Initializing Zoho Payments Checkout Widget...');
+      console.log('📋 Session data:', sessionData);
+      console.log('🆔 Session ID:', sessionData.session_id);
+      
+      // Clear any existing iframe elements that might be cached
+      const existingIframes = document.querySelectorAll('iframe[src*="payments.zoho.in"]');
+      existingIframes.forEach(iframe => {
+        console.log('🗑️ Removing existing iframe:', iframe);
+        iframe.remove();
+      });
+      
+      // Store session data in sessionStorage for payment verification
+      const sessionStorageData = {
+        session_id: sessionData.session_id,
+        amount: sessionData.amount,
+        currency: sessionData.currency,
+        description: sessionData.description,
+        invoice_number: sessionData.invoice_number,
+        timestamp: Date.now()
+      };
+      
+      sessionStorage.setItem('zoho_payment_session', JSON.stringify(sessionStorageData));
+      console.log('💾 Session data stored:', sessionStorageData);
+      
+      // Load Zoho Payments Widget script if not already loaded
+      if (!window.ZPayments) {
+        console.log('📦 Loading Zoho Payments Widget script...');
+        
+        // Remove any existing Zoho script tags to prevent conflicts
+        const existingScripts = document.querySelectorAll('script[src*="zpayments.js"]');
+        existingScripts.forEach(script => {
+          console.log('🗑️ Removing existing Zoho script:', script);
+          script.remove();
+        });
+        
+        const script = document.createElement('script');
+        script.src = 'https://static.zohocdn.com/zpay/zpay-js/v1/zpayments.js?v=' + Date.now();
+        script.onload = () => {
+          console.log('✅ Zoho Payments Widget script loaded');
+          initializeWidget(sessionData, resolve, reject);
+        };
+        script.onerror = () => {
+          console.error('❌ Failed to load Zoho Payments Widget script');
+          reject(new Error('Failed to load Zoho Payments Widget script'));
+        };
+        document.head.appendChild(script);
+      } else {
+        console.log('✅ Zoho Payments Widget script already loaded');
+        initializeWidget(sessionData, resolve, reject);
+      }
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('❌ Error initializing Zoho Payments widget:', errorMessage);
+      reject(new Error(`Failed to initialize Zoho Payments widget: ${errorMessage}`));
+    }
+  });
+};
+
+// Initialize the Zoho Payments Widget
+const initializeWidget = async (sessionData: any, resolve: () => void, reject: (error: Error) => void) => {
+  let instance: any = null;
+  
+  try {
+    console.log('🔧 Creating Zoho Payments Widget instance...');
+    
+    // Fetch Zoho credentials from Firebase
+    console.log('🔑 Fetching Zoho credentials from Firebase...');
+    const zohoCredentials = await getZohoCredentials();
+    
+    if (!zohoCredentials.ZOHO_PAY_API_KEY) {
+      throw new Error('Zoho Payments API key not found in Firebase');
+    }
+    
+    console.log('✅ Zoho credentials fetched successfully');
+    
+    // Create widget configuration
+    const config = {
+      account_id: "60043828274", // Your Zoho Payments account ID
+      domain: "IN", // India domain
+      otherOptions: {
+        api_key: zohoCredentials.ZOHO_PAY_API_KEY
+      }
+    };
+    
+    console.log('⚙️ Widget config:', config);
+    
+    // Create widget instance
+    instance = new window.ZPayments(config);
+    
+    // Prepare payment options
+    const options = {
+      amount: sessionData.amount.toString(),
+      currency_code: sessionData.currency || "INR",
+      payments_session_id: sessionData.session_id,
+      currency_symbol: "₹",
+      business: "DNA Publications",
+      description: sessionData.description || "DNA Publications Books",
+      invoice_number: sessionData.invoice_number,
+      reference_number: sessionData.session_id,
+      payment_method: "card" // Default to card payment
+    };
+    
+    console.log('💳 Payment options:', options);
+    
+    // Initiate payment
+    console.log('🚀 Initiating payment...');
+    const data = await instance.requestPaymentMethod(options);
+    
+    console.log('✅ Payment successful:', data);
+    
+    // Handle successful payment
+    if (data.payment_id) {
+      console.log('💰 Payment completed with ID:', data.payment_id);
+      window.location.href = `/payment/success?method=zoho&payment_id=${data.payment_id}`;
+      resolve();
+    } else {
+      throw new Error('Payment failed - no payment ID received');
+    }
+    
+  } catch (error) {
+    console.error('❌ Payment failed:', error);
+    
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'widget_closed') {
+      console.log('🔄 Widget was closed by user');
+      reject(new Error('Payment cancelled by user'));
+    } else {
+      console.error('💥 Payment error:', errorMessage);
+      window.location.href = `/payment/failure?method=zoho&error=${encodeURIComponent(errorMessage)}`;
+      reject(new Error(errorMessage || 'Payment failed'));
+    }
+  } finally {
+    // Close the widget
+    try {
+      if (window.ZPayments && instance) {
+        await instance.close();
+        console.log('🔒 Widget closed');
+      }
+    } catch (closeError) {
+      const closeErrorMessage = closeError instanceof Error ? closeError.message : 'Unknown error';
+      console.warn('⚠️ Error closing widget:', closeErrorMessage);
+    }
+  }
+};
+
 // Verify Payment Response
 export const verifyPaymentResponse = async (responseData: any, paymentMethod: string): Promise<any> => {
   const response = await fetch(`${import.meta.env.VITE_BACKEND_API_URL}/api/payment/verify-payment`, {
@@ -141,6 +328,8 @@ export const getPaymentMethodDisplayName = (method: string): string => {
       return 'PayU Payment Gateway';
     case 'razorpay':
       return 'Razorpay';
+    case 'zoho':
+      return 'Zoho Pay';
     default:
       return method;
   }
@@ -249,9 +438,11 @@ export const hasStoredOrderData = (): boolean => {
 export const getPaymentMethodDescription = (method: string): string => {
   switch (method) {
     case 'payu':
-      return 'Pay securely with credit card, debit card, net banking, or UPI';
+      return 'Pay securely with credit/debit cards, net banking, UPI, and digital wallets';
     case 'razorpay':
-      return 'Pay securely with credit card, debit card, net banking, UPI, or digital wallets';
+      return 'Pay securely with credit/debit cards, net banking, UPI, popular digital wallets, and international cards';
+    case 'zoho':
+      return 'Pay securely with credit/debit cards, net banking, UPI, and digital payment methods';
     default:
       return 'Secure payment gateway';
   }

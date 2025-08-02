@@ -829,3 +829,27 @@ export const recalculateCustomerStats = async () => {
     throw error
   }
 }
+
+// Zoho Configuration
+export const getZohoCredentials = async () => {
+  try {
+    const credDoc = await getDoc(doc(db, 'zohoapi', 'ZOHO_CRED'))
+    if (!credDoc.exists()) {
+      throw new Error('Zoho credentials not found in Firestore')
+    }
+    return credDoc.data()
+  } catch (error) {
+    console.error('Error fetching Zoho credentials:', error)
+    throw new Error('Failed to fetch Zoho credentials')
+  }
+}
+
+export const updateZohoCredentials = async (credentials: any) => {
+  try {
+    await setDoc(doc(db, 'zohoapi', 'ZOHO_CRED'), credentials, { merge: true })
+    console.log('Zoho credentials updated successfully')
+  } catch (error) {
+    console.error('Error updating Zoho credentials:', error)
+    throw new Error('Failed to update Zoho credentials')
+  }
+}

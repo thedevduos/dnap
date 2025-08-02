@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app'
-import { getFirestore, collection, addDoc, serverTimestamp } from 'firebase/firestore'
+import { getFirestore, collection, addDoc } from 'firebase/firestore'
 
 const firebaseConfig = {
   apiKey: process.env.VITE_FIREBASE_API_KEY,
@@ -42,8 +42,8 @@ const sampleJobs = [
         required: false
       }
     ],
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp()
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
   },
   {
     title: "Marketing Manager",
@@ -68,8 +68,8 @@ const sampleJobs = [
         required: true
       }
     ],
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp()
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
   },
   {
     title: "Content Editor",
@@ -94,8 +94,8 @@ const sampleJobs = [
         required: false
       }
     ],
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp()
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
   },
   {
     title: "UX/UI Designer",
@@ -120,8 +120,8 @@ const sampleJobs = [
         required: true
       }
     ],
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp()
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
   }
 ]
 
@@ -129,14 +129,38 @@ async function seedCareers() {
   try {
     console.log('🌱 Seeding careers data...')
     
+    // Validate Firebase configuration
+    if (!firebaseConfig.projectId) {
+      throw new Error('Firebase project ID is not configured. Please check your environment variables.');
+    }
+    
+    console.log(`📁 Using Firebase project: ${firebaseConfig.projectId}`)
+    
     for (const job of sampleJobs) {
-      await addDoc(collection(db, 'jobs'), job)
-      console.log(`✅ Added job: ${job.title}`)
+      try {
+        // Validate job data before adding
+        if (!job.title || !job.department || !job.location) {
+          console.warn(`⚠️ Skipping job with missing required fields: ${job.title || 'Unknown'}`)
+          continue
+        }
+        
+        await addDoc(collection(db, 'jobs'), job)
+        console.log(`✅ Added job: ${job.title}`)
+      } catch (jobError) {
+        console.error(`❌ Failed to add job "${job.title}":`, jobError.message)
+        // Continue with other jobs even if one fails
+      }
     }
     
     console.log('🎉 Careers seeding completed successfully!')
+    process.exit(0)
   } catch (error) {
-    console.error('❌ Error seeding careers data:', error)
+    console.error('❌ Error seeding careers data:', error.message)
+    console.error('📋 Troubleshooting tips:')
+    console.error('1. Check if Firebase environment variables are set correctly')
+    console.error('2. Verify Firebase project exists and is accessible')
+    console.error('3. Check Firebase security rules allow write access to "jobs" collection')
+    process.exit(1)
   }
 }
 

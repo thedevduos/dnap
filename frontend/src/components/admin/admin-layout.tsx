@@ -22,6 +22,7 @@ import {
   CreditCard,
   Users as CustomersIcon,
   BarChart3,
+  Settings,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/auth-context"
@@ -76,6 +77,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     { name: "Coupons", href: "/admin/coupons", icon: Ticket, section: "ecommerce" },
     { name: "Payments", href: "/admin/payments", icon: CreditCard, section: "ecommerce" },
     { name: "Analytics", href: "/admin/analytics", icon: BarChart3, section: "ecommerce" },
+    { name: "Zoho Connection", href: "/admin/zoho-connection", icon: Settings, section: "ecommerce" },
   ]
 
   const handleLogout = async () => {
@@ -211,9 +213,9 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         </div>
       </div>
 
-      {/* Main content */}
+      {/* Fixed Topbar */}
       <div className="lg:pl-64">
-        <div className="flex h-16 items-center justify-between border-b bg-white px-4 lg:px-6">
+        <div className="fixed top-0 right-0 left-0 lg:left-64 z-40 flex h-16 items-center justify-between border-b bg-white px-4 lg:px-6">
           <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setSidebarOpen(true)}>
             <Menu className="h-5 w-5" />
           </Button>
@@ -266,7 +268,8 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           </div>
         </div>
 
-        <main className="p-6">{children}</main>
+        {/* Main content with top padding to account for fixed topbar */}
+        <main className="pt-16 p-6">{children}</main>
       </div>
     </div>
   )

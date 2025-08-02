@@ -93,6 +93,7 @@ export default function AdminOrders() {
       switch (method) {
         case 'payu': return 'PayU'
         case 'razorpay': return 'Razorpay'
+        case 'zoho': return 'Zoho Pay'
         default: return method
       }
     }

@@ -13,6 +13,7 @@ import { db } from "@/lib/firebase"
 import { useUser } from "@/contexts/user-context"
 import { applyCoupon } from "@/lib/firebase-utils"
 import { verifyPaymentResponse, getPaymentMethodDisplayName, getOrderData, clearOrderData } from "@/lib/payment-utils"
+// import { useZohoInvoice } from "@/hooks/use-zoho-invoice"
 
 export default function PaymentSuccessPage() {
   const [searchParams] = useSearchParams()
@@ -29,6 +30,7 @@ export default function PaymentSuccessPage() {
   const { clearCart } = useCart()
   const { toast } = useToast()
   const { addAddress } = useUser()
+  // const { createInvoice } = useZohoInvoice()
   
   // Store refs to avoid dependency issues
   clearCartRef.current = clearCart
@@ -97,6 +99,31 @@ export default function PaymentSuccessPage() {
             throw new Error('Razorpay payment data not found')
           }
 
+        } else if (paymentMethod === 'zoho') {
+          // Handle Zoho Pay response
+          const paymentId = searchParams.get('payment_id')
+          const sessionId = searchParams.get('session_id')
+          
+          // Get stored session data
+          const storedSessionData = sessionStorage.getItem('zoho_payment_session')
+          
+          if (paymentId) {
+            // Payment ID provided in URL (from Zoho redirect)
+            paymentData = { paymentId }
+            verificationResult = await verifyPaymentResponse(paymentData, 'zoho')
+          } else if (sessionId && storedSessionData) {
+            // Session ID provided, verify the payment using session data
+            const sessionData = JSON.parse(storedSessionData)
+            paymentData = { 
+              sessionId,
+              paymentId: sessionId, // Use session ID as payment ID for verification
+              ...sessionData
+            }
+            verificationResult = await verifyPaymentResponse(paymentData, 'zoho')
+          } else {
+            throw new Error('Zoho Pay payment ID or session ID not found')
+          }
+
         } else {
           // Handle PayU response
           paymentData = {
@@ -122,10 +149,12 @@ export default function PaymentSuccessPage() {
         // Check if payment was successful
         const isPaymentSuccessful = verificationResult?.success || 
                                    paymentData.status === 'success' || 
-                                   paymentData.unmappedstatus === 'userCancelled'
+                                   paymentData.unmappedstatus === 'userCancelled' ||
+                                   (paymentMethod === 'zoho' && verificationResult?.status === 'success')
 
         // Check if an order with this transaction ID already exists
         const transactionId = paymentMethod === 'razorpay' ? paymentData.razorpay_payment_id : 
+                            paymentMethod === 'zoho' ? paymentData.paymentId :
                             paymentData.mihpayid
         
         if (transactionId) {
@@ -174,6 +203,7 @@ export default function PaymentSuccessPage() {
             const orderRef = await addDoc(collection(db, "orders"), {
               ...orderData,
               transactionId: paymentMethod === 'razorpay' ? paymentData.razorpay_payment_id : 
+                            paymentMethod === 'zoho' ? paymentData.paymentId :
                             paymentData.mihpayid,
               createdAt: serverTimestamp()
             })
@@ -222,8 +252,10 @@ export default function PaymentSuccessPage() {
             await updateOrderStatus(orderRef.id, 'confirmed', {
               paymentStatus: 'paid',
               transactionId: paymentMethod === 'razorpay' ? paymentData.razorpay_payment_id : 
+                            paymentMethod === 'zoho' ? paymentData.paymentId :
                             paymentData.mihpayid,
               paymentMode: paymentMethod === 'razorpay' ? 'online' :
+                          paymentMethod === 'zoho' ? 'online' :
                           paymentData.mode,
               paymentMethod: paymentMethod
             })
@@ -232,15 +264,19 @@ export default function PaymentSuccessPage() {
             await addTransaction({
               orderId: orderRef.id,
               gatewayTransactionId: paymentMethod === 'razorpay' ? paymentData.razorpay_payment_id : 
+                                   paymentMethod === 'zoho' ? paymentData.paymentId :
                                    paymentData.mihpayid,
               amount: parseFloat(paymentData.amount || '0'),
               status: 'success',
               paymentMethod: paymentMethod,
               customerName: paymentMethod === 'razorpay' ? orderData.shippingAddress.firstName + ' ' + orderData.shippingAddress.lastName :
+                           paymentMethod === 'zoho' ? orderData.shippingAddress.firstName + ' ' + orderData.shippingAddress.lastName :
                            paymentData.firstname,
               customerEmail: paymentMethod === 'razorpay' ? orderData.userEmail :
+                            paymentMethod === 'zoho' ? orderData.userEmail :
                             paymentData.email,
               paymentMode: paymentMethod === 'razorpay' ? 'online' :
+                          paymentMethod === 'zoho' ? 'online' :
                           paymentData.mode
             })
 
@@ -248,6 +284,7 @@ export default function PaymentSuccessPage() {
               orderId: orderRef.id,
               amount: orderData.total,
               transactionId: paymentMethod === 'razorpay' ? paymentData.razorpay_payment_id : 
+                            paymentMethod === 'zoho' ? paymentData.paymentId :
                             paymentData.mihpayid,
               paymentMethod: paymentMethod
             })
@@ -265,6 +302,38 @@ export default function PaymentSuccessPage() {
             
             // Clear payment processing flag
             sessionStorage.removeItem('paymentProcessing')
+
+            // Create Zoho invoice for the order
+            // TEMPORARILY COMMENTED OUT - Invoice creation process
+            /*
+            try {
+              const invoiceResult = await createInvoice({
+                orderId: orderRef.id,
+                items: orderData.items,
+                shippingAddress: orderData.shippingAddress,
+                total: orderData.total,
+                discount: orderData.discount || 0,
+                shippingCost: orderData.shippingCost || 0,
+                paymentMethod: paymentMethod,
+                userEmail: orderData.userEmail
+              })
+
+              if (invoiceResult.success) {
+                console.log('Zoho invoice created successfully:', invoiceResult.invoiceId)
+                // Update order with invoice information
+                await updateDoc(orderRef, {
+                  zohoInvoiceId: invoiceResult.invoiceId,
+                  zohoInvoiceNumber: invoiceResult.invoiceNumber,
+                  invoiceCreatedAt: serverTimestamp()
+                })
+              } else {
+                console.warn('Failed to create Zoho invoice:', invoiceResult.error)
+              }
+            } catch (error) {
+              console.error('Error creating Zoho invoice:', error)
+              // Don't fail the order creation if invoice creation fails
+            }
+            */
 
             toastRef.current({
               title: "Payment Successful!",

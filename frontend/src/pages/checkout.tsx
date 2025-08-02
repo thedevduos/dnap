@@ -23,6 +23,7 @@ import { AddressModal } from "@/components/profile/address-modal"
 import { 
   handlePayUPayment, 
   handleRazorpayPayment, 
+  handleZohoPayment,
   getPaymentMethodDisplayName,
   getPaymentMethodDescription,
   storeOrderData,
@@ -63,7 +64,7 @@ export default function CheckoutPage() {
     state: '',
     postalCode: '',
     country: 'India',
-    paymentMethod: 'payu',
+    paymentMethod: 'razorpay',
     shippingMethod: 'standard',
     saveAddress: false
   })
@@ -470,7 +471,7 @@ export default function CheckoutPage() {
           // Show loading message
           toast({
             title: "Redirecting to Payment Gateway",
-            description: "Please wait while we redirect you to PayU...",
+            description: `Please wait while we redirect you to ${getPaymentMethodDisplayName('payu')}...`,
           })
           
           // Add a timeout in case PayU doesn't respond
@@ -492,12 +493,21 @@ export default function CheckoutPage() {
           
           // Show loading message
           toast({
-            title: "Opening Razorpay",
-            description: "Please complete your payment in the Razorpay window...",
+            title: "Opening Payment Gateway",
+            description: `Please complete your payment in the ${getPaymentMethodDisplayName('razorpay')} window...`,
           })
           break
 
-
+        case 'zoho':
+          console.log('Creating Zoho Pay payment request...')
+          await handleZohoPayment(paymentData)
+          
+          // Show loading message
+          toast({
+            title: "Redirecting to Payment Gateway",
+            description: `Please complete your payment in the ${getPaymentMethodDisplayName('zoho')} window...`,
+          })
+          break
 
         default:
           throw new Error('Unsupported payment method')
@@ -535,7 +545,7 @@ export default function CheckoutPage() {
           <div className="bg-white rounded-lg p-8 text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
             <h3 className="text-lg font-semibold mb-2">Redirecting to Payment Gateway</h3>
-            <p className="text-muted-foreground">Please wait while we redirect you to PayU...</p>
+            <p className="text-muted-foreground">Please wait while we redirect you to {getPaymentMethodDisplayName(formData.paymentMethod)}...</p>
             <p className="text-sm text-muted-foreground mt-2">Do not close this window or refresh the page.</p>
           </div>
         </div>
@@ -858,23 +868,34 @@ export default function CheckoutPage() {
                     onValueChange={(value) => handleInputChange('paymentMethod', value)}
                   >
                     <div className="flex items-center space-x-2 p-4 border rounded-lg">
-                      <RadioGroupItem value="payu" id="payu" />
-                      <Label htmlFor="payu" className="flex-1">
-                        <div>
-                          <p className="font-medium">{getPaymentMethodDisplayName('payu')}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {getPaymentMethodDescription('payu')}
-                          </p>
-                        </div>
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2 p-4 border rounded-lg">
                       <RadioGroupItem value="razorpay" id="razorpay" />
                       <Label htmlFor="razorpay" className="flex-1">
                         <div>
                           <p className="font-medium">{getPaymentMethodDisplayName('razorpay')}</p>
                           <p className="text-sm text-muted-foreground">
                             {getPaymentMethodDescription('razorpay')}
+                          </p>
+                        </div>
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2 p-4 border rounded-lg">
+                      <RadioGroupItem value="zoho" id="zoho" />
+                      <Label htmlFor="zoho" className="flex-1">
+                        <div>
+                          <p className="font-medium">{getPaymentMethodDisplayName('zoho')}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {getPaymentMethodDescription('zoho')}
+                          </p>
+                        </div>
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2 p-4 border rounded-lg">
+                      <RadioGroupItem value="payu" id="payu" />
+                      <Label htmlFor="payu" className="flex-1">
+                        <div>
+                          <p className="font-medium">{getPaymentMethodDisplayName('payu')}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {getPaymentMethodDescription('payu')}
                           </p>
                         </div>
                       </Label>
@@ -989,7 +1010,7 @@ export default function CheckoutPage() {
                     {processing || paymentProcessing ? (
                       <div className="flex items-center gap-2">
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        {paymentProcessing ? "Redirecting to Payment Gateway..." : "Processing..."}
+                        {paymentProcessing ? `Redirecting to ${getPaymentMethodDisplayName(formData.paymentMethod)}...` : "Processing..."}
                       </div>
                     ) : isAdmin ? (
                       "Admin Cannot Purchase"
