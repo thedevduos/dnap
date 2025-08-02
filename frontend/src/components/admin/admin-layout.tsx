@@ -67,6 +67,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     { name: "Careers", href: "/admin/careers", icon: Briefcase, section: "site-management" },
     { name: "Messages", href: "/admin/messages", icon: MessageSquare, section: "site-management" },
     { name: "Reviews", href: "/admin/reviews", icon: Star, section: "site-management" },
+    { name: "Zoho Connection", href: "/admin/zoho-connection", icon: Settings, section: "site-management" },
     
     // Ecommerce Management
     { name: "Books", href: "/admin/books", icon: BookOpen, section: "ecommerce" },
@@ -77,7 +78,6 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     { name: "Coupons", href: "/admin/coupons", icon: Ticket, section: "ecommerce" },
     { name: "Payments", href: "/admin/payments", icon: CreditCard, section: "ecommerce" },
     { name: "Analytics", href: "/admin/analytics", icon: BarChart3, section: "ecommerce" },
-    { name: "Zoho Connection", href: "/admin/zoho-connection", icon: Settings, section: "ecommerce" },
   ]
 
   const handleLogout = async () => {
