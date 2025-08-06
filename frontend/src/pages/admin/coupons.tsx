@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
+
 import { 
   Table, 
   TableBody, 
@@ -29,7 +29,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Tag, Search, MoreHorizontal, Edit, Trash2, Plus, Copy } from "lucide-react"
+import { Tag, MoreHorizontal, Edit, Trash2, Plus, Copy } from "lucide-react"
 import { useCoupons } from "@/hooks/use-coupons"
 import { deleteCoupon } from "@/lib/firebase-utils"
 import { useToast } from "@/hooks/use-toast"

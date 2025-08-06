@@ -28,7 +28,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { MessageSquare, MoreHorizontal, Edit, Trash2, Plus, Star } from "lucide-react"
+import { MoreHorizontal, Edit, Trash2, Plus, Star } from "lucide-react"
 import { useTestimonials } from "@/hooks/use-testimonials"
 import { deleteTestimonial } from "@/lib/firebase-utils"
 import { useToast } from "@/hooks/use-toast"
