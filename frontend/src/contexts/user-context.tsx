@@ -90,7 +90,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
   const loadUserProfile = async (authUser: User) => {
     try {
-      console.log('Loading user profile for:', authUser.email, authUser.uid)
       
       // First check if user exists in users collection (admin users)
       // Check by both uid and email to ensure we find admin users
@@ -106,7 +105,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       
       if (!usersSnapshot.empty) {
         const adminUser = usersSnapshot.docs[0].data()
-        console.log('Found admin user in users collection:', adminUser)
         // Create user profile from admin user data
         const adminProfile: UserProfile = {
           id: authUser.uid,
