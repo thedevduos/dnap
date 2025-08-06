@@ -10,7 +10,7 @@ if (typeof fetch === 'undefined') {
 const PAYU_CONFIG = {
   key: process.env.PAYU_KEY,
   salt: process.env.PAYU_SALT,
-  baseUrl: 'https://test.payu.in/_payment'  
+  baseUrl: 'https://secure.payu.in/_payment'  
 };
 
 // Razorpay Configuration
@@ -370,31 +370,79 @@ const processRefund = async (transactionData) => {
 // Process PayU refund
 const processPayURefund = async (transactionId, amount, refundAmount, reason) => {
   try {
-    // In a real implementation, you would call PayU's refund API
     console.log('Processing PayU refund:', { transactionId, amount, refundAmount, reason });
+    
+    // Check if PayU credentials are configured
+    if (!PAYU_CONFIG.key || !PAYU_CONFIG.salt) {
+      throw new Error('PayU credentials are not configured. Please check your environment variables.');
+    }
     
     // Validate PayU specific requirements
     if (!transactionId || typeof transactionId !== 'string') {
       throw new Error('Valid PayU transaction ID is required');
     }
     
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    if (refundAmount <= 0 || refundAmount > amount) {
+      throw new Error('Invalid refund amount. Must be greater than 0 and not exceed original amount.');
+    }
+
+    // PayU Refund API endpoint
+    const apiUrl = 'https://info.payu.in/merchant/postservice.php?form=2';
     
-    // Simulate success response
-    const refundId = `REF_PAYU_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
-    console.log('PayU refund processed successfully:', refundId);
-    
-    return {
-      success: true,
-      refundId: refundId,
-      refundAmount: refundAmount,
-      status: 'processed',
-      message: 'PayU refund processed successfully',
-      transactionId: transactionId,
-      processedAt: new Date().toISOString()
+    // Prepare request parameters
+    const requestParams = {
+      key: PAYU_CONFIG.key,
+      command: 'cancel_refund_transaction',
+      var1: transactionId, // Transaction ID
+      var2: refundAmount.toString(), // Refund amount
+      var3: reason || 'Admin initiated refund', // Refund reason
+      hash: crypto.createHash('sha512')
+        .update(`${PAYU_CONFIG.key}|cancel_refund_transaction|${transactionId}|${refundAmount}|${reason || 'Admin initiated refund'}|${PAYU_CONFIG.salt}`)
+        .digest('hex')
     };
+
+    console.log('Making PayU API request for refund...');
+    
+    // Make API request to PayU
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams(requestParams).toString()
+    });
+
+    if (!response.ok) {
+      throw new Error(`PayU API request failed with status: ${response.status}`);
+    }
+
+    const responseText = await response.text();
+    console.log('PayU API response for refund:', responseText);
+
+    // Parse the response
+    if (responseText && responseText.trim() !== '') {
+      // PayU refund response typically contains status information
+      if (responseText.includes('success') || responseText.includes('SUCCESS')) {
+        const refundId = `REF_PAYU_${transactionId}_${Date.now()}`;
+        
+        console.log('PayU refund processed successfully:', refundId);
+        
+        return {
+          success: true,
+          refundId: refundId,
+          refundAmount: refundAmount,
+          status: 'processed',
+          message: 'PayU refund processed successfully',
+          transactionId: transactionId,
+          processedAt: new Date().toISOString(),
+          response: responseText
+        };
+      } else {
+        throw new Error(`PayU refund failed: ${responseText}`);
+      }
+    } else {
+      throw new Error('Empty response from PayU API');
+    }
   } catch (error) {
     console.error('PayU refund processing error:', error);
     throw new Error(`PayU refund failed: ${error.message}`);
@@ -515,13 +563,85 @@ const getTransactionStatus = async (txnid, paymentMethod) => {
 
 // Get PayU transaction status
 const getPayUTransactionStatus = async (txnid) => {
-  // In a real implementation, you would call PayU's verify payment API
-  return {
-    success: true,
-    status: 'success',
-    amount: 0,
-    txnid
-  };
+  try {
+    console.log(`Fetching PayU transaction status for txnid: ${txnid}`);
+    
+    // Check if PayU credentials are configured
+    if (!PAYU_CONFIG.key || !PAYU_CONFIG.salt) {
+      throw new Error('PayU credentials are not configured. Please check your environment variables.');
+    }
+
+    // PayU Transaction Details API endpoint
+    const apiUrl = 'https://info.payu.in/merchant/postservice.php?form=2';
+    
+    // Prepare request parameters
+    const requestParams = {
+      key: PAYU_CONFIG.key,
+      command: 'get_Transaction_Details',
+      var1: txnid, // Specific transaction ID
+      hash: crypto.createHash('sha512')
+        .update(`${PAYU_CONFIG.key}|get_Transaction_Details|${txnid}|${PAYU_CONFIG.salt}`)
+        .digest('hex')
+    };
+
+    console.log('Making PayU API request for transaction status...');
+    
+    // Make API request to PayU
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams(requestParams).toString()
+    });
+
+    if (!response.ok) {
+      throw new Error(`PayU API request failed with status: ${response.status}`);
+    }
+
+    const responseText = await response.text();
+    console.log('PayU API response for transaction status:', responseText);
+
+    // Parse the response
+    if (responseText && responseText.trim() !== '') {
+      const lines = responseText.trim().split('\n');
+      const transactionLine = lines.find(line => line.includes(txnid));
+      
+      if (transactionLine) {
+        const parts = transactionLine.split('|');
+        if (parts.length >= 8) {
+          return {
+            success: true,
+            status: parts[2] || 'pending',
+            amount: parseFloat(parts[1]) || 0,
+            txnid: parts[7] || txnid,
+            customerName: parts[3] || 'Unknown',
+            customerEmail: parts[4] || 'unknown@example.com',
+            createdAt: parts[5] ? new Date(parts[5]).toISOString() : new Date().toISOString(),
+            currency: 'INR'
+          };
+        }
+      }
+    }
+
+    // If transaction not found or invalid response
+    return {
+      success: false,
+      status: 'not_found',
+      amount: 0,
+      txnid,
+      error: 'Transaction not found or invalid response'
+    };
+  } catch (error) {
+    console.error('Error in getPayUTransactionStatus:', error);
+    return {
+      success: false,
+      status: 'error',
+      amount: 0,
+      txnid,
+      error: error.message || 'Failed to get PayU transaction status'
+    };
+  }
 };
 
 // Get Razorpay transaction status
@@ -625,41 +745,119 @@ const getAllTransactions = async () => {
 // Get all PayU transactions
 const getPayUAllTransactions = async () => {
   try {
-    // In a real implementation, you would call PayU's transaction list API
-    // For now, return mock data with proper structure
     console.log('Fetching PayU transactions...');
+    
+    // Check if PayU credentials are configured
+    if (!PAYU_CONFIG.key || !PAYU_CONFIG.salt) {
+      console.warn('PayU credentials are not configured. Please check your environment variables.');
+      return {
+        success: false,
+        transactions: [],
+        error: 'PayU credentials are not configured'
+      };
+    }
+
+    // PayU Transaction Info API endpoint (matching documentation exactly)
+    const apiUrl = 'https://info.payu.in/merchant/postservice?form=2';
+    
+    // Prepare request parameters with date range (end date = current date/time, start date = end date - 7 days)
+    const endDate = new Date(); // Current date and time
+    const startDate = new Date(endDate);
+    startDate.setDate(endDate.getDate() - 7); // Start date = end date - 7 days
+    
+    // Format dates as YYYY-MM-DD HH:MM:SS (matching documentation format)
+    const startDateStr = startDate.toISOString().slice(0, 19).replace('T', ' ');
+    const endDateStr = endDate.toISOString().slice(0, 19).replace('T', ' ');
+    
+    // Calculate hash according to PayU documentation: sha512(key|command|var1|salt)
+    const hashString = `${PAYU_CONFIG.key}|get_transaction_info|${startDateStr}|${PAYU_CONFIG.salt}`;
+    const hash = crypto.createHash('sha512').update(hashString).digest('hex');
+    
+    // Request parameters matching the documentation example
+    const requestParams = {
+      key: PAYU_CONFIG.key,
+      command: 'get_transaction_info',
+      var1: startDateStr,
+      var2: endDateStr,
+      hash: hash
+    };
+
+    console.log('Making PayU API request for transaction details...');
+    
+    // Make API request to PayU
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams(requestParams).toString()
+    });
+
+    if (!response.ok) {
+      throw new Error(`PayU API request failed with status: ${response.status}`);
+    }
+
+    const responseText = await response.text();
+    console.log('PayU API response:', responseText);
+    console.log('PayU API response length:', responseText.length);
+    console.log('PayU API response type:', typeof responseText);
+
+    // Parse the response
+    let transactions = [];
+    
+    if (responseText && responseText.trim() !== '') {
+      try {
+        // PayU returns JSON response
+        const responseData = JSON.parse(responseText);
+        
+        if (responseData.status === 1 && responseData.Transaction_details && Array.isArray(responseData.Transaction_details)) {
+          transactions = responseData.Transaction_details.map(transaction => {
+            try {
+              return {
+                id: transaction.id || 'Unknown',
+                amount: parseFloat(transaction.amount) || 0,
+                status: transaction.status?.toLowerCase() || 'pending',
+                customerName: `${transaction.firstname || ''} ${transaction.lastname || ''}`.trim() || 'Unknown',
+                customerEmail: transaction.email || 'unknown@example.com',
+                paymentMethod: 'payu',
+                createdAt: transaction.addedon ? new Date(transaction.addedon).toISOString() : new Date().toISOString(),
+                orderId: transaction.txnid || null,
+                txnid: transaction.txnid || null,
+                currency: 'INR',
+                method: transaction.mode || 'online',
+                bankName: transaction.bank_name || null,
+                transactionFee: parseFloat(transaction.transaction_fee) || 0
+              };
+            } catch (parseError) {
+              console.warn('Error parsing PayU transaction:', transaction, parseError);
+              return null;
+            }
+          }).filter(Boolean); // Remove null entries
+        } else if (responseData.status === 0) {
+          console.warn('PayU API error:', responseData.msg);
+          if (responseData.message && responseData.message.includes('Invalid requests limit reached')) {
+            console.warn('PayU API rate limit reached. Please contact PayU support at care@payu.in');
+          }
+        }
+      } catch (parseError) {
+        console.warn('Error parsing PayU JSON response:', parseError);
+        console.warn('Raw response:', responseText);
+        transactions = [];
+      }
+    }
+
+    console.log(`Successfully fetched ${transactions.length} PayU transactions`);
     
     return {
       success: true,
-      transactions: [
-        {
-          id: 'PAYU_TXN_001',
-          amount: 299,
-          status: 'success',
-          customerName: 'John Doe',
-          customerEmail: 'john@example.com',
-          paymentMethod: 'payu',
-          createdAt: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
-          orderId: 'ORDER_001'
-        },
-        {
-          id: 'PAYU_TXN_002',
-          amount: 599,
-          status: 'success',
-          customerName: 'Jane Smith',
-          customerEmail: 'jane@example.com',
-          paymentMethod: 'payu',
-          createdAt: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
-          orderId: 'ORDER_002'
-        }
-      ]
+      transactions
     };
   } catch (error) {
     console.error('Error in getPayUAllTransactions:', error);
     return {
       success: false,
       transactions: [],
-      error: error.message
+      error: error.message || 'Failed to fetch PayU transactions'
     };
   }
 };

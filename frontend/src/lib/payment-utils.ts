@@ -252,7 +252,7 @@ const initializeWidget = async (sessionData: any, resolve: () => void, reject: (
       description: sessionData.description || "DNA Publications Books",
       invoice_number: sessionData.invoice_number,
       reference_number: sessionData.session_id,
-      payment_method: "card" // Default to card payment
+      // payment_method: "card" // Default to card payment
     };
     
     console.log('💳 Payment options:', options);
