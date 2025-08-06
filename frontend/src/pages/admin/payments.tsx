@@ -385,6 +385,9 @@ export default function AdminPayments() {
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Gateway Only</p>
                   <p className="text-2xl font-bold text-orange-600">{pgTransactions?.length || 0}</p>
+                  <p className="text-xs text-gray-500">
+                    {pgTransactions?.filter(t => t.paymentMethod === 'zoho').length || 0} Zoho Pay
+                  </p>
                 </div>
               </div>
             </CardContent>

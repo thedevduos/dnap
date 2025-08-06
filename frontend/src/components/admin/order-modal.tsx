@@ -167,15 +167,7 @@ export function OrderModal({ open, onOpenChange, order }: OrderModalProps) {
                   <p className="text-sm text-muted-foreground">
                     Payment Status: {order.paymentStatus || 'Pending'}
                   </p>
-                  {order.zohoInvoiceId && (
-                    <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded">
-                      <p className="text-sm font-medium text-blue-800">Zoho Invoice</p>
-                      <p className="text-xs text-blue-600">ID: {order.zohoInvoiceId}</p>
-                      {order.zohoInvoiceNumber && (
-                        <p className="text-xs text-blue-600">Number: {order.zohoInvoiceNumber}</p>
-                      )}
-                    </div>
-                  )}
+
                 </div>
               </div>
             </div>

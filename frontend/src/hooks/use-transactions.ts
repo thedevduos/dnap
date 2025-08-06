@@ -173,6 +173,25 @@ export function useTransactions() {
             }))
             allPgTransactions.push(...razorpayTransactions)
           }
+          
+          // Process Zoho Pay transactions safely
+          if (result.data.zoho?.success && Array.isArray(result.data.zoho.transactions)) {
+            const zohoTransactions = result.data.zoho.transactions.map((t: any) => ({
+              id: t.id || `zoho_${Date.now()}_${Math.random()}`,
+              amount: typeof t.amount === 'number' ? t.amount : parseFloat(t.amount || '0'),
+              status: t.status || 'pending',
+              customerName: t.customerName || 'Unknown',
+              customerEmail: t.customerEmail || 'unknown@example.com',
+              paymentMethod: 'zoho',
+              createdAt: t.createdAt || new Date().toISOString(),
+              currency: t.currency || 'INR',
+              method: t.method || 'online',
+              refundStatus: t.refundStatus || null,
+              orderId: t.orderId || '',
+              refundAmount: typeof t.refundAmount === 'number' ? t.refundAmount : parseFloat(t.refundAmount || '0')
+            }))
+            allPgTransactions.push(...zohoTransactions)
+          }
 
           // Sort by creation date (newest first)
           allPgTransactions.sort((a, b) => {

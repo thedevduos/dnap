@@ -46,36 +46,6 @@ router.post('/refresh-token', async (req, res) => {
   }
 });
 
-// Create invoice in Zoho Books
-router.post('/create-invoice', async (req, res) => {
-  try {
-    const { orderData } = req.body;
-
-    if (!orderData) {
-      return res.status(400).json({
-        success: false,
-        message: 'Order data is required'
-      });
-    }
-
-    const invoice = await zohoService.createZohoInvoice(orderData);
-    
-    res.status(200).json({
-      success: true,
-      message: 'Invoice created successfully in Zoho Books',
-      data: invoice
-    });
-
-  } catch (error) {
-    console.error('Zoho invoice creation error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to create invoice in Zoho Books',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-    });
-  }
-});
-
 // Create Zoho Pay payment
 router.post('/create-payment', async (req, res) => {
   try {

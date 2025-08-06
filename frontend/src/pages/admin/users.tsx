@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
 import { 
   Table, 
   TableBody, 
@@ -18,7 +19,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Users, Plus, MoreHorizontal, Edit, Trash2 } from "lucide-react"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { Users, Plus, Search, MoreHorizontal, Edit, Trash2 } from "lucide-react"
 import { useUsers } from "@/hooks/use-users"
 import { deleteUser } from "@/lib/firebase-utils"
 import { useToast } from "@/hooks/use-toast"
@@ -30,6 +41,7 @@ export default function AdminUsers() {
   const { toast } = useToast()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState<any>(null)
+  const [userToDelete, setUserToDelete] = useState<any>(null)
 
   const handleEdit = (user: any) => {
     setSelectedUser(user)
@@ -37,8 +49,15 @@ export default function AdminUsers() {
   }
 
   const handleDelete = async (id: string) => {
+    const user = users.find(u => u.id === id)
+    setUserToDelete(user)
+  }
+
+  const confirmDeleteUser = async () => {
+    if (!userToDelete) return
+
     try {
-      await deleteUser(id)
+      await deleteUser(userToDelete.id)
       toast({
         title: "Success",
         description: "User deleted successfully",
@@ -49,6 +68,8 @@ export default function AdminUsers() {
         description: "Failed to delete user",
         variant: "destructive",
       })
+    } finally {
+      setUserToDelete(null)
     }
   }
 
@@ -158,6 +179,26 @@ export default function AdminUsers() {
         onClose={handleModalClose}
         user={selectedUser}
       />
+
+      <AlertDialog open={!!userToDelete} onOpenChange={() => setUserToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete User</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{userToDelete?.name}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteUser}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete User
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AdminLayout>
   )
 }

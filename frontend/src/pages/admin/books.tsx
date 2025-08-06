@@ -18,6 +18,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { BookOpen, Plus, MoreHorizontal, Edit, Trash2, Star, Grid, List } from "lucide-react"
 import { useBooks } from "@/hooks/use-books"
 import { deleteBook, toggleFeaturedBook, getFeaturedBooksCount } from "@/lib/firebase-utils"
@@ -31,6 +41,7 @@ export default function AdminBooks() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedBook, setSelectedBook] = useState<any>(null)
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
+  const [bookToDelete, setBookToDelete] = useState<any>(null)
 
   const handleEdit = (book: any) => {
     setSelectedBook(book)
@@ -38,8 +49,15 @@ export default function AdminBooks() {
   }
 
   const handleDelete = async (id: string) => {
+    const book = books.find(b => b.id === id)
+    setBookToDelete(book)
+  }
+
+  const confirmDeleteBook = async () => {
+    if (!bookToDelete) return
+
     try {
-      await deleteBook(id)
+      await deleteBook(bookToDelete.id)
       toast({
         title: "Success",
         description: "Book deleted successfully",
@@ -50,6 +68,8 @@ export default function AdminBooks() {
         description: "Failed to delete book",
         variant: "destructive",
       })
+    } finally {
+      setBookToDelete(null)
     }
   }
 
@@ -296,6 +316,26 @@ export default function AdminBooks() {
         onClose={handleModalClose}
         book={selectedBook}
       />
+
+      <AlertDialog open={!!bookToDelete} onOpenChange={() => setBookToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Book</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{bookToDelete?.title}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteBook}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete Book
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AdminLayout>
   )
 }

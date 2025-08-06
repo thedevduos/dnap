@@ -3,8 +3,8 @@
 import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
 import { 
   Table, 
   TableBody, 
@@ -19,11 +19,21 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Star, Search, MoreHorizontal, Eye, Trash2, MessageSquare, CheckCircle, XCircle } from "lucide-react"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { Star, Search, MoreHorizontal, Edit, Trash2, MessageSquare, CheckCircle, XCircle } from "lucide-react"
 import { useReviewsAdmin } from "@/hooks/use-reviews-admin"
-import { ReviewModal } from "@/components/admin/review-modal"
-import { AdminLayout } from "@/components/admin/admin-layout"
 import { useToast } from "@/hooks/use-toast"
+import { AdminLayout } from "@/components/admin/admin-layout"
+import { ReviewModal } from "@/components/admin/review-modal"
 
 export default function AdminReviews() {
   const { reviews, loading, analytics, updateReviewStatus, deleteReview } = useReviewsAdmin()
@@ -32,6 +42,7 @@ export default function AdminReviews() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedReview, setSelectedReview] = useState<any>(null)
+  const [reviewToDelete, setReviewToDelete] = useState<any>(null)
 
   const handleEdit = (review: any) => {
     setSelectedReview(review)
@@ -39,20 +50,27 @@ export default function AdminReviews() {
   }
 
   const handleDelete = async (reviewId: string) => {
-    if (window.confirm("Are you sure you want to delete this review? This action cannot be undone.")) {
-      try {
-        await deleteReview(reviewId)
-        toast({
-          title: "Success",
-          description: "Review deleted successfully",
-        })
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: "Failed to delete review",
-          variant: "destructive",
-        })
-      }
+    const review = reviews.find(r => r.id === reviewId)
+    setReviewToDelete(review)
+  }
+
+  const confirmDeleteReview = async () => {
+    if (!reviewToDelete) return
+
+    try {
+      await deleteReview(reviewToDelete.id)
+      toast({
+        title: "Success",
+        description: "Review deleted successfully",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete review",
+        variant: "destructive",
+      })
+    } finally {
+      setReviewToDelete(null)
     }
   }
 
@@ -298,7 +316,7 @@ export default function AdminReviews() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={() => handleEdit(review)}>
-                              <Eye className="h-4 w-4 mr-2" />
+                              <Edit className="h-4 w-4 mr-2" />
                               View & Edit
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleStatusUpdate(review.id, "approved")}>
@@ -334,6 +352,21 @@ export default function AdminReviews() {
         review={selectedReview}
         onUpdate={handleUpdateReview}
       />
+
+      <AlertDialog open={!!reviewToDelete} onOpenChange={setReviewToDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete your review.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setReviewToDelete(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteReview}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AdminLayout>
   )
 } 

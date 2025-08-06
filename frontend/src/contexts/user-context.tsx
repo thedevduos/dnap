@@ -15,6 +15,7 @@ interface UserProfile {
   lastName?: string
   phone?: string
   role?: string
+  photoURL?: string
   addresses: Address[]
   preferences: {
     newsletter: boolean
@@ -134,11 +135,27 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         if (userDoc.exists()) {
           const data = userDoc.data()
           console.log('Found user in userProfiles:', data)
-          setUserProfile({
+          // Update photoURL if it's different from the stored one
+          const updatedProfile = {
             ...data,
+            photoURL: authUser.photoURL || data.photoURL || '',
             createdAt: data.createdAt?.toDate() || new Date(),
             updatedAt: data.updatedAt?.toDate() || new Date(),
-          } as UserProfile)
+          } as UserProfile
+
+          // If the photoURL has changed, update it in Firestore
+          if (authUser.photoURL && authUser.photoURL !== data.photoURL) {
+            try {
+              await updateDoc(doc(db, "userProfiles", authUser.uid), {
+                photoURL: authUser.photoURL,
+                updatedAt: serverTimestamp()
+              })
+            } catch (error) {
+              console.warn('Failed to update photoURL in Firestore:', error)
+            }
+          }
+
+          setUserProfile(updatedProfile)
         } else {
           console.log('User not found in userProfiles, checking if admin...')
           
@@ -167,6 +184,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
               lastName: adminUser.name?.split(' ').slice(1).join(' ') || '',
               phone: adminUser.mobile || '',
               role: adminUser.role || 'admin',
+              photoURL: authUser.photoURL || '',
               addresses: [],
               preferences: {
                 newsletter: true,
@@ -195,6 +213,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
               email: authUser.email || '',
               displayName: authUser.displayName || '',
               role: 'customer', // Default role for new users
+              photoURL: authUser.photoURL || '',
               addresses: [],
               preferences: {
                 newsletter: true,

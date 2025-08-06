@@ -216,6 +216,15 @@ export default function ProfilePage() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handlePasswordUpdate} className="space-y-6">
+                {/* Hidden username field for accessibility */}
+                <input
+                  type="text"
+                  name="username"
+                  value={user?.email || ''}
+                  readOnly
+                  style={{ display: 'none' }}
+                  autoComplete="username"
+                />
                 <div className="space-y-2">
                   <Label htmlFor="currentPassword" className="text-sm font-semibold text-gray-700">
                     Current Password

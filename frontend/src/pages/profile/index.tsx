@@ -254,6 +254,45 @@ export default function ProfilePage() {
             {/* Profile Tab */}
             <TabsContent value="profile">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Profile Picture Card */}
+                <Card className="lg:col-span-1">
+                  <CardHeader>
+                    <CardTitle>Profile Picture</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-center">
+                    <div className="relative inline-block">
+                      {user?.photoURL ? (
+                        <img
+                          src={`https://images.weserv.nl/?url=${encodeURIComponent(user.photoURL)}&w=120&h=120&fit=cover&mask=circle`}
+                          alt="Profile"
+                          className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg"
+                          loading="lazy"
+                          onError={(e) => {
+                            // Hide the image and show fallback
+                            e.currentTarget.style.display = 'none'
+                            const fallback = e.currentTarget.nextElementSibling
+                            if (fallback) {
+                              fallback.classList.remove('hidden')
+                            }
+                          }}
+                        />
+                      ) : null}
+                      <div className={`w-24 h-24 bg-gradient-to-br from-orange-500 to-amber-600 rounded-full flex items-center justify-center border-4 border-white shadow-lg ${user?.photoURL ? 'hidden' : ''}`}>
+                        {user?.displayName ? (
+                          <span className="text-white font-bold text-3xl">
+                            {user.displayName.charAt(0).toUpperCase()}
+                          </span>
+                        ) : (
+                          <User className="w-12 h-12 text-white" />
+                        )}
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      {user?.photoURL ? 'Google Profile Picture' : 'No profile picture set'}
+                    </p>
+                  </CardContent>
+                </Card>
+
                 <Card className="lg:col-span-2">
                   <CardHeader>
                     <div className="flex justify-between items-center">

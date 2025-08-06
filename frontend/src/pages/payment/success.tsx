@@ -13,7 +13,6 @@ import { db } from "@/lib/firebase"
 import { useUser } from "@/contexts/user-context"
 import { applyCoupon } from "@/lib/firebase-utils"
 import { verifyPaymentResponse, getPaymentMethodDisplayName, getOrderData, clearOrderData } from "@/lib/payment-utils"
-// import { useZohoInvoice } from "@/hooks/use-zoho-invoice"
 
 export default function PaymentSuccessPage() {
   const [searchParams] = useSearchParams()
@@ -30,7 +29,6 @@ export default function PaymentSuccessPage() {
   const { clearCart } = useCart()
   const { toast } = useToast()
   const { addAddress } = useUser()
-  // const { createInvoice } = useZohoInvoice()
   
   // Store refs to avoid dependency issues
   clearCartRef.current = clearCart
@@ -191,13 +189,7 @@ export default function PaymentSuccessPage() {
             shippingAddress: orderData.shippingAddress
           } : null)
           
-          // Debug: Check what's in sessionStorage
-          console.log('All sessionStorage keys:', Object.keys(sessionStorage))
-          console.log('pendingOrderData in sessionStorage:', sessionStorage.getItem('pendingOrderData'))
-          console.log('paymentProcessing flag:', sessionStorage.getItem('paymentProcessing'))
-          
           if (orderData) {
-            console.log('Parsed order data:', orderData)
             
             // Create the actual order in database
             const orderRef = await addDoc(collection(db, "orders"), {
@@ -302,38 +294,6 @@ export default function PaymentSuccessPage() {
             
             // Clear payment processing flag
             sessionStorage.removeItem('paymentProcessing')
-
-            // Create Zoho invoice for the order
-            // TEMPORARILY COMMENTED OUT - Invoice creation process
-            /*
-            try {
-              const invoiceResult = await createInvoice({
-                orderId: orderRef.id,
-                items: orderData.items,
-                shippingAddress: orderData.shippingAddress,
-                total: orderData.total,
-                discount: orderData.discount || 0,
-                shippingCost: orderData.shippingCost || 0,
-                paymentMethod: paymentMethod,
-                userEmail: orderData.userEmail
-              })
-
-              if (invoiceResult.success) {
-                console.log('Zoho invoice created successfully:', invoiceResult.invoiceId)
-                // Update order with invoice information
-                await updateDoc(orderRef, {
-                  zohoInvoiceId: invoiceResult.invoiceId,
-                  zohoInvoiceNumber: invoiceResult.invoiceNumber,
-                  invoiceCreatedAt: serverTimestamp()
-                })
-              } else {
-                console.warn('Failed to create Zoho invoice:', invoiceResult.error)
-              }
-            } catch (error) {
-              console.error('Error creating Zoho invoice:', error)
-              // Don't fail the order creation if invoice creation fails
-            }
-            */
 
             toastRef.current({
               title: "Payment Successful!",

@@ -1,6 +1,7 @@
 "use client"
 
 // import { useState } from "react"
+import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -18,6 +19,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { MessageSquare, MoreHorizontal, Eye, Trash2, CheckCircle } from "lucide-react"
 import { useMessages } from "@/hooks/use-messages"
 import { updateMessageStatus, deleteMessage } from "@/lib/firebase-utils"
@@ -27,6 +38,7 @@ import { AdminLayout } from "@/components/admin/admin-layout"
 export default function AdminMessages() {
   const { messages, loading, analytics } = useMessages()
   const { toast } = useToast()
+  const [messageToDelete, setMessageToDelete] = useState<any>(null)
 
   const handleStatusUpdate = async (id: string, status: string) => {
     try {
@@ -45,8 +57,15 @@ export default function AdminMessages() {
   }
 
   const handleDelete = async (id: string) => {
+    const message = messages.find(m => m.id === id)
+    setMessageToDelete(message)
+  }
+
+  const confirmDeleteMessage = async () => {
+    if (!messageToDelete) return
+
     try {
-      await deleteMessage(id)
+      await deleteMessage(messageToDelete.id)
       toast({
         title: "Success",
         description: "Message deleted successfully",
@@ -57,6 +76,8 @@ export default function AdminMessages() {
         description: "Failed to delete message",
         variant: "destructive",
       })
+    } finally {
+      setMessageToDelete(null)
     }
   }
 
@@ -211,6 +232,21 @@ export default function AdminMessages() {
             )}
           </CardContent>
         </Card>
+
+        <AlertDialog open={!!messageToDelete} onOpenChange={setMessageToDelete}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete your message.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setMessageToDelete(null)}>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDeleteMessage}>Delete</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AdminLayout>
   )

@@ -1,6 +1,7 @@
 "use client"
 
 // import { useState } from "react"
+import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -18,6 +19,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Mail, MoreHorizontal, Trash2, RefreshCw } from "lucide-react"
 import { useSubscribers } from "@/hooks/use-subscribers"
 import { updateSubscriberStatus, deleteSubscriber } from "@/lib/firebase-utils"
@@ -27,6 +38,7 @@ import { AdminLayout } from "@/components/admin/admin-layout"
 export default function AdminEmails() {
   const { subscribers, loading, analytics } = useSubscribers()
   const { toast } = useToast()
+  const [subscriberToDelete, setSubscriberToDelete] = useState<any>(null)
 
   const handleStatusUpdate = async (id: string, status: string) => {
     try {
@@ -45,8 +57,15 @@ export default function AdminEmails() {
   }
 
   const handleDelete = async (id: string) => {
+    const subscriber = subscribers.find(s => s.id === id)
+    setSubscriberToDelete(subscriber)
+  }
+
+  const confirmDeleteSubscriber = async () => {
+    if (!subscriberToDelete) return
+
     try {
-      await deleteSubscriber(id)
+      await deleteSubscriber(subscriberToDelete.id)
       toast({
         title: "Success",
         description: "Subscriber deleted successfully",
@@ -57,6 +76,8 @@ export default function AdminEmails() {
         description: "Failed to delete subscriber",
         variant: "destructive",
       })
+    } finally {
+      setSubscriberToDelete(null)
     }
   }
 
@@ -198,6 +219,21 @@ export default function AdminEmails() {
           </CardContent>
         </Card>
       </div>
+
+      <AlertDialog open={!!subscriberToDelete} onOpenChange={setSubscriberToDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete your subscriber.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setSubscriberToDelete(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteSubscriber}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AdminLayout>
   )
 }

@@ -51,7 +51,6 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
   useEffect(() => {
     if (user && !loggedInRef.current) {
-      console.log('User logged in:', user.email)
       loggedInRef.current = true
     }
   }, [user?.uid])
@@ -230,13 +229,20 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                 <Button variant="ghost" className="header-item hidden md:flex items-center space-x-2">
                   {user?.photoURL ? (
                     <img
-                      src={user.photoURL}
+                      src={`https://images.weserv.nl/?url=${encodeURIComponent(user.photoURL)}&w=24&h=24&fit=cover&mask=circle`}
                       alt="Profile"
                       className="w-6 h-6 rounded-full object-cover"
+                      onError={(e) => {
+                        // Hide the image and show fallback icon
+                        e.currentTarget.style.display = 'none'
+                        const fallback = e.currentTarget.nextElementSibling
+                        if (fallback) {
+                          fallback.classList.remove('hidden')
+                        }
+                      }}
                     />
-                  ) : (
-                    <User className="w-5 h-5" />
-                  )}
+                  ) : null}
+                  <User className={`w-5 h-5 ${user?.photoURL ? 'hidden' : ''}`} />
                   <span>{user?.displayName || user?.email?.split('@')[0]}</span>
                 </Button>
               </DropdownMenuTrigger>

@@ -36,7 +36,6 @@ export function useReviewsAdmin() {
     const unsubscribe = onSnapshot(q, async (snapshot) => {
       const reviewsData: Review[] = snapshot.docs.map((doc) => {
         const data = doc.data()
-        console.log('Raw review data:', data) // Debug log
         return {
           id: doc.id,
           ...data,
@@ -47,11 +46,9 @@ export function useReviewsAdmin() {
       const reviewsWithBookTitles = await Promise.all(
         reviewsData.map(async (review) => {
           try {
-            console.log('Processing review:', review.id, 'bookId:', review.bookId) // Debug log
             const bookDoc = await getDoc(doc(db, "books", review.bookId))
             if (bookDoc.exists()) {
               const bookData = bookDoc.data()
-              console.log('Book data:', bookData) // Debug log
               return {
                 ...review,
                 bookTitle: bookData.title

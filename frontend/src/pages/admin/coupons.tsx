@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
 import { 
   Table, 
   TableBody, 
@@ -18,7 +19,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Ticket, Plus, MoreHorizontal, Edit, Trash2, Copy } from "lucide-react"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { Tag, Search, MoreHorizontal, Edit, Trash2, Plus, Copy } from "lucide-react"
 import { useCoupons } from "@/hooks/use-coupons"
 import { deleteCoupon } from "@/lib/firebase-utils"
 import { useToast } from "@/hooks/use-toast"
@@ -30,6 +41,7 @@ export default function AdminCoupons() {
   const { toast } = useToast()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedCoupon, setSelectedCoupon] = useState<any>(null)
+  const [couponToDelete, setCouponToDelete] = useState<any>(null)
 
   const handleEdit = (coupon: any) => {
     setSelectedCoupon(coupon)
@@ -37,8 +49,15 @@ export default function AdminCoupons() {
   }
 
   const handleDelete = async (id: string) => {
+    const coupon = coupons.find(c => c.id === id)
+    setCouponToDelete(coupon)
+  }
+
+  const confirmDeleteCoupon = async () => {
+    if (!couponToDelete) return
+
     try {
-      await deleteCoupon(id)
+      await deleteCoupon(couponToDelete.id)
       toast({
         title: "Success",
         description: "Coupon deleted successfully",
@@ -49,6 +68,8 @@ export default function AdminCoupons() {
         description: "Failed to delete coupon",
         variant: "destructive",
       })
+    } finally {
+      setCouponToDelete(null)
     }
   }
 
@@ -119,7 +140,7 @@ export default function AdminCoupons() {
               </div>
             ) : coupons.length === 0 ? (
               <div className="text-center py-8">
-                <Ticket className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <Tag className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-600">No coupons found</p>
               </div>
             ) : (
@@ -216,6 +237,21 @@ export default function AdminCoupons() {
         onClose={handleModalClose}
         coupon={selectedCoupon}
       />
+
+      <AlertDialog open={!!couponToDelete} onOpenChange={setCouponToDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete your coupon.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setCouponToDelete(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteCoupon}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AdminLayout>
   )
 }

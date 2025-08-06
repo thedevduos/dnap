@@ -10,8 +10,7 @@ import {
   CheckCircle, 
   XCircle, 
   RefreshCw, 
-  Settings, 
-  Database,
+  Settings,
   Wifi,
   AlertCircle,
   Plus
@@ -24,7 +23,6 @@ import { AdminLayout } from "@/components/admin/admin-layout"
 interface ZohoConnectionStatus {
   success: boolean
   message: string
-  booksStatus: 'connected' | 'failed' | 'unknown'
   paymentsStatus: 'connected' | 'failed' | 'unknown'
   organizationId?: string
   clientId?: string
@@ -100,7 +98,6 @@ export default function ZohoConnectionPage() {
       setConnectionStatus({
         success: false,
         message: 'Failed to test connection',
-        booksStatus: 'failed',
         paymentsStatus: 'failed',
         error: 'Network error'
       })
@@ -175,14 +172,14 @@ export default function ZohoConnectionPage() {
           const nextRefreshTime = lastRefreshTime + refreshIntervalMs - threeMinutesMs
           const timeUntilNextRefresh = Math.max(0, nextRefreshTime - now)
           
-          console.log('Countdown calculation:', {
-            lastRefreshTime: new Date(lastRefreshTime).toISOString(),
-            now: new Date(now).toISOString(),
-            refreshInterval: result.refreshInterval,
-            nextRefreshTime: new Date(nextRefreshTime).toISOString(),
-            timeUntilNextRefresh: Math.floor(timeUntilNextRefresh / 60000), // in minutes
-            countdownSeconds: Math.floor(timeUntilNextRefresh / 1000)
-          })
+          // console.log('Countdown calculation:', {
+          //   lastRefreshTime: new Date(lastRefreshTime).toISOString(),
+          //   now: new Date(now).toISOString(),
+          //   refreshInterval: result.refreshInterval,
+          //   nextRefreshTime: new Date(nextRefreshTime).toISOString(),
+          //   timeUntilNextRefresh: Math.floor(timeUntilNextRefresh / 60000), // in minutes
+          //   countdownSeconds: Math.floor(timeUntilNextRefresh / 1000)
+          // })
           
           setCountdown(Math.floor(timeUntilNextRefresh / 1000)) // Convert to seconds
         } else {
@@ -303,7 +300,7 @@ export default function ZohoConnectionPage() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">Zoho Connection Test</h1>
         <p className="text-muted-foreground">
-          Test and manage your Zoho Books and Zoho Pay integration
+          Test and manage your Zoho Pay integration
         </p>
       </div>
 
@@ -367,18 +364,7 @@ export default function ZohoConnectionPage() {
                 <Separator />
 
                 {/* Service Status */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="flex items-center space-x-2">
-                      <Database className="h-4 w-4" />
-                      <span className="font-medium">Zoho Books</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      {getStatusIcon(connectionStatus.booksStatus)}
-                      {getStatusBadge(connectionStatus.booksStatus)}
-                    </div>
-                  </div>
-
+                <div className="grid grid-cols-1 gap-4">
                   <div className="flex items-center justify-between p-3 border rounded-lg">
                     <div className="flex items-center space-x-2">
                       <Settings className="h-4 w-4" />
@@ -655,20 +641,7 @@ export default function ZohoConnectionPage() {
             <CardTitle>Zoho Integration Features</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 border rounded-lg">
-                <h4 className="font-medium mb-2 flex items-center">
-                  <Database className="h-4 w-4 mr-2" />
-                  Zoho Books
-                </h4>
-                <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>• Automatic invoice creation</li>
-                  <li>• Customer management</li>
-                  <li>• Order tracking</li>
-                  <li>• Financial reporting</li>
-                </ul>
-              </div>
-
+            <div className="grid grid-cols-1 gap-4">
               <div className="p-4 border rounded-lg">
                 <h4 className="font-medium mb-2 flex items-center">
                   <Settings className="h-4 w-4 mr-2" />

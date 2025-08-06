@@ -26,15 +26,22 @@ export function CustomerModal({ open, onOpenChange, customer }: CustomerModalPro
           <div className="flex items-center gap-4">
             {customer.photoURL ? (
               <img
-                src={customer.photoURL}
+                src={`https://images.weserv.nl/?url=${encodeURIComponent(customer.photoURL)}&w=64&h=64&fit=cover&mask=circle`}
                 alt={customer.displayName}
                 className="w-16 h-16 rounded-full object-cover"
+                onError={(e) => {
+                  // Hide the image and show fallback
+                  e.currentTarget.style.display = 'none'
+                  const fallback = e.currentTarget.nextElementSibling
+                  if (fallback) {
+                    fallback.classList.remove('hidden')
+                  }
+                }}
               />
-            ) : (
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                <User className="h-8 w-8 text-primary" />
-              </div>
-            )}
+            ) : null}
+            <div className={`w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center ${customer.photoURL ? 'hidden' : ''}`}>
+              <User className="h-8 w-8 text-primary" />
+            </div>
             <div>
               <h3 className="text-xl font-semibold">{customer.displayName || "N/A"}</h3>
               <p className="text-muted-foreground">{customer.email}</p>

@@ -4,6 +4,8 @@ import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { 
   Table, 
   TableBody, 
@@ -18,9 +20,18 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Label } from "@/components/ui/label"
-import { Calendar, Plus, MoreHorizontal, Edit, Trash2 } from "lucide-react"
+import { Calendar, MoreHorizontal, Edit, Trash2, Plus } from "lucide-react"
 import { useUpdatesAdmin } from "@/hooks/use-updates-admin"
 import { deleteUpdate, updateUpdate } from "@/lib/firebase-utils"
 import { useToast } from "@/hooks/use-toast"
@@ -33,6 +44,7 @@ export default function AdminUpdates() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedUpdate, setSelectedUpdate] = useState<any>(null)
   const [statusFilter, setStatusFilter] = useState("all")
+  const [updateToDelete, setUpdateToDelete] = useState<any>(null)
 
   const handleEdit = (update: any) => {
     setSelectedUpdate(update)
@@ -40,8 +52,15 @@ export default function AdminUpdates() {
   }
 
   const handleDelete = async (id: string) => {
+    const update = updates.find(u => u.id === id)
+    setUpdateToDelete(update)
+  }
+
+  const confirmDeleteUpdate = async () => {
+    if (!updateToDelete) return
+
     try {
-      await deleteUpdate(id)
+      await deleteUpdate(updateToDelete.id)
       toast({
         title: "Success",
         description: "Update deleted successfully",
@@ -52,6 +71,8 @@ export default function AdminUpdates() {
         description: "Failed to delete update",
         variant: "destructive",
       })
+    } finally {
+      setUpdateToDelete(null)
     }
   }
 
@@ -260,6 +281,21 @@ export default function AdminUpdates() {
         update={selectedUpdate}
         onSuccess={() => {}}
       />
+
+      <AlertDialog open={!!updateToDelete} onOpenChange={setUpdateToDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete your update.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setUpdateToDelete(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteUpdate}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AdminLayout>
   )
 }

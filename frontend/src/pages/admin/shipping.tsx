@@ -18,7 +18,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Truck, Plus, MoreHorizontal, Edit, Trash2 } from "lucide-react"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { Truck, MoreHorizontal, Edit, Trash2, Plus } from "lucide-react"
 import { useShippingMethods } from "@/hooks/use-shipping-methods"
 import { deleteShippingMethod } from "@/lib/firebase-utils"
 import { useToast } from "@/hooks/use-toast"
@@ -30,6 +40,7 @@ export default function AdminShipping() {
   const { toast } = useToast()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedMethod, setSelectedMethod] = useState<any>(null)
+  const [methodToDelete, setMethodToDelete] = useState<any>(null)
 
   const handleEdit = (method: any) => {
     setSelectedMethod(method)
@@ -37,8 +48,15 @@ export default function AdminShipping() {
   }
 
   const handleDelete = async (id: string) => {
+    const method = shippingMethods.find(m => m.id === id)
+    setMethodToDelete(method)
+  }
+
+  const confirmDeleteMethod = async () => {
+    if (!methodToDelete) return
+
     try {
-      await deleteShippingMethod(id)
+      await deleteShippingMethod(methodToDelete.id)
       toast({
         title: "Success",
         description: "Shipping method deleted successfully",
@@ -49,6 +67,8 @@ export default function AdminShipping() {
         description: "Failed to delete shipping method",
         variant: "destructive",
       })
+    } finally {
+      setMethodToDelete(null)
     }
   }
 
@@ -156,6 +176,26 @@ export default function AdminShipping() {
         onClose={handleModalClose}
         method={selectedMethod}
       />
+
+      <AlertDialog open={!!methodToDelete} onOpenChange={() => setMethodToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Shipping Method</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{methodToDelete?.name}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteMethod}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete Method
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AdminLayout>
   )
 }

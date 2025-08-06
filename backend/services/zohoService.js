@@ -39,7 +39,6 @@ try {
 
 // Zoho API Configuration
 const ZOHO_CONFIG = {
-  booksUrl: process.env.ZOHO_BOOKS_URL || 'https://www.zohoapis.in/books/v3',
   paymentsUrl: process.env.ZOHO_PAYMENTS_URL || 'https://payments.zoho.in/api/v1',
   organizationId: process.env.ZOHO_ORGANIZATION_ID,
 };
@@ -247,407 +246,114 @@ const testZohoConnection = async () => {
     const config = await getZohoConfig();
     
     console.log('🔍 Testing Zoho connection with config:', {
-      booksUrl: config.booksUrl,
       paymentsUrl: config.paymentsUrl,
       organizationId: config.organizationId,
       paymentsAccountId: config.paymentsAccountId,
       hasAccessToken: !!accessToken
     });
     
-    let booksStatus = 'unknown';
     let paymentsStatus = 'unknown';
     let errorDetails = {};
-    
-    // Test Zoho Books API
-    try {
-      const booksResponse = await axios.get(`${config.booksUrl}/organizations`, {
-        headers: {
-          'Authorization': `Zoho-oauthtoken ${accessToken}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      booksStatus = 'connected';
-    } catch (booksError) {
-      booksStatus = 'failed';
-      errorDetails.books = booksError.response?.data || booksError.message;
-      console.error('Zoho Books API test failed:', booksError.response?.data || booksError.message);
-    }
 
     // Test Zoho Pay API
     let successfulApproach = null;
+    
+    // Approach 1: Test with Bearer token - try without parameters first
     try {
-      if (!config.paymentsAccountId) {
-        paymentsStatus = 'failed';
-        errorDetails.payments = { code: 'invalid_account_id', message: 'ZOHO_PAYMENTS_ACCOUNT_ID is missing from credentials' };
-        console.error('Zoho Pay API test failed: Missing payments account ID');
-      } else {
-        // Validate account ID format
-        const validation = validatePaymentsAccountId(config.paymentsAccountId);
-        if (!validation.valid) {
-          paymentsStatus = 'failed';
-          errorDetails.payments = { code: 'invalid_account_id', message: validation.error };
-          console.error('Zoho Pay API test failed:', validation.error);
-        } else {
-          // Try different approaches for Zoho Pay API test
-          let paymentsConnected = false;
-          let lastError = null;
-          let successfulApproach = null;
-          
-          // Approach 1: Test with account ID in query params (preferred method)
-          try {
-            console.log(`🔍 Testing Zoho Pay with account ID in query params: ${config.paymentsAccountId}`);
-            const paymentsResponse1 = await axios.get(`${config.paymentsUrl}/payments`, {
-              headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'Content-Type': 'application/json'
-              },
-              params: {
-                account_id: config.paymentsAccountId
-              }
-            });
-            console.log('✅ Approach 1 (query params) succeeded');
-            paymentsConnected = true;
-            successfulApproach = 'query_params';
-          } catch (error1) {
-            lastError = error1;
-            console.log('❌ Approach 1 (query params) failed:', error1.response?.data || error1.message);
-            
-            // Approach 2: Test with account ID in header
-            try {
-              console.log(`🔍 Testing Zoho Pay with account ID in header: ${config.paymentsAccountId}`);
-              const paymentsResponse2 = await axios.get(`${config.paymentsUrl}/payments`, {
-                headers: {
-                  'Authorization': `Bearer ${accessToken}`,
-                  'Content-Type': 'application/json',
-                  'X-Zoho-Account-Id': config.paymentsAccountId
-                }
-              });
-              console.log('✅ Approach 2 (header) succeeded');
-              paymentsConnected = true;
-              successfulApproach = 'header';
-            } catch (error2) {
-              lastError = error2;
-              console.log('❌ Approach 2 (header) failed:', error2.response?.data || error2.message);
-              
-              // Approach 3: Test accounts endpoint to list available accounts
-              try {
-                console.log('🔍 Testing Zoho Pay accounts endpoint to list available accounts');
-                const accountsResponse = await axios.get(`${config.paymentsUrl}/accounts`, {
-                  headers: {
-                    'Authorization': `Bearer ${accessToken}`,
-                    'Content-Type': 'application/json'
-                  }
-                });
-                console.log('✅ Approach 3 (accounts endpoint) succeeded - Found accounts:', accountsResponse.data);
-                paymentsConnected = true;
-                successfulApproach = 'accounts_endpoint';
-              } catch (error3) {
-                lastError = error3;
-                console.log('❌ Approach 3 (accounts endpoint) failed:', error3.response?.data || error3.message);
-                
-                // Approach 4: Try without account ID (some endpoints don't require it)
-                try {
-                  console.log('🔍 Testing Zoho Pay without account ID');
-                  const paymentsResponse4 = await axios.get(`${config.paymentsUrl}/payments`, {
-                    headers: {
-                      'Authorization': `Bearer ${accessToken}`,
-                      'Content-Type': 'application/json'
-                    }
-                  });
-                  console.log('✅ Approach 4 (no account ID) succeeded');
-                  paymentsConnected = true;
-                  successfulApproach = 'no_account_id';
-                } catch (error4) {
-                  lastError = error4;
-                  console.log('❌ Approach 4 (no account ID) failed:', error4.response?.data || error4.message);
-                }
-              }
-            }
-          }
-          
-          if (paymentsConnected) {
-            paymentsStatus = 'connected';
-            console.log(`✅ Zoho Pay connected successfully using approach: ${successfulApproach}`);
-          }
+      const paymentsResponse = await axios.get(`${config.paymentsUrl}/payments`, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
         }
+      });
+      
+      if (paymentsResponse.status === 200) {
+        paymentsStatus = 'connected';
+        successfulApproach = 'Bearer token (no params)';
+        console.log('✅ Zoho Pay API test successful with Bearer token (no params)');
       }
     } catch (paymentsError) {
-      paymentsStatus = 'failed';
-      errorDetails.payments = paymentsError.response?.data || paymentsError.message;
-      console.error('Zoho Pay API test failed:', paymentsError.response?.data || paymentsError.message);
+      console.log('Zoho Pay API test with Bearer token (no params) failed, trying with account_id...');
       
-      // Add additional diagnostic information
-      if (paymentsError.response?.data?.code === 'invalid_account_id') {
-        console.error('💡 DIAGNOSTIC INFO:');
-        console.error('   - The account ID might be incorrect');
-        console.error('   - Check if you have an active Zoho Pay subscription');
-        console.error('   - Verify the account ID in your Zoho Pay dashboard');
-        console.error('   - Try running the diagnostic script to find the correct account ID');
+      // Approach 2: Test with Bearer token and account_id
+      try {
+        const paymentsResponse2 = await axios.get(`${config.paymentsUrl}/payments`, {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          params: {
+            account_id: config.paymentsAccountId
+          }
+        });
+        
+        if (paymentsResponse2.status === 200) {
+          paymentsStatus = 'connected';
+          successfulApproach = 'Bearer token (with account_id)';
+          console.log('✅ Zoho Pay API test successful with Bearer token (with account_id)');
+        }
+      } catch (paymentsError2) {
+        console.log('Zoho Pay API test with Bearer token (with account_id) failed, trying Zoho-oauthtoken...');
+        
+        // Approach 3: Test with Zoho-oauthtoken
+        try {
+          const paymentsResponse3 = await axios.get(`${config.paymentsUrl}/payments`, {
+            headers: {
+              'Authorization': `Zoho-oauthtoken ${accessToken}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (paymentsResponse3.status === 200) {
+            paymentsStatus = 'connected';
+            successfulApproach = 'Zoho-oauthtoken (no params)';
+            console.log('✅ Zoho Pay API test successful with Zoho-oauthtoken (no params)');
+          }
+        } catch (paymentsError3) {
+          paymentsStatus = 'failed';
+          errorDetails.payments = {
+            bearerErrorNoParams: paymentsError.response?.data || paymentsError.message,
+            bearerErrorWithParams: paymentsError2.response?.data || paymentsError2.message,
+            zohoTokenError: paymentsError3.response?.data || paymentsError3.message
+          };
+          console.error('Zoho Pay API test failed with all approaches:', {
+            bearerErrorNoParams: paymentsError.response?.data || paymentsError.message,
+            bearerErrorWithParams: paymentsError2.response?.data || paymentsError2.message,
+            zohoTokenError: paymentsError3.response?.data || paymentsError3.message
+          });
+        }
       }
     }
 
     // Determine overall success
-    const success = booksStatus === 'connected' || paymentsStatus === 'connected';
-    const bothConnected = booksStatus === 'connected' && paymentsStatus === 'connected';
+    const success = paymentsStatus === 'connected';
+    let message = '';
     
-    let message;
-    if (bothConnected) {
-      message = 'Zoho connection fully successful - both Books and Pay are connected';
-    } else if (booksStatus === 'connected') {
-      message = 'Zoho connection partially successful - Books connected, Pay failed';
-    } else if (paymentsStatus === 'connected') {
-      message = 'Zoho connection partially successful - Pay connected, Books failed';
+    if (success) {
+      message = 'Zoho Pay connection successful';
     } else {
-      message = 'Zoho connection failed - check permissions and subscriptions';
+      message = 'Zoho Pay connection failed';
     }
 
     return {
       success,
       message,
-      booksStatus,
       paymentsStatus,
       organizationId: config.organizationId,
-      clientId: credentials.ZOHO_CLIENT_ID,
-      paymentsAccountId: config.paymentsAccountId,
-      successfulPaymentsApproach: successfulApproach,
-      error: Object.keys(errorDetails).length > 0 ? errorDetails : undefined
+      clientId: config.clientId,
+      error: success ? undefined : errorDetails,
+      successfulApproach
     };
+
   } catch (error) {
-    console.error('Zoho connection test failed:', error);
+    console.error('❌ Error testing Zoho connection:', error);
+    
     return {
       success: false,
-      message: error.message || 'Zoho connection failed',
-      booksStatus: 'failed',
+      message: 'Failed to test Zoho connection',
       paymentsStatus: 'failed',
-      error: error.response?.data || error.message
+      error: error.message
     };
-  }
-};
-
-// Create customer in Zoho Books
-const createZohoCustomer = async (customerData) => {
-  try {
-    const accessToken = await getValidZohoToken();
-    
-    console.log('📋 Customer data received:', customerData);
-    
-    // Handle different data structures
-    let customerName, customerEmail, customerPhone, address, city, state, zip, country;
-    
-    if (customerData.firstName && customerData.lastName) {
-      // New structure with firstName/lastName
-      customerName = `${customerData.firstName} ${customerData.lastName}`;
-      customerEmail = customerData.email;
-      customerPhone = customerData.phone;
-      address = customerData.address1;
-      city = customerData.city;
-      state = customerData.state;
-      zip = customerData.postalCode;
-      country = customerData.country;
-    } else if (customerData.name) {
-      // Structure with name field
-      customerName = customerData.name;
-      customerEmail = customerData.email;
-      customerPhone = customerData.phone;
-      address = customerData.address;
-      city = customerData.city;
-      state = customerData.state;
-      zip = customerData.zip || customerData.postalCode;
-      country = customerData.country;
-    } else {
-      // Fallback - try to construct from available fields
-      customerName = customerData.customerName || customerData.name || 'Customer';
-      customerEmail = customerData.email || customerData.customerEmail || 'customer@example.com';
-      customerPhone = customerData.phone || customerData.customerPhone || '';
-      address = customerData.address || customerData.address1 || '';
-      city = customerData.city || '';
-      state = customerData.state || '';
-      zip = customerData.zip || customerData.postalCode || '';
-      country = customerData.country || 'India';
-    }
-    
-    // Validate required fields
-    if (!customerName || customerName.trim() === '') {
-      throw new Error('Customer name is required and cannot be empty');
-    }
-    
-    if (!customerEmail || customerEmail.trim() === '') {
-      throw new Error('Customer email is required and cannot be empty');
-    }
-    
-    console.log('🔧 Processed customer data:', {
-      name: customerName,
-      email: customerEmail,
-      phone: customerPhone,
-      address: address,
-      city: city,
-      state: state,
-      zip: zip,
-      country: country
-    });
-    
-    const customerPayload = {
-      name: customerName.trim(),
-      email: customerEmail.trim(),
-      contact_persons: [
-        {
-          name: customerName.trim(),
-          email: customerEmail.trim(),
-          phone: customerPhone || ''
-        }
-      ],
-      billing_address: {
-        address: address || '',
-        city: city || '',
-        state: state || '',
-        zip: zip || '',
-        country: country || 'India'
-      },
-      shipping_address: {
-        address: address || '',
-        city: city || '',
-        state: state || '',
-        zip: zip || '',
-        country: country || 'India'
-      }
-    };
-
-    console.log('📤 Sending customer payload to Zoho:', JSON.stringify(customerPayload, null, 2));
-    
-    const response = await axios.post(`${ZOHO_CONFIG.booksUrl}/contacts`, customerPayload, {
-      headers: {
-        'Authorization': `Zoho-oauthtoken ${accessToken}`,
-        'Content-Type': 'application/json'
-      },
-      params: {
-        organization_id: ZOHO_CONFIG.organizationId
-      }
-    });
-
-    console.log('✅ Customer created successfully:', response.data);
-    return response.data.contact;
-  } catch (error) {
-    console.error('❌ Error creating Zoho customer:', error);
-    
-    if (error.response) {
-      console.error('📡 Zoho API Error Response:', {
-        status: error.response.status,
-        data: error.response.data,
-        headers: error.response.headers
-      });
-      
-      if (error.response.data && error.response.data.message) {
-        throw new Error(`Zoho Books API Error: ${error.response.data.message}`);
-      }
-    }
-    
-    throw new Error(`Failed to create customer in Zoho Books: ${error.message}`);
-  }
-};
-
-// Create invoice in Zoho Books
-const createZohoInvoice = async (orderData) => {
-  try {
-    console.log('📄 Creating Zoho invoice for order data:', orderData);
-    const accessToken = await getValidZohoToken();
-    
-    // Create or get customer
-    let customer;
-    try {
-      console.log('👤 Creating customer from shipping address:', orderData.shippingAddress);
-      customer = await createZohoCustomer(orderData.shippingAddress);
-    } catch (error) {
-      console.error('❌ Error creating customer:', error.message);
-      
-      // Try to create customer with fallback data
-      try {
-        console.log('🔄 Trying fallback customer creation...');
-        const fallbackCustomerData = {
-          name: orderData.customerName || orderData.userEmail || 'Customer',
-          email: orderData.userEmail || orderData.customerEmail || 'customer@example.com',
-          phone: orderData.customerPhone || '',
-          address: orderData.shippingAddress?.address1 || '',
-          city: orderData.shippingAddress?.city || '',
-          state: orderData.shippingAddress?.state || '',
-          zip: orderData.shippingAddress?.postalCode || '',
-          country: orderData.shippingAddress?.country || 'India'
-        };
-        
-        console.log('📋 Fallback customer data:', fallbackCustomerData);
-        customer = await createZohoCustomer(fallbackCustomerData);
-      } catch (fallbackError) {
-        console.error('❌ Fallback customer creation also failed:', fallbackError.message);
-        throw new Error(`Customer creation failed: ${error.message}`);
-      }
-    }
-
-    // Prepare line items
-    const lineItems = orderData.items.map(item => ({
-      name: item.title,
-      description: `Author: ${item.author}`,
-      rate: item.price,
-      quantity: item.quantity,
-      tax_id: '', // Add tax ID if applicable
-      item_total: item.price * item.quantity
-    }));
-
-    // Calculate totals
-    const subtotal = lineItems.reduce((sum, item) => sum + item.item_total, 0);
-    const discount = orderData.discount || 0;
-    const shipping = orderData.shippingCost || 0;
-    const total = subtotal - discount + shipping;
-
-    const invoicePayload = {
-      customer_id: customer.contact_id,
-      line_items: lineItems,
-      subtotal: subtotal,
-      total: total,
-      discount: discount,
-      shipping_charge: shipping,
-      notes: `Order ID: ${orderData.orderId}`,
-      reference_number: orderData.orderId,
-      custom_fields: [
-        {
-          label: 'Order ID',
-          value: orderData.orderId
-        },
-        {
-          label: 'Payment Method',
-          value: orderData.paymentMethod
-        }
-      ]
-    };
-
-    console.log('📤 Sending invoice payload to Zoho:', JSON.stringify(invoicePayload, null, 2));
-    
-    const response = await axios.post(`${ZOHO_CONFIG.booksUrl}/invoices`, invoicePayload, {
-      headers: {
-        'Authorization': `Zoho-oauthtoken ${accessToken}`,
-        'Content-Type': 'application/json'
-      },
-      params: {
-        organization_id: ZOHO_CONFIG.organizationId
-      }
-    });
-
-    console.log('✅ Invoice created successfully:', response.data);
-    return response.data.invoice;
-  } catch (error) {
-    console.error('❌ Error creating Zoho invoice:', error);
-    
-    if (error.response) {
-      console.error('📡 Zoho API Error Response:', {
-        status: error.response.status,
-        data: error.response.data,
-        headers: error.response.headers
-      });
-      
-      if (error.response.data && error.response.data.message) {
-        throw new Error(`Zoho Books API Error: ${error.response.data.message}`);
-      }
-    }
-    
-    throw new Error(`Failed to create invoice in Zoho Books: ${error.message}`);
   }
 };
 
@@ -890,6 +596,81 @@ const verifyZohoPayment = async (paymentId) => {
   }
 };
 
+// Get all Zoho Pay payments
+const getAllZohoPayments = async () => {
+  try {
+    const accessToken = await getValidZohoToken();
+    const config = await getZohoConfig();
+    
+    if (!config.paymentsAccountId) {
+      throw new Error('ZOHO_PAYMENTS_ACCOUNT_ID is missing from credentials');
+    }
+    
+    // Try without any parameters first
+    let response;
+    try {
+      response = await axios.get(`${config.paymentsUrl}/payments`, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+    } catch (error) {
+      // If that fails, try with account_id
+      response = await axios.get(`${config.paymentsUrl}/payments`, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        params: {
+          account_id: config.paymentsAccountId
+        }
+      });
+    }
+
+    if (response.data.code !== 0) {
+      throw new Error(`Zoho payments fetch error: ${response.data.message}`);
+    }
+
+    const payments = response.data.payments || [];
+    
+    // Transform payments to match the expected format
+    const transformedPayments = payments.map(payment => ({
+      id: payment.payment_id,
+      amount: parseFloat(payment.amount),
+      status: payment.status === 'succeeded' ? 'success' : payment.status,
+      customerName: payment.customer_name || 'Unknown',
+      customerEmail: payment.customer_email || 'unknown@example.com',
+      paymentMethod: 'zoho',
+      createdAt: payment.date || new Date().toISOString(),
+      currency: payment.currency || 'INR',
+      method: payment.payment_method?.type || 'online',
+      refundStatus: payment.refund_status || null,
+      orderId: payment.reference_number || null
+    }));
+
+    return {
+      success: true,
+      transactions: transformedPayments
+    };
+  } catch (error) {
+    console.error('Error fetching Zoho payments:', error);
+    
+    if (error.response) {
+      console.error('Zoho Payments API Error:', {
+        status: error.response.status,
+        data: error.response.data
+      });
+    }
+    
+    return {
+      success: false,
+      transactions: [],
+      error: error.message || 'Failed to fetch Zoho Pay payments'
+    };
+  }
+};
+
 // Process Zoho Pay refund
 const processZohoRefund = async (paymentId, amount, reason) => {
   try {
@@ -941,11 +722,10 @@ const processZohoRefund = async (paymentId, amount, reason) => {
 
 module.exports = {
   testZohoConnection,
-  createZohoCustomer,
-  createZohoInvoice,
   createZohoPayment,
   verifyZohoPayment,
   processZohoRefund,
+  getAllZohoPayments,
   refreshZohoToken,
   getValidZohoToken,
   getZohoCredentials

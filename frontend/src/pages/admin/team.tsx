@@ -18,7 +18,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Users, Plus, MoreHorizontal, Edit, Trash2 } from "lucide-react"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { Users, MoreHorizontal, Edit, Trash2, Plus } from "lucide-react"
 import { useTeam } from "@/hooks/use-team"
 import { deleteTeamMember } from "@/lib/firebase-utils"
 import { useToast } from "@/hooks/use-toast"
@@ -30,6 +40,7 @@ export default function AdminTeam() {
   const { toast } = useToast()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedMember, setSelectedMember] = useState<any>(null)
+  const [memberToDelete, setMemberToDelete] = useState<any>(null)
 
   const handleEdit = (member: any) => {
     setSelectedMember(member)
@@ -37,8 +48,15 @@ export default function AdminTeam() {
   }
 
   const handleDelete = async (id: string) => {
+    const member = team.find(m => m.id === id)
+    setMemberToDelete(member)
+  }
+
+  const confirmDeleteMember = async () => {
+    if (!memberToDelete) return
+
     try {
-      await deleteTeamMember(id)
+      await deleteTeamMember(memberToDelete.id)
       toast({
         title: "Success",
         description: "Team member deleted successfully",
@@ -49,6 +67,8 @@ export default function AdminTeam() {
         description: "Failed to delete team member",
         variant: "destructive",
       })
+    } finally {
+      setMemberToDelete(null)
     }
   }
 
@@ -149,6 +169,21 @@ export default function AdminTeam() {
         onClose={handleModalClose}
         member={selectedMember}
       />
+
+      <AlertDialog open={!!memberToDelete} onOpenChange={setMemberToDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete your team member.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setMemberToDelete(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteMember}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AdminLayout>
   )
 }

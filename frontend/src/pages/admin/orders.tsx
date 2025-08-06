@@ -20,6 +20,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Package, Search, MoreHorizontal, Eye, Edit, RefreshCw, Truck, X } from "lucide-react"
 import { Trash2 } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -37,6 +47,7 @@ export default function AdminOrders() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState<any>(null)
   const [activeTab, setActiveTab] = useState("all")
+  const [orderToDelete, setOrderToDelete] = useState<any>(null)
 
   const handleStatusUpdate = async (orderId: string, newStatus: string) => {
     try {
@@ -60,20 +71,27 @@ export default function AdminOrders() {
   }
 
   const handleDeleteOrder = async (orderId: string) => {
-    if (window.confirm("Are you sure you want to delete this order? This action cannot be undone.")) {
-      try {
-        await deleteOrder(orderId)
-        toast({
-          title: "Order Deleted",
-          description: "Order has been deleted successfully.",
-        })
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: "Failed to delete order.",
-          variant: "destructive",
-        })
-      }
+    const order = orders.find(o => o.id === orderId)
+    setOrderToDelete(order)
+  }
+
+  const confirmDeleteOrder = async () => {
+    if (!orderToDelete) return
+
+    try {
+      await deleteOrder(orderToDelete.id)
+      toast({
+        title: "Order Deleted",
+        description: "Order has been deleted successfully.",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete order.",
+        variant: "destructive",
+      })
+    } finally {
+      setOrderToDelete(null)
     }
   }
 
@@ -408,6 +426,21 @@ export default function AdminOrders() {
         onOpenChange={setIsModalOpen}
         order={selectedOrder}
       />
+
+      <AlertDialog open={!!orderToDelete} onOpenChange={setOrderToDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete your order.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setOrderToDelete(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteOrder}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AdminLayout>
   )
 }

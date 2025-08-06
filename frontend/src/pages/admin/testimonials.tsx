@@ -18,7 +18,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Star, Plus, MoreHorizontal, Edit, Trash2 } from "lucide-react"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { MessageSquare, MoreHorizontal, Edit, Trash2, Plus, Star } from "lucide-react"
 import { useTestimonials } from "@/hooks/use-testimonials"
 import { deleteTestimonial } from "@/lib/firebase-utils"
 import { useToast } from "@/hooks/use-toast"
@@ -30,6 +40,7 @@ export default function AdminTestimonials() {
   const { toast } = useToast()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedTestimonial, setSelectedTestimonial] = useState<any>(null)
+  const [testimonialToDelete, setTestimonialToDelete] = useState<any>(null)
 
   const handleEdit = (testimonial: any) => {
     setSelectedTestimonial(testimonial)
@@ -37,8 +48,15 @@ export default function AdminTestimonials() {
   }
 
   const handleDelete = async (id: string) => {
+    const testimonial = testimonials.find(t => t.id === id)
+    setTestimonialToDelete(testimonial)
+  }
+
+  const confirmDeleteTestimonial = async () => {
+    if (!testimonialToDelete) return
+
     try {
-      await deleteTestimonial(id)
+      await deleteTestimonial(testimonialToDelete.id)
       toast({
         title: "Success",
         description: "Testimonial deleted successfully",
@@ -49,6 +67,8 @@ export default function AdminTestimonials() {
         description: "Failed to delete testimonial",
         variant: "destructive",
       })
+    } finally {
+      setTestimonialToDelete(null)
     }
   }
 
@@ -176,6 +196,26 @@ export default function AdminTestimonials() {
         testimonial={selectedTestimonial}
         onSuccess={refetch}
       />
+
+      <AlertDialog open={!!testimonialToDelete} onOpenChange={() => setTestimonialToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Testimonial</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the testimonial from "{testimonialToDelete?.name}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteTestimonial}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete Testimonial
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AdminLayout>
   )
 }

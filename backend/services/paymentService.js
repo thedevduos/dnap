@@ -735,37 +735,10 @@ const getZohoAllTransactions = async () => {
     
     console.log('Fetching Zoho Pay transactions...');
     
-    // In a real implementation, you would call Zoho Pay's transaction list API
-    // For now, return mock data with proper structure
-    return {
-      success: true,
-      transactions: [
-        {
-          id: 'ZOHO_TXN_001',
-          amount: 299,
-          status: 'success',
-          customerName: 'John Doe',
-          customerEmail: 'john@example.com',
-          paymentMethod: 'zoho',
-          createdAt: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
-          orderId: 'ORDER_001',
-          currency: 'INR',
-          method: 'online'
-        },
-        {
-          id: 'ZOHO_TXN_002',
-          amount: 599,
-          status: 'success',
-          customerName: 'Jane Smith',
-          customerEmail: 'jane@example.com',
-          paymentMethod: 'zoho',
-          createdAt: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
-          orderId: 'ORDER_002',
-          currency: 'INR',
-          method: 'online'
-        }
-      ]
-    };
+    // Call the actual Zoho API to get all payments
+    const result = await zohoService.getAllZohoPayments();
+    
+    return result;
   } catch (error) {
     console.error('Error in getZohoAllTransactions:', error);
     return {
