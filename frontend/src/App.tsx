@@ -9,6 +9,7 @@ import { CartProvider } from "@/contexts/cart-context"
 import { EbookCartProvider } from "@/contexts/ebook-cart-context"
 import { UserProvider } from "@/contexts/user-context"
 import { ProtectedRoute } from "@/components/admin/protected-route"
+import { SubscriptionExpiryChecker } from "@/components/ebook/subscription-expiry-checker"
 import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
 
@@ -80,6 +81,7 @@ export default function App() {
                         path="/admin/*"
                         element={
                           <ProtectedRoute>
+                            <SubscriptionExpiryChecker />
                             <Routes>
                               <Route path="/" element={<AdminDashboard />} />
                               <Route path="/dashboard" element={<AdminDashboard />} />
@@ -113,6 +115,7 @@ export default function App() {
                         path="/*"
                         element={
                           <ErrorBoundary>
+                            <SubscriptionExpiryChecker />
                             <>
                               <Header />
                               <main>
