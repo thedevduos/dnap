@@ -18,6 +18,7 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
 import { createUserWithEmailAndPassword } from "firebase/auth"
 import { db, storage, auth } from "@/lib/firebase"
 import { sendWelcomeEmail } from "./email-utils"
+import { uploadBookPDF } from "./ebook-utils"
 
 interface Coupon {
   id: string
@@ -608,6 +609,9 @@ export const uploadImage = async (file: File, folder: string): Promise<string> =
 
   return downloadURL
 }
+
+// Export uploadBookPDF for use in components
+export { uploadBookPDF }
 
 // Users
 export const addUser = async (userData: any) => {

@@ -1,15 +1,23 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Check, Star, Zap, Crown, Infinity } from "lucide-react"
+import { useEbookCart } from "@/contexts/ebook-cart-context"
+import { useEbookPlans } from "@/hooks/use-ebook-plans"
+import { useAuth } from "@/contexts/auth-context"
+import { LoginPopup } from "@/components/ui/login-popup"
 import anime from "animejs"
 
 export function Pricing() {
   const sectionRef = useRef<HTMLElement>(null)
   const [activeTab, setActiveTab] = useState<"multiple" | "single">("multiple")
+  const [showLoginPopup, setShowLoginPopup] = useState(false)
+  const { addToCart, isInCart } = useEbookCart()
+  const { plans, loading: plansLoading } = useEbookPlans()
+  const { user } = useAuth()
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -37,6 +45,14 @@ export function Pricing() {
 
     return () => observer.disconnect()
   }, [])
+
+  const handleAddToCart = (plan: any) => {
+    if (!user) {
+      setShowLoginPopup(true)
+      return
+    }
+    addToCart(plan)
+  }
 
   type Plan = {
     title: string
@@ -121,15 +137,24 @@ export function Pricing() {
   ]
 
   const getCurrentPlans = () => {
-    switch (activeTab) {
-      case "multiple":
-        return multipleEbookPlans
-      case "single":
-        return singleEbookPlans
-      default:
-        return multipleEbookPlans
+    if (plansLoading) return []
+    
+    // Use plans from database if available, otherwise use default plans
+    if (plans.length > 0) {
+      return plans.filter(plan => plan.type === activeTab)
+    } else {
+      switch (activeTab) {
+        case "multiple":
+          return multipleEbookPlans
+        case "single":
+          return singleEbookPlans
+        default:
+          return multipleEbookPlans
+      }
     }
   }
+
+  const currentPlans = getCurrentPlans()
 
   return (
     <section id="pricing" ref={sectionRef} className="py-20 bg-background">
@@ -162,49 +187,70 @@ export function Pricing() {
           </div>
         </div>
 
-        <div className="grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
-          {getCurrentPlans().map((plan, index) => (
-            <Card
-              key={index}
-              className={`pricing-card relative group hover:shadow-xl transition-all duration-300 ${
-                plan.popular ? "ring-2 ring-primary scale-105" : ""
-              }`}
-            >
-              {plan.popular && (
-                <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-primary">Most Popular</Badge>
-              )}
+        {plansLoading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <p className="mt-4 text-muted-foreground">Loading plans...</p>
+          </div>
+        ) : (
+          <div className="grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
+            {currentPlans.map((plan, index) => {
+              // Handle both EbookPlan and Plan types
+              const isEbookPlan = 'type' in plan
+              const planId = isEbookPlan ? plan.id : `plan-${index}`
+              const planPrice = isEbookPlan ? `₹${plan.price}` : plan.price
+              const planPeriod = isEbookPlan ? plan.period : plan.period
+              const planIcon = isEbookPlan ? Star : (plan as any).icon
+              
+              return (
+                <Card
+                  key={planId}
+                  className={`pricing-card relative group hover:shadow-xl transition-all duration-300 ${
+                    plan.popular ? "ring-2 ring-primary scale-105" : ""
+                  }`}
+                >
+                  {plan.popular && (
+                    <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-primary">Most Popular</Badge>
+                  )}
 
-              <CardHeader className="text-center pb-4">
-                <div className="mb-4 flex justify-center">
-                  <div className="p-3 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors duration-300">
-                    <plan.icon className="h-8 w-8 text-primary" />
-                  </div>
-                </div>
-                <CardTitle className="text-xl font-bold">{plan.title}</CardTitle>
-                <div className="text-3xl font-bold text-primary">
-                  {plan.price}
-                  {plan.period && <span className="text-sm text-muted-foreground">{plan.period}</span>}
-                </div>
-                <p className="text-muted-foreground">{plan.description}</p>
-              </CardHeader>
+                  <CardHeader className="text-center pb-4">
+                    <div className="mb-4 flex justify-center">
+                      <div className="p-3 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors duration-300">
+                        {React.createElement(planIcon, { className: "h-8 w-8 text-primary" })}
+                      </div>
+                    </div>
+                    <CardTitle className="text-xl font-bold">{plan.title}</CardTitle>
+                    <div className="text-3xl font-bold text-primary">
+                      {planPrice}
+                      {planPeriod && <span className="text-sm text-muted-foreground">{planPeriod}</span>}
+                    </div>
+                    <p className="text-muted-foreground">{plan.description}</p>
+                  </CardHeader>
 
-              <CardContent>
-                <ul className="space-y-3 mb-6">
-                  {plan.features.map((feature, featureIndex) => (
-                    <li key={featureIndex} className="flex items-center">
-                      <Check className="h-4 w-4 text-primary mr-3 flex-shrink-0" />
-                      <span className="text-sm">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
+                  <CardContent>
+                    <ul className="space-y-3 mb-6">
+                      {plan.features.map((feature, featureIndex) => (
+                        <li key={featureIndex} className="flex items-center">
+                          <Check className="h-4 w-4 text-primary mr-3 flex-shrink-0" />
+                          <span className="text-sm">{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
 
-                <Button className="w-full group" variant={plan.popular ? "default" : "outline"}>
-                  Choose Plan
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                    <Button 
+                      className="w-full group" 
+                      variant={plan.popular ? "default" : "outline"}
+                      onClick={() => handleAddToCart(plan)}
+                      disabled={isInCart(planId)}
+                    >
+                      {isInCart(planId) ? "In Cart" : "Choose Plan"}
+                    </Button>
+                  </CardContent>
+                </Card>
+              )
+            })}
+          </div>
+        )}
 
         <div className="mt-12 text-center">
           <p className="text-muted-foreground mb-4">
@@ -215,6 +261,12 @@ export function Pricing() {
           </p>
         </div>
       </div>
+      
+      <LoginPopup
+        open={showLoginPopup}
+        onOpenChange={setShowLoginPopup}
+        action="add plans to your cart"
+      />
     </section>
   )
 }

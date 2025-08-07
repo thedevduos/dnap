@@ -310,6 +310,7 @@ export const storeOrderData = (orderData: any): void => {
 export const storeCartData = (cartItems: any[], formData: any, appliedCoupon?: any, discount?: number): void => {
   try {
     const orderData = {
+      isEbookOrder: false,
       items: cartItems.map(item => ({
         bookId: item.id,
         title: item.title,
@@ -344,6 +345,27 @@ export const storeCartData = (cartItems: any[], formData: any, appliedCoupon?: a
     console.log('Cart data stored successfully:', orderData);
   } catch (error) {
     console.error('Failed to store cart data:', error);
+  }
+};
+
+export const storeEbookOrderData = (plan: any, userId: string): void => {
+  try {
+    const orderData = {
+      isEbookOrder: true,
+      userId: userId,
+      planId: plan.id,
+      planTitle: plan.title,
+      planType: plan.type,
+      maxBooks: plan.maxBooks,
+      duration: plan.duration,
+      amount: plan.price,
+      status: 'pending'
+    };
+    
+    sessionStorage.setItem('pendingOrderData', JSON.stringify(orderData));
+    console.log('E-book order data stored:', orderData);
+  } catch (error) {
+    console.error('Failed to store e-book order data:', error);
   }
 };
 

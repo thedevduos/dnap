@@ -33,7 +33,7 @@ import { useBooks } from "@/hooks/use-books"
 import { deleteBook, toggleFeaturedBook, getFeaturedBooksCount } from "@/lib/firebase-utils"
 import { useToast } from "@/hooks/use-toast"
 import { AdminLayout } from "@/components/admin/admin-layout"
-import { BookModal } from "@/components/admin/book-modal"
+import { EnhancedBookModal } from "@/components/admin/enhanced-book-modal"
 
 export default function AdminBooks() {
   const { books, loading } = useBooks()
@@ -311,7 +311,7 @@ export default function AdminBooks() {
         </Card>
       </div>
 
-      <BookModal
+      <EnhancedBookModal
         isOpen={isModalOpen}
         onClose={handleModalClose}
         book={selectedBook}
