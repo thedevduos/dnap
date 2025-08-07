@@ -9,7 +9,7 @@ import anime from "animejs"
 
 export default function PricingPage() {
   const sectionRef = useRef<HTMLElement>(null)
-  const [activeTab, setActiveTab] = useState<"ebooks" | "subscription" | "publishing">("ebooks")
+  const [activeTab, setActiveTab] = useState<"multiple" | "single">("multiple")
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -48,94 +48,86 @@ export default function PricingPage() {
     popular?: boolean;
   };
 
-  const ebookPlans: Plan[] = [
+  const multipleEbookPlans: Plan[] = [
     {
-      title: "Single Ebook",
-      price: "₹99 - ₹399",
-      description: "Per title purchase",
-      icon: Star,
-      features: ["Instant download", "Multiple formats (PDF, EPUB)", "Offline reading", "Customer support"],
-    },
-  ];
-
-  const subscriptionPlans: Plan[] = [
-    {
-      title: "Monthly",
-      price: "₹169",
+      title: "Basic",
+      price: "₹129",
       period: "/month",
-      description: "Perfect for casual readers",
-      icon: Zap,
-      features: ["Access to entire library", "New releases included", "Offline downloads", "Cancel anytime"],
-    },
-    {
-      title: "Quarterly",
-      price: "₹799",
-      period: "/3 months",
-      description: "Best value for regular readers",
-      icon: Crown,
-      popular: true,
-      features: [
-        "Everything in Monthly",
-        "Priority customer support",
-        "Early access to new releases",
-        "Exclusive author interviews",
-      ],
-    },
-    {
-      title: "Annual",
-      price: "₹1,599",
-      period: "/year",
-      description: "Maximum savings",
+      description: "3 Books per month",
       icon: Star,
-      features: [
-        "Everything in Quarterly",
-        "Exclusive annual content",
-        "Author meet & greets",
-        "Physical book discounts",
-      ],
+      features: ["3 Books per month", "Online reading only", "Multiple formats (PDF, EPUB)", "Customer support"],
+    },
+    {
+      title: "Standard",
+      price: "₹299",
+      period: "/month",
+      description: "10 Books per month",
+      icon: Zap,
+      popular: true,
+      features: ["10 Books per month", "Online reading only", "Priority customer support", "New releases included"],
+    },
+    {
+      title: "Premium",
+      price: "₹499",
+      period: "/month",
+      description: "Unlimited Books per month",
+      icon: Crown,
+      features: ["Unlimited Books per month", "Online reading only", "VIP customer support", "Early access to new releases", "Exclusive content"],
     },
     {
       title: "Lifetime",
-      price: "₹3,999",
+      price: "₹4,999",
       period: "one-time",
-      description: "Never pay again",
+      description: "Unlimited for 5 years",
       icon: Infinity,
-      features: [
-        "Lifetime access to library",
-        "All future releases included",
-        "VIP customer support",
-        "Exclusive lifetime member perks",
-      ],
+      features: ["Unlimited access for 5 years", "Online reading only", "All future releases included", "VIP customer support", "Exclusive lifetime member perks"],
     },
   ];
 
-  const publishingPlans: Plan[] = [
+  const singleEbookPlans: Plan[] = [
     {
-      title: "Poetry Publishing",
-      price: "Starting ₹999",
-      description: "For poets and poetry collections",
+      title: "Basic",
+      price: "₹49",
+      period: "/month",
+      description: "Limited Collection Only",
       icon: Star,
-      features: ["Professional editing", "Cover design", "ISBN assignment", "Digital distribution"],
+      features: ["Limited collection access", "Online reading only", "Multiple formats (PDF, EPUB)", "Customer support"],
     },
     {
-      title: "Story Publishing",
-      price: "Starting ₹1,499",
-      description: "For short stories and novellas",
+      title: "Standard",
+      price: "₹99",
+      period: "/month",
+      description: "Additional Limited Books Only",
+      icon: Zap,
+      popular: true,
+      features: ["Additional limited books", "Online reading only", "Priority customer support", "New releases included"],
+    },
+    {
+      title: "Premium",
+      price: "₹149",
+      period: "/month",
+      description: "Any 1 Book - 1 Month Online Copy",
       icon: Crown,
-      features: ["Comprehensive editing", "Custom cover design", "Marketing support", "Print-on-demand option"],
+      features: ["Any 1 book for 1 month", "Online reading only", "VIP customer support", "Flexible book selection"],
+    },
+    {
+      title: "Lifetime",
+      price: "₹999",
+      period: "one-time",
+      description: "For 5 years",
+      icon: Infinity,
+      features: ["Access for 5 years", "Online reading only", "All books included", "VIP customer support", "Exclusive lifetime member perks"],
     },
   ];
 
   const getCurrentPlans = () => {
     switch (activeTab) {
-      case "ebooks":
-        return ebookPlans
-      case "subscription":
-        return subscriptionPlans
-      case "publishing":
-        return publishingPlans
+      case "multiple":
+        return multipleEbookPlans
+      case "single":
+        return singleEbookPlans
       default:
-        return subscriptionPlans
+        return multipleEbookPlans
     }
   }
 
@@ -147,7 +139,7 @@ export default function PricingPage() {
             Choose Your Plan
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Flexible pricing options to suit every reader and author
+            Flexible pricing options to suit every reader
           </p>
         </div>
 
@@ -155,9 +147,8 @@ export default function PricingPage() {
         <div className="flex justify-center mb-12">
           <div className="bg-muted p-1 rounded-lg">
             {[
-              { key: "ebooks", label: "E-books" },
-              { key: "subscription", label: "Subscriptions" },
-              { key: "publishing", label: "Publishing" },
+              { key: "multiple", label: "Multiple E Books" },
+              { key: "single", label: "Single E Book" },
             ].map((tab) => (
               <Button
                 key={tab.key}
@@ -171,9 +162,7 @@ export default function PricingPage() {
           </div>
         </div>
 
-        <div
-          className={`grid gap-8 ${getCurrentPlans().length === 4 ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-4" : getCurrentPlans().length === 2 ? "grid-cols-1 md:grid-cols-2 max-w-4xl mx-auto" : "grid-cols-1 max-w-md mx-auto"}`}
-        >
+        <div className="grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
           {getCurrentPlans().map((plan, index) => (
             <Card
               key={index}
@@ -210,7 +199,7 @@ export default function PricingPage() {
                 </ul>
 
                 <Button className="w-full group" variant={plan.popular ? "default" : "outline"}>
-                  {activeTab === "publishing" ? "Get Quote" : "Choose Plan"}
+                  Choose Plan
                 </Button>
               </CardContent>
             </Card>
