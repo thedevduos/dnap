@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { CartIcon } from "./cart-icon"
+import { EbookCartIcon } from "./ebook-cart-icon"
 import { useAuth } from "@/contexts/auth-context"
 import { useUser } from "@/contexts/user-context"
 import { useToast } from "@/hooks/use-toast"
@@ -91,6 +92,7 @@ export function Header() {
     { name: "Home", path: "/" },
     { name: "About", path: "/about" },
     { name: "Books", path: "/books" },
+    { name: "E-books", path: "/ebooks" },
     { name: "Pricing", path: "/pricing" },
     { name: "Team", path: "/team" },
     { name: "Contact", path: "/contact" },
@@ -123,6 +125,7 @@ export function Header() {
 
           <div className="flex items-center space-x-4">
             <CartIcon />
+            <EbookCartIcon />
             
             {user ? (
               <DropdownMenu>
@@ -211,6 +214,7 @@ export function Header() {
               ))}
               <div className="mobile-menu-item pt-4">
                 <CartIcon />
+                <EbookCartIcon />
               </div>
               
               {user ? (

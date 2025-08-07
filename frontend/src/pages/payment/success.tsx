@@ -13,6 +13,7 @@ import { db } from "@/lib/firebase"
 import { useUser } from "@/contexts/user-context"
 import { applyCoupon } from "@/lib/firebase-utils"
 import { verifyPaymentResponse, getPaymentMethodDisplayName, getOrderData, clearOrderData } from "@/lib/payment-utils"
+import { createEbookSubscription, createEbookOrder } from "@/lib/ebook-utils"
 
 export default function PaymentSuccessPage() {
   const [searchParams] = useSearchParams()
@@ -166,105 +167,110 @@ export default function PaymentSuccessPage() {
         if (isPaymentSuccessful) {
           // Get stored order data from sessionStorage
           const orderData = getOrderData()
+          
+          // Check if this is an ebook order
+          const isEbookOrder = orderData?.isEbookOrder
+          
           console.log('Stored order data found:', !!orderData)
           console.log('Order data details:', orderData ? {
             userId: orderData.userId,
             userEmail: orderData.userEmail,
             items: orderData.items?.length || 0,
             total: orderData.total,
-            shippingAddress: orderData.shippingAddress
+            shippingAddress: orderData.shippingAddress,
+            isEbookOrder: isEbookOrder
           } : null)
           
           if (orderData) {
-            
-            // Create the actual order in database
-            const orderRef = await addDoc(collection(db, "orders"), {
-              ...orderData,
-              transactionId: paymentMethod === 'razorpay' ? paymentData.razorpay_payment_id : 
-                            paymentMethod === 'zoho' ? paymentData.paymentId : null,
-              createdAt: serverTimestamp()
-            })
+            if (isEbookOrder) {
+              // Handle e-book subscription order
+              const ebookOrderRef = await createEbookOrder({
+                userId: orderData.userId,
+                planId: orderData.planId,
+                planTitle: orderData.planTitle,
+                amount: orderData.total,
+                paymentMethod: paymentMethod,
+                transactionId: paymentMethod === 'razorpay' ? paymentData.razorpay_payment_id : 
+                              paymentMethod === 'zoho' ? paymentData.paymentId : null,
+                status: 'confirmed'
+              })
 
-            // Update customer's order count and total spent
-            if (orderData.userId) {
-              // Update user profile with order information
-              const userProfileRef = doc(db, "userProfiles", orderData.userId)
-              await updateDoc(userProfileRef, {
-                orderCount: increment(1),
-                totalSpent: increment(orderData.total),
-                updatedAt: serverTimestamp()
+              // Create e-book subscription
+              const subscriptionRef = await createEbookSubscription({
+                userId: orderData.userId,
+                planId: orderData.planId,
+                planTitle: orderData.planTitle,
+                planType: orderData.planType,
+                selectedBooks: [],
+                maxBooks: orderData.maxBooks,
+                duration: orderData.duration,
+                status: 'active',
+                autoRenew: false
+              })
+
+              setOrderDetails({
+                orderId: ebookOrderRef.id,
+                amount: orderData.total,
+                transactionId: paymentMethod === 'razorpay' ? paymentData.razorpay_payment_id : 
+                              paymentMethod === 'zoho' ? paymentData.paymentId : null,
+                paymentMethod: paymentMethod,
+                isEbookOrder: true,
+                subscriptionId: subscriptionRef.id
               })
             } else {
-              // For guest users, try to find customer by email and update
-              try {
-                const customerQuery = query(
-                  collection(db, "userProfiles"), 
-                  where("email", "==", orderData.userEmail)
-                )
-                const customerSnapshot = await getDocs(customerQuery)
-                if (!customerSnapshot.empty) {
-                  const customerDoc = customerSnapshot.docs[0]
-                  await updateDoc(doc(db, "userProfiles", customerDoc.id), {
-                    orderCount: increment(1),
-                    totalSpent: increment(orderData.total),
-                    updatedAt: serverTimestamp()
-                  })
-                }
-              } catch (error) {
-                console.warn("Failed to update customer order count:", error)
+              // Handle regular book order
+              const orderRef = await addDoc(collection(db, "orders"), {
+                ...orderData,
+                transactionId: paymentMethod === 'razorpay' ? paymentData.razorpay_payment_id : 
+                              paymentMethod === 'zoho' ? paymentData.paymentId : null,
+                createdAt: serverTimestamp()
+              })
+
+              // Update customer's order count and total spent
+              if (orderData.userId) {
+                const userProfileRef = doc(db, "userProfiles", orderData.userId)
+                await updateDoc(userProfileRef, {
+                  orderCount: increment(1),
+                  totalSpent: increment(orderData.total),
+                  updatedAt: serverTimestamp()
+                })
               }
+
+              // Apply coupon usage
+              if (orderData.appliedCoupon) {
+                await applyCoupon(orderData.appliedCoupon.id, orderData.userId)
+              }
+
+              // Update order status
+              await updateOrderStatus(orderRef.id, 'confirmed', {
+                paymentStatus: 'paid',
+                transactionId: paymentMethod === 'razorpay' ? paymentData.razorpay_payment_id : 
+                              paymentMethod === 'zoho' ? paymentData.paymentId : null,
+                paymentMode: 'online',
+                paymentMethod: paymentMethod
+              })
+
+              // Add transaction record
+              await addTransaction({
+                orderId: orderRef.id,
+                gatewayTransactionId: paymentMethod === 'razorpay' ? paymentData.razorpay_payment_id : 
+                                     paymentMethod === 'zoho' ? paymentData.paymentId : null,
+                amount: parseFloat(paymentData.amount || '0'),
+                status: 'success',
+                paymentMethod: paymentMethod,
+                customerName: orderData.shippingAddress?.firstName + ' ' + orderData.shippingAddress?.lastName,
+                customerEmail: orderData.userEmail,
+                paymentMode: 'online'
+              })
+
+              setOrderDetails({
+                orderId: orderRef.id,
+                amount: orderData.total,
+                transactionId: paymentMethod === 'razorpay' ? paymentData.razorpay_payment_id : 
+                              paymentMethod === 'zoho' ? paymentData.paymentId : null,
+                paymentMethod: paymentMethod
+              })
             }
-
-            // Apply coupon usage
-            if (orderData.appliedCoupon) {
-              await applyCoupon(orderData.appliedCoupon.id, orderData.userId)
-            }
-
-            // Address is already saved before payment, so no need to save again
-            if (orderData.saveAddress) {
-              console.log('Address was already saved before payment')
-            }
-
-            // Update order status
-            await updateOrderStatus(orderRef.id, 'confirmed', {
-              paymentStatus: 'paid',
-              transactionId: paymentMethod === 'razorpay' ? paymentData.razorpay_payment_id : 
-                            paymentMethod === 'zoho' ? paymentData.paymentId :
-                            paymentData.mihpayid,
-              paymentMode: paymentMethod === 'razorpay' ? 'online' :
-                          paymentMethod === 'zoho' ? 'online' :
-                          paymentData.mode,
-              paymentMethod: paymentMethod
-            })
-
-            // Add transaction record
-            await addTransaction({
-              orderId: orderRef.id,
-              gatewayTransactionId: paymentMethod === 'razorpay' ? paymentData.razorpay_payment_id : 
-                                   paymentMethod === 'zoho' ? paymentData.paymentId :
-                                   paymentData.mihpayid,
-              amount: parseFloat(paymentData.amount || '0'),
-              status: 'success',
-              paymentMethod: paymentMethod,
-              customerName: paymentMethod === 'razorpay' ? orderData.shippingAddress.firstName + ' ' + orderData.shippingAddress.lastName :
-                           paymentMethod === 'zoho' ? orderData.shippingAddress.firstName + ' ' + orderData.shippingAddress.lastName :
-                           paymentData.firstname,
-              customerEmail: paymentMethod === 'razorpay' ? orderData.userEmail :
-                            paymentMethod === 'zoho' ? orderData.userEmail :
-                            paymentData.email,
-              paymentMode: paymentMethod === 'razorpay' ? 'online' :
-                          paymentMethod === 'zoho' ? 'online' :
-                          paymentData.mode
-            })
-
-            setOrderDetails({
-              orderId: orderRef.id,
-              amount: orderData.total,
-              transactionId: paymentMethod === 'razorpay' ? paymentData.razorpay_payment_id : 
-                            paymentMethod === 'zoho' ? paymentData.paymentId :
-                            paymentData.mihpayid,
-              paymentMethod: paymentMethod
-            })
 
             // Clear cart first
             clearCartRef.current()
@@ -403,23 +409,32 @@ export default function PaymentSuccessPage() {
 
               <div className="space-y-3">
                 <Button asChild size="lg" className="w-full">
-                  <Link to={orderDetails ? `/order/${orderDetails.orderId}` : "/profile"}>
+                  <Link to={orderDetails?.isEbookOrder ? "/ebooks" : orderDetails ? `/order/${orderDetails.orderId}` : "/profile"}>
                     <Package className="w-5 h-5 mr-2" />
-                    View Order Details
+                    {orderDetails?.isEbookOrder ? "View My E-books" : "View Order Details"}
                   </Link>
                 </Button>
                 
                 <Button variant="outline" asChild className="w-full">
-                  <Link to="/books">
-                    Continue Shopping
+                  <Link to={orderDetails?.isEbookOrder ? "/my-books" : "/books"}>
+                    {orderDetails?.isEbookOrder ? "Start Reading" : "Continue Shopping"}
                     <ArrowRight className="w-5 h-5 ml-2" />
                   </Link>
                 </Button>
               </div>
 
               <div className="text-sm text-muted-foreground">
-                <p>You will receive an email confirmation shortly.</p>
-                <p>We'll notify you when your order ships.</p>
+                {orderDetails?.isEbookOrder ? (
+                  <>
+                    <p>Your e-book subscription is now active!</p>
+                    <p>Start reading your selected books immediately.</p>
+                  </>
+                ) : (
+                  <>
+                    <p>You will receive an email confirmation shortly.</p>
+                    <p>We'll notify you when your order ships.</p>
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>

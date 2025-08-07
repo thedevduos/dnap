@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { ErrorBoundary } from "@/components/ui/error-boundary"
 import { AuthProvider } from "@/contexts/auth-context"
 import { CartProvider } from "@/contexts/cart-context"
+import { EbookCartProvider } from "@/contexts/ebook-cart-context"
 import { UserProvider } from "@/contexts/user-context"
 import { ProtectedRoute } from "@/components/admin/protected-route"
 import { Header } from "@/components/layout/header"
@@ -34,6 +35,9 @@ import RefundPolicy from "@/pages/refund-policy"
 import ShippingPolicy from "@/pages/shipping-policy"
 import TermsConditions from "@/pages/terms-conditions"
 import CareersPage from "@/pages/careers"
+import EbooksPage from "@/pages/ebooks"
+import MyBooksPage from "@/pages/my-books"
+import EbookCheckoutPage from "@/pages/ebook-checkout"
 
 // Admin Pages
 import AdminDashboard from "@/pages/admin/dashboard"
@@ -54,6 +58,9 @@ import AdminCustomers from "@/pages/admin/customers"
 import AdminAnalytics from "@/pages/admin/analytics"
 import AdminReviews from "@/pages/admin/reviews"
 import AdminZohoConnection from "@/pages/admin/zoho-connection"
+import AdminEbookManagement from "@/pages/admin/ebook-management"
+import AdminEbookOrders from "@/pages/admin/ebook-orders"
+import AdminEbookSubscriptions from "@/pages/admin/ebook-subscriptions"
 
 import "./globals.css"
 
@@ -63,94 +70,114 @@ export default function App() {
       <AuthProvider>
         <UserProvider>
           <CartProvider>
-            <ThemeProvider defaultTheme="light" storageKey="dna-publications-theme">
-              <Router>
-                <div className="min-h-screen bg-background">
-                  <Routes>
-                    {/* Protected Admin Routes */}
-                    <Route
-                      path="/admin/*"
-                      element={
-                        <ProtectedRoute>
-                          <Routes>
-                            <Route path="/" element={<AdminDashboard />} />
-                            <Route path="/dashboard" element={<AdminDashboard />} />
-                            <Route path="/books" element={<AdminBooks />} />
-                            <Route path="/users" element={<AdminUsers />} />
-                            <Route path="/team" element={<AdminTeam />} />
-                            <Route path="/careers" element={<AdminCareers />} />
-                            <Route path="/orders" element={<AdminOrders />} />
-                            <Route path="/shipping" element={<AdminShipping />} />
-                            <Route path="/coupons" element={<AdminCoupons />} />
-                            <Route path="/payments" element={<AdminPayments />} />
-                            <Route path="/customers" element={<AdminCustomers />} />
-                            <Route path="/analytics" element={<AdminAnalytics />} />
-                            <Route path="/reviews" element={<AdminReviews />} />
-                            <Route path="/testimonials" element={<AdminTestimonials />} />
-                            <Route path="/updates" element={<AdminUpdates />} />
-                            <Route path="/messages" element={<AdminMessages />} />
-                            <Route path="/emails" element={<AdminEmails />} />
-                            <Route path="/profile" element={<AdminProfile />} />
-                            <Route path="/zoho-connection" element={<AdminZohoConnection />} />
-                          </Routes>
-                        </ProtectedRoute>
-                      }
-                    />
+            <EbookCartProvider>
+              <ThemeProvider defaultTheme="light" storageKey="dna-publications-theme">
+                <Router>
+                  <div className="min-h-screen bg-background">
+                    <Routes>
+                      {/* Protected Admin Routes */}
+                      <Route
+                        path="/admin/*"
+                        element={
+                          <ProtectedRoute>
+                            <Routes>
+                              <Route path="/" element={<AdminDashboard />} />
+                              <Route path="/dashboard" element={<AdminDashboard />} />
+                              <Route path="/books" element={<AdminBooks />} />
+                              <Route path="/users" element={<AdminUsers />} />
+                              <Route path="/team" element={<AdminTeam />} />
+                              <Route path="/careers" element={<AdminCareers />} />
+                              <Route path="/orders" element={<AdminOrders />} />
+                              <Route path="/shipping" element={<AdminShipping />} />
+                              <Route path="/coupons" element={<AdminCoupons />} />
+                              <Route path="/payments" element={<AdminPayments />} />
+                              <Route path="/customers" element={<AdminCustomers />} />
+                              <Route path="/analytics" element={<AdminAnalytics />} />
+                              <Route path="/reviews" element={<AdminReviews />} />
+                              <Route path="/testimonials" element={<AdminTestimonials />} />
+                              <Route path="/updates" element={<AdminUpdates />} />
+                              <Route path="/messages" element={<AdminMessages />} />
+                              <Route path="/emails" element={<AdminEmails />} />
+                              <Route path="/profile" element={<AdminProfile />} />
+                              <Route path="/zoho-connection" element={<AdminZohoConnection />} />
+                              <Route path="/ebook-management" element={<AdminEbookManagement />} />
+                              <Route path="/ebook-orders" element={<AdminEbookOrders />} />
+                              <Route path="/ebook-subscriptions" element={<AdminEbookSubscriptions />} />
+                            </Routes>
+                          </ProtectedRoute>
+                        }
+                      />
 
-                    {/* Public Routes */}
-                    <Route
-                      path="/*"
-                      element={
-                        <ErrorBoundary>
-                          <>
-                            <Header />
-                            <main>
-                              <Routes>
-                                <Route path="/" element={<HomePage />} />
-                                <Route path="/about" element={<AboutPage />} />
-                                <Route path="/pricing" element={<PricingPage />} />
-                                <Route path="/books" element={<BooksPage />} />
-                                <Route path="/book/:id" element={<BookDetailPage />} />
-                                <Route path="/cart" element={<CartPage />} />
-                                <Route path="/checkout" element={
-                                  <ProtectedRoute>
-                                    <CheckoutPage />
-                                  </ProtectedRoute>
-                                } />
-                                <Route path="/auth/login" element={<LoginPage />} />
-                                <Route path="/auth/register" element={<RegisterPage />} />
-                                <Route path="/profile" element={
-                                  <ProtectedRoute>
-                                    <ProfilePage />
-                                  </ProtectedRoute>
-                                } />
-                                <Route path="/order/:id" element={
-                                  <ProtectedRoute>
-                                    <OrderDetailPage />
-                                  </ProtectedRoute>
-                                } />
-                                <Route path="/order-confirmation/:id" element={<OrderConfirmationPage />} />
-                                <Route path="/payment/success" element={<PaymentSuccessPage />} />
-                                <Route path="/payment/failure" element={<PaymentFailurePage />} />
-                                <Route path="/team" element={<TeamPage />} />
-                                <Route path="/careers" element={<CareersPage />} />
-                                <Route path="/contact" element={<ContactPage />} />
-                                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-                                <Route path="/refund-policy" element={<RefundPolicy />} />
-                                <Route path="/shipping-policy" element={<ShippingPolicy />} />
-                                <Route path="/terms-conditions" element={<TermsConditions />} />
-                              </Routes>
-                            </main>
-                            <Footer />
-                          </>
-                        </ErrorBoundary>
-                      }
-                    />
-                  </Routes>
-                  <Toaster />
-                </div>
-              </Router>
-            </ThemeProvider>
+                      {/* Public Routes */}
+                      <Route
+                        path="/*"
+                        element={
+                          <ErrorBoundary>
+                            <>
+                              <Header />
+                              <main>
+                                <Routes>
+                                  <Route path="/" element={<HomePage />} />
+                                  <Route path="/about" element={<AboutPage />} />
+                                  <Route path="/pricing" element={<PricingPage />} />
+                                  <Route path="/books" element={<BooksPage />} />
+                                  <Route path="/book/:id" element={<BookDetailPage />} />
+                                  <Route path="/cart" element={<CartPage />} />
+                                  <Route path="/checkout" element={
+                                    <ProtectedRoute>
+                                      <CheckoutPage />
+                                    </ProtectedRoute>
+                                  } />
+                                  <Route path="/ebooks" element={
+                                    <ProtectedRoute>
+                                      <EbooksPage />
+                                    </ProtectedRoute>
+                                  } />
+                                  <Route path="/my-books" element={
+                                    <ProtectedRoute>
+                                      <MyBooksPage />
+                                    </ProtectedRoute>
+                                  } />
+                                  <Route path="/ebook-checkout" element={
+                                    <ProtectedRoute>
+                                      <EbookCheckoutPage />
+                                    </ProtectedRoute>
+                                  } />
+                                  <Route path="/auth/login" element={<LoginPage />} />
+                                  <Route path="/auth/register" element={<RegisterPage />} />
+                                  <Route path="/profile" element={
+                                    <ProtectedRoute>
+                                      <ProfilePage />
+                                    </ProtectedRoute>
+                                  } />
+                                  <Route path="/order/:id" element={
+                                    <ProtectedRoute>
+                                      <OrderDetailPage />
+                                    </ProtectedRoute>
+                                  } />
+                                  <Route path="/order-confirmation/:id" element={<OrderConfirmationPage />} />
+                                  <Route path="/payment/success" element={<PaymentSuccessPage />} />
+                                  <Route path="/payment/failure" element={<PaymentFailurePage />} />
+                                  <Route path="/team" element={<TeamPage />} />
+                                  <Route path="/careers" element={<CareersPage />} />
+                                  <Route path="/contact" element={<ContactPage />} />
+                                  <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                                  <Route path="/refund-policy" element={<RefundPolicy />} />
+                                  <Route path="/shipping-policy" element={<ShippingPolicy />} />
+                                  <Route path="/terms-conditions" element={<TermsConditions />} />
+                                </Routes>
+                              </main>
+                              <Footer />
+                            </>
+                          </ErrorBoundary>
+                        }
+                      />
+                    </Routes>
+                    <Toaster />
+                  </div>
+                </Router>
+              </ThemeProvider>
+            </EbookCartProvider>
           </CartProvider>
         </UserProvider>
       </AuthProvider>

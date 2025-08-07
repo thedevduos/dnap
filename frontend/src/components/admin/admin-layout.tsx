@@ -69,6 +69,9 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     { name: "Zoho Connection", href: "/admin/zoho-connection", icon: Settings, section: "site-management" },
     
     // Ecommerce Management
+    { name: "E-book Management", href: "/admin/ebook-management", icon: BookOpen, section: "ebook" },
+    { name: "E-book Orders", href: "/admin/ebook-orders", icon: ShoppingCart, section: "ebook" },
+    { name: "E-book Subscriptions", href: "/admin/ebook-subscriptions", icon: Users, section: "ebook" },
     { name: "Books", href: "/admin/books", icon: BookOpen, section: "ecommerce" },
     { name: "Orders", href: "/admin/orders", icon: ShoppingCart, section: "ecommerce" },
     { name: "Customers", href: "/admin/customers", icon: CustomersIcon, section: "ecommerce" },
@@ -112,6 +115,8 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         return 'Overview'
       case 'site-management':
         return 'Site Management'
+      case 'ebook':
+        return 'E-book Management'
       case 'ecommerce':
         return 'Ecommerce Management'
       default:
