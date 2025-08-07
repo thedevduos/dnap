@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -194,52 +194,61 @@ export function Pricing() {
           </div>
         ) : (
           <div className="grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
-            {currentPlans.map((plan, index) => (
-            <Card
-              key={index}
-              className={`pricing-card relative group hover:shadow-xl transition-all duration-300 ${
-                plan.popular ? "ring-2 ring-primary scale-105" : ""
-              }`}
-            >
-              {plan.popular && (
-                <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-primary">Most Popular</Badge>
-              )}
-
-              <CardHeader className="text-center pb-4">
-                <div className="mb-4 flex justify-center">
-                  <div className="p-3 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors duration-300">
-                    <plan.icon className="h-8 w-8 text-primary" />
-                  </div>
-                </div>
-                <CardTitle className="text-xl font-bold">{plan.title}</CardTitle>
-                <div className="text-3xl font-bold text-primary">
-                  {plan.price}
-                  {plan.period && <span className="text-sm text-muted-foreground">{plan.period}</span>}
-                </div>
-                <p className="text-muted-foreground">{plan.description}</p>
-              </CardHeader>
-
-              <CardContent>
-                <ul className="space-y-3 mb-6">
-                  {plan.features.map((feature, featureIndex) => (
-                    <li key={featureIndex} className="flex items-center">
-                      <Check className="h-4 w-4 text-primary mr-3 flex-shrink-0" />
-                      <span className="text-sm">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                <Button 
-                  className="w-full group" 
-                  variant={plan.popular ? "default" : "outline"}
-                  onClick={() => handleAddToCart(plan)}
-                  disabled={isInCart(plan.id)}
+            {currentPlans.map((plan, index) => {
+              // Handle both EbookPlan and Plan types
+              const isEbookPlan = 'type' in plan
+              const planId = isEbookPlan ? plan.id : `plan-${index}`
+              const planPrice = isEbookPlan ? `₹${plan.price}` : plan.price
+              const planPeriod = isEbookPlan ? plan.period : plan.period
+              const planIcon = isEbookPlan ? Star : (plan as any).icon
+              
+              return (
+                <Card
+                  key={planId}
+                  className={`pricing-card relative group hover:shadow-xl transition-all duration-300 ${
+                    plan.popular ? "ring-2 ring-primary scale-105" : ""
+                  }`}
                 >
-                  {isInCart(plan.id) ? "In Cart" : "Choose Plan"}
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
+                  {plan.popular && (
+                    <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-primary">Most Popular</Badge>
+                  )}
+
+                  <CardHeader className="text-center pb-4">
+                    <div className="mb-4 flex justify-center">
+                      <div className="p-3 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors duration-300">
+                        {React.createElement(planIcon, { className: "h-8 w-8 text-primary" })}
+                      </div>
+                    </div>
+                    <CardTitle className="text-xl font-bold">{plan.title}</CardTitle>
+                    <div className="text-3xl font-bold text-primary">
+                      {planPrice}
+                      {planPeriod && <span className="text-sm text-muted-foreground">{planPeriod}</span>}
+                    </div>
+                    <p className="text-muted-foreground">{plan.description}</p>
+                  </CardHeader>
+
+                  <CardContent>
+                    <ul className="space-y-3 mb-6">
+                      {plan.features.map((feature, featureIndex) => (
+                        <li key={featureIndex} className="flex items-center">
+                          <Check className="h-4 w-4 text-primary mr-3 flex-shrink-0" />
+                          <span className="text-sm">{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+
+                    <Button 
+                      className="w-full group" 
+                      variant={plan.popular ? "default" : "outline"}
+                      onClick={() => handleAddToCart(plan)}
+                      disabled={isInCart(planId)}
+                    >
+                      {isInCart(planId) ? "In Cart" : "Choose Plan"}
+                    </Button>
+                  </CardContent>
+                </Card>
+              )
+            })}
           </div>
         )}
 
