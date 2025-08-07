@@ -219,10 +219,7 @@ export default function CartPage() {
                   <span className="text-muted-foreground">Calculated on checkout</span>
                 </div>
                 
-                <div className="flex justify-between">
-                  <span>Tax (GST 18%)</span>
-                  <span className="text-muted-foreground">Calculated on checkout</span>
-                </div>
+
                 
                 {discount > 0 && (
                   <div className="flex justify-between text-green-600">
@@ -239,7 +236,7 @@ export default function CartPage() {
                 </div>
                 
                 <p className="text-xs text-muted-foreground text-center">
-                  Final total including shipping and taxes will be calculated on checkout
+                  Final total including shipping will be calculated on checkout
                 </p>
 
                 <Button asChild size="lg" className="w-full" disabled={isAdmin}>

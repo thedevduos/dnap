@@ -13,34 +13,46 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table"
-import { BookOpen, Users, Package, Settings, Eye, Edit, Trash2 } from "lucide-react"
+import { BookOpen, Users, Package, Settings, Eye, Edit } from "lucide-react"
 import { AdminLayout } from "@/components/admin/admin-layout"
 import { useEbookPlans } from "@/hooks/use-ebook-plans"
-import { useEbookSubscriptions } from "@/hooks/use-ebook-subscriptions"
 import { useBooks } from "@/hooks/use-books"
+import { PlanEditModal } from "@/components/admin/plan-edit-modal"
+import { PDFViewer } from "@/components/ebook/pdf-viewer"
 
 export default function EbookManagementPage() {
   const { plans, loading: plansLoading } = useEbookPlans()
-  const { subscriptions, loading: subscriptionsLoading } = useEbookSubscriptions()
   const { books, loading: booksLoading } = useBooks()
+
+  // State for modals
+  const [selectedPlan, setSelectedPlan] = useState<any>(null)
+  const [isPlanModalOpen, setIsPlanModalOpen] = useState(false)
+  const [selectedBook, setSelectedBook] = useState<any>(null)
+  const [isPdfViewerOpen, setIsPdfViewerOpen] = useState(false)
 
   // Filter books that have PDF
   const ebooksWithPdf = books.filter(book => book.pdfUrl)
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "active": return "bg-green-100 text-green-800"
-      case "expired": return "bg-red-100 text-red-800"
-      case "cancelled": return "bg-gray-100 text-gray-800"
-      default: return "bg-yellow-100 text-yellow-800"
-    }
+
+
+  const handleEditPlan = (plan: any) => {
+    setSelectedPlan(plan)
+    setIsPlanModalOpen(true)
   }
 
-  const formatDate = (date: any) => {
-    if (!date) return 'N/A'
-    if (date.toDate) return date.toDate().toLocaleDateString()
-    if (date instanceof Date) return date.toLocaleDateString()
-    return new Date(date).toLocaleDateString()
+  const handleViewBook = (book: any) => {
+    setSelectedBook(book)
+    setIsPdfViewerOpen(true)
+  }
+
+  const handlePlanModalClose = () => {
+    setIsPlanModalOpen(false)
+    setSelectedPlan(null)
+  }
+
+  const handlePdfViewerClose = () => {
+    setIsPdfViewerOpen(false)
+    setSelectedBook(null)
   }
 
   return (
@@ -84,10 +96,8 @@ export default function EbookManagementPage() {
               <div className="flex items-center">
                 <Users className="h-8 w-8 text-purple-600" />
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Active Subscriptions</p>
-                  <p className="text-2xl font-bold">
-                    {subscriptions.filter(s => s.status === 'active').length}
-                  </p>
+                  <p className="text-sm font-medium text-gray-600">Total Users</p>
+                  <p className="text-2xl font-bold">0</p>
                 </div>
               </div>
             </CardContent>
@@ -106,82 +116,11 @@ export default function EbookManagementPage() {
           </Card>
         </div>
 
-        <Tabs defaultValue="subscriptions" className="space-y-6">
+        <Tabs defaultValue="plans" className="space-y-6">
           <TabsList>
-            <TabsTrigger value="subscriptions">Subscriptions</TabsTrigger>
             <TabsTrigger value="plans">Plans</TabsTrigger>
             <TabsTrigger value="ebooks">E-books</TabsTrigger>
           </TabsList>
-
-          <TabsContent value="subscriptions">
-            <Card>
-              <CardHeader>
-                <CardTitle>All E-book Subscriptions</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {subscriptionsLoading ? (
-                  <div className="text-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                  </div>
-                ) : subscriptions.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">No subscriptions found</p>
-                  </div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>User</TableHead>
-                        <TableHead>Plan</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Start Date</TableHead>
-                        <TableHead>End Date</TableHead>
-                        <TableHead>Books</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {subscriptions.map((subscription) => (
-                        <TableRow key={subscription.id}>
-                          <TableCell>{subscription.userId}</TableCell>
-                          <TableCell className="font-medium">{subscription.planTitle}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline">
-                              {subscription.planType === 'single' ? 'Single' : 'Multiple'}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge className={getStatusColor(subscription.status)}>
-                              {subscription.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{formatDate(subscription.startDate)}</TableCell>
-                          <TableCell>{formatDate(subscription.endDate)}</TableCell>
-                          <TableCell>
-                            {subscription.selectedBooks?.length || 0} books
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <Button variant="outline" size="sm">
-                                <Eye className="h-4 w-4 mr-1" />
-                                View
-                              </Button>
-                              <Button variant="outline" size="sm">
-                                <Edit className="h-4 w-4 mr-1" />
-                                Edit
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
 
           <TabsContent value="plans">
             <Card>
@@ -229,12 +168,14 @@ export default function EbookManagementPage() {
                             </div>
 
                             <div className="flex gap-2">
-                              <Button variant="outline" size="sm" className="flex-1">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="flex-1"
+                                onClick={() => handleEditPlan(plan)}
+                              >
                                 <Edit className="h-4 w-4 mr-1" />
                                 Edit
-                              </Button>
-                              <Button variant="outline" size="sm" className="text-red-600">
-                                <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
                           </div>
@@ -310,7 +251,11 @@ export default function EbookManagementPage() {
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
-                              <Button variant="outline" size="sm">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleViewBook(book)}
+                              >
                                 <Eye className="h-4 w-4 mr-1" />
                                 View
                               </Button>
@@ -330,6 +275,23 @@ export default function EbookManagementPage() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Plan Edit Modal */}
+      <PlanEditModal
+        isOpen={isPlanModalOpen}
+        onClose={handlePlanModalClose}
+        plan={selectedPlan}
+      />
+
+      {/* PDF Viewer Modal */}
+      {selectedBook && (
+        <PDFViewer
+          open={isPdfViewerOpen}
+          onOpenChange={handlePdfViewerClose}
+          pdfUrl={selectedBook.pdfUrl}
+          bookTitle={selectedBook.title}
+        />
+      )}
     </AdminLayout>
   )
 }

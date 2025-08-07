@@ -209,8 +209,7 @@ export default function CheckoutPage() {
   // Calculate shipping based on selected method
   const selectedShippingMethod = shippingMethods.find(m => m.id === formData.shippingMethod)
   const shipping = selectedShippingMethod ? selectedShippingMethod.price : 0
-  const tax = Math.round(getTotalPrice() * 0.18)
-  const finalTotal = getTotalPrice() + shipping + tax - discount
+  const finalTotal = getTotalPrice() + shipping - discount
 
   const handleInputChange = (field: keyof CheckoutForm, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -427,7 +426,6 @@ export default function CheckoutPage() {
         },
         subtotal: getTotalPrice(),
         shipping: shipping,
-        tax: tax,
         total: finalTotal,
         paymentMethod: formData.paymentMethod,
         shippingMethod: formData.shippingMethod,
@@ -950,10 +948,7 @@ export default function CheckoutPage() {
                       <span>Shipping</span>
                       <span>{shipping === 0 ? 'Free' : `₹${shipping}`}</span>
                     </div>
-                    <div className="flex justify-between text-sm">
-                      <span>Tax (GST 18%)</span>
-                      <span>₹{tax}</span>
-                    </div>
+
                     {discount > 0 && (
                       <div className="flex justify-between text-sm text-green-600">
                         <span>Discount</span>

@@ -20,8 +20,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Users, Search, MoreHorizontal, Eye, Edit, RefreshCw, Calendar } from "lucide-react"
+import { Users, Search, MoreHorizontal, Eye, Edit, RefreshCw, Calendar, Pause, Play, BookOpen } from "lucide-react"
 import { AdminLayout } from "@/components/admin/admin-layout"
+import { PlanSelectionModal } from "@/components/ebook/plan-selection-modal"
 import { collection, onSnapshot, orderBy, query, doc, getDoc } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { updateEbookSubscription } from "@/lib/ebook-utils"
@@ -32,6 +33,10 @@ export default function EbookSubscriptionsPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
+  const [selectedSubscription, setSelectedSubscription] = useState<any>(null)
+  const [showDetailsModal, setShowDetailsModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [showChangeBooksModal, setShowChangeBooksModal] = useState(false)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -72,17 +77,75 @@ export default function EbookSubscriptionsPage() {
     return () => unsubscribe()
   }, [])
 
-  const handleStatusUpdate = async (subscriptionId: string, newStatus: string) => {
+
+
+  const handleViewDetails = (subscription: any) => {
+    setSelectedSubscription(subscription)
+    setShowDetailsModal(true)
+  }
+
+  const handleEditDetails = (subscription: any) => {
+    setSelectedSubscription(subscription)
+    setShowEditModal(true)
+  }
+
+  const handlePauseSubscription = async (subscriptionId: string) => {
     try {
-      await updateEbookSubscription(subscriptionId, { status: newStatus })
+      await updateEbookSubscription(subscriptionId, { status: 'paused' })
       toast({
-        title: "Status Updated",
-        description: "Subscription status has been updated successfully.",
+        title: "Subscription Paused",
+        description: "Subscription has been paused successfully.",
       })
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to update subscription status.",
+        description: "Failed to pause subscription.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleResumeSubscription = async (subscriptionId: string) => {
+    try {
+      await updateEbookSubscription(subscriptionId, { status: 'active' })
+      toast({
+        title: "Subscription Resumed",
+        description: "Subscription has been resumed successfully.",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to resume subscription.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleChangeBooks = (subscription: any) => {
+    setSelectedSubscription(subscription)
+    setShowChangeBooksModal(true)
+  }
+
+  const handleBooksChanged = async (selectedBooks: string[]) => {
+    if (!selectedSubscription) return
+
+    try {
+      await updateEbookSubscription(selectedSubscription.id, {
+        selectedBooks,
+        updatedAt: new Date()
+      })
+      
+      toast({
+        title: "Books Updated",
+        description: "Book selection has been updated successfully!",
+      })
+      
+      setShowChangeBooksModal(false)
+      setSelectedSubscription(null)
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update book selection. Please try again.",
         variant: "destructive",
       })
     }
@@ -105,6 +168,7 @@ export default function EbookSubscriptionsPage() {
       case "active": return "bg-green-100 text-green-800"
       case "expired": return "bg-red-100 text-red-800"
       case "cancelled": return "bg-gray-100 text-gray-800"
+      case "paused": return "bg-orange-100 text-orange-800"
       default: return "bg-yellow-100 text-yellow-800"
     }
   }
@@ -213,6 +277,7 @@ export default function EbookSubscriptionsPage() {
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="paused">Paused</SelectItem>
                   <SelectItem value="expired">Expired</SelectItem>
                   <SelectItem value="cancelled">Cancelled</SelectItem>
                 </SelectContent>
@@ -302,28 +367,39 @@ export default function EbookSubscriptionsPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleViewDetails(subscription)}>
                               <Eye className="h-4 w-4 mr-2" />
                               View Details
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleEditDetails(subscription)}>
                               <Edit className="h-4 w-4 mr-2" />
-                              Edit Subscription
+                              Edit Details
                             </DropdownMenuItem>
-                            {subscription.status === 'active' && (
-                              <DropdownMenuItem 
-                                onClick={() => handleStatusUpdate(subscription.id, 'cancelled')}
-                                className="text-red-600"
-                              >
-                                Cancel Subscription
+                            {(subscription.planType === 'single' || 
+                              (subscription.planType === 'multiple' && 
+                               subscription.planTitle !== 'Premium' && 
+                               subscription.planTitle !== 'Lifetime')) && (
+                              <DropdownMenuItem onClick={() => handleChangeBooks(subscription)}>
+                                <BookOpen className="h-4 w-4 mr-2" />
+                                Change Books
                               </DropdownMenuItem>
                             )}
-                            {subscription.status === 'cancelled' && (
+                            {subscription.status === 'active' && (
                               <DropdownMenuItem 
-                                onClick={() => handleStatusUpdate(subscription.id, 'active')}
+                                onClick={() => handlePauseSubscription(subscription.id)}
+                                className="text-orange-600"
+                              >
+                                <Pause className="h-4 w-4 mr-2" />
+                                Pause Subscription
+                              </DropdownMenuItem>
+                            )}
+                            {subscription.status === 'paused' && (
+                              <DropdownMenuItem 
+                                onClick={() => handleResumeSubscription(subscription.id)}
                                 className="text-green-600"
                               >
-                                Reactivate
+                                <Play className="h-4 w-4 mr-2" />
+                                Resume Subscription
                               </DropdownMenuItem>
                             )}
                           </DropdownMenuContent>
@@ -337,6 +413,117 @@ export default function EbookSubscriptionsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* View Details Modal */}
+      {selectedSubscription && (
+        <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 ${showDetailsModal ? 'block' : 'hidden'}`}>
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">Subscription Details</h2>
+              <Button variant="ghost" onClick={() => setShowDetailsModal(false)}>×</Button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <h3 className="font-semibold">User Information</h3>
+                <p>Name: {selectedSubscription.userDetails?.displayName || 'Unknown'}</p>
+                <p>Email: {selectedSubscription.userDetails?.email || 'N/A'}</p>
+                <p>User ID: {selectedSubscription.userId}</p>
+              </div>
+              <div>
+                <h3 className="font-semibold">Plan Information</h3>
+                <p>Plan: {selectedSubscription.planTitle}</p>
+                <p>Type: {selectedSubscription.planType}</p>
+                <p>Status: <Badge className={getStatusColor(selectedSubscription.status)}>{selectedSubscription.status}</Badge></p>
+                <p>Max Books: {selectedSubscription.maxBooks || 'Unlimited'}</p>
+              </div>
+              <div>
+                <h3 className="font-semibold">Dates</h3>
+                <p>Start Date: {selectedSubscription.startDate?.toLocaleDateString()}</p>
+                <p>End Date: {selectedSubscription.endDate?.toLocaleDateString()}</p>
+                <p>Created: {selectedSubscription.createdAt?.toLocaleDateString()}</p>
+                <p>Last Updated: {selectedSubscription.updatedAt?.toLocaleDateString()}</p>
+              </div>
+              <div>
+                <h3 className="font-semibold">Books</h3>
+                <p>Selected Books: {selectedSubscription.selectedBooks?.length || 0}</p>
+                <p>Configured: {selectedSubscription.isConfigured ? 'Yes' : 'No'}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Details Modal */}
+      {selectedSubscription && (
+        <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 ${showEditModal ? 'block' : 'hidden'}`}>
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">Edit Subscription</h2>
+              <Button variant="ghost" onClick={() => setShowEditModal(false)}>×</Button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Status</label>
+                <Select 
+                  value={selectedSubscription.status} 
+                  onValueChange={(value) => {
+                    setSelectedSubscription({...selectedSubscription, status: value})
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="paused">Paused</SelectItem>
+                    <SelectItem value="expired">Expired</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={async () => {
+                    try {
+                      await updateEbookSubscription(selectedSubscription.id, {
+                        status: selectedSubscription.status,
+                        updatedAt: new Date()
+                      })
+                      toast({
+                        title: "Updated",
+                        description: "Subscription updated successfully.",
+                      })
+                      setShowEditModal(false)
+                    } catch (error) {
+                      toast({
+                        title: "Error",
+                        description: "Failed to update subscription.",
+                        variant: "destructive",
+                      })
+                    }
+                  }}
+                  className="flex-1"
+                >
+                  Save Changes
+                </Button>
+                <Button variant="outline" onClick={() => setShowEditModal(false)} className="flex-1">
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Change Books Modal */}
+      {selectedSubscription && (
+        <PlanSelectionModal
+          open={showChangeBooksModal}
+          onOpenChange={setShowChangeBooksModal}
+          subscription={selectedSubscription}
+          onSelectionComplete={handleBooksChanged}
+        />
+      )}
     </AdminLayout>
   )
 }

@@ -39,8 +39,8 @@ export function EnhancedBookModal({ isOpen, onClose, book }: EnhancedBookModalPr
       plans: [] as string[]
     }
   })
-  const [imageFile, setImageFile] = useState<File | null>(null)
-  const [pdfFile, setPdfFile] = useState<File | null>(null)
+  const [_imageFile, setImageFile] = useState<File | null>(null)
+  const [_pdfFile, setPdfFile] = useState<File | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [isPdfUploading, setIsPdfUploading] = useState(false)
@@ -170,6 +170,23 @@ export function EnhancedBookModal({ isOpen, onClose, book }: EnhancedBookModalPr
 
   const nextStep = () => {
     if (currentStep < 3) {
+      // If moving to step 3 (PDF upload), ensure previous steps are completed
+      if (currentStep === 2) {
+        // Check if at least one visibility option is selected
+        const hasVisibility = formData.ebookVisibility.general || 
+                             formData.ebookVisibility.singleEbooks || 
+                             formData.ebookVisibility.plans.length > 0
+        
+        if (!hasVisibility) {
+          toast({
+            title: "Visibility Required",
+            description: "Please select at least one visibility option before proceeding.",
+            variant: "destructive",
+          })
+          return
+        }
+      }
+      
       setCurrentStep(currentStep + 1)
     }
   }
@@ -182,6 +199,17 @@ export function EnhancedBookModal({ isOpen, onClose, book }: EnhancedBookModalPr
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Validate that PDF is uploaded
+    if (!formData.pdfUrl) {
+      toast({
+        title: "PDF Required",
+        description: "Please upload a PDF file before saving the book.",
+        variant: "destructive",
+      })
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
@@ -230,12 +258,19 @@ export function EnhancedBookModal({ isOpen, onClose, book }: EnhancedBookModalPr
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{book ? "Edit Book" : "Add New Book"}</DialogTitle>
+          <p className="text-sm text-muted-foreground">
+            Complete all steps to create a book. PDF upload is required in the final step.
+          </p>
         </DialogHeader>
 
         <div className="space-y-6">
           {/* Step Indicator */}
           <div className="flex items-center justify-center space-x-4">
-            {[1, 2, 3].map((step) => (
+            {[
+              { step: 1, label: "Basic Details" },
+              { step: 2, label: "Visibility" },
+              { step: 3, label: "PDF Upload*" }
+            ].map(({ step, label }) => (
               <div key={step} className="flex items-center">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
                   currentStep >= step ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
@@ -247,6 +282,11 @@ export function EnhancedBookModal({ isOpen, onClose, book }: EnhancedBookModalPr
                     currentStep > step ? 'bg-primary' : 'bg-muted'
                   }`} />
                 )}
+                <span className={`ml-2 text-xs ${
+                  currentStep >= step ? 'text-primary' : 'text-muted-foreground'
+                }`}>
+                  {label}
+                </span>
               </div>
             ))}
           </div>
@@ -492,7 +532,7 @@ export function EnhancedBookModal({ isOpen, onClose, book }: EnhancedBookModalPr
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div>
-                    <Label htmlFor="pdf">Book PDF (Max 10MB)</Label>
+                    <Label htmlFor="pdf">Book PDF (Max 10MB) *</Label>
                     <div className="mt-2">
                       <input
                         type="file"
@@ -500,6 +540,7 @@ export function EnhancedBookModal({ isOpen, onClose, book }: EnhancedBookModalPr
                         accept=".pdf"
                         onChange={handlePdfUpload}
                         className="hidden"
+                        required
                       />
                       <Button
                         type="button"
@@ -526,8 +567,22 @@ export function EnhancedBookModal({ isOpen, onClose, book }: EnhancedBookModalPr
                         </div>
                       )}
                       
+                      {!formData.pdfUrl && (
+                        <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                          <div className="flex items-center space-x-2">
+                            <FileText className="h-5 w-5 text-yellow-600" />
+                            <div>
+                              <p className="text-sm font-medium text-yellow-800">PDF Upload Required</p>
+                              <p className="text-xs text-yellow-600">
+                                You must upload a PDF file to save this book
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
                       <p className="text-xs text-muted-foreground mt-2">
-                        Upload the PDF version of your book. Maximum file size: 10MB
+                        Upload the PDF version of your book. Maximum file size: 10MB. <strong>PDF upload is required.</strong>
                       </p>
                     </div>
                   </div>
@@ -553,7 +608,10 @@ export function EnhancedBookModal({ isOpen, onClose, book }: EnhancedBookModalPr
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
               ) : (
-                <Button type="submit" disabled={isSubmitting || isUploading || isPdfUploading}>
+                <Button 
+                  type="submit" 
+                  disabled={isSubmitting || isUploading || isPdfUploading || !formData.pdfUrl}
+                >
                   {isSubmitting ? "Saving..." : book ? "Update Book" : "Add Book"}
                 </Button>
               )}

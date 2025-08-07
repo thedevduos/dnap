@@ -7,7 +7,7 @@ import {
   query, 
   where, 
   getDocs,
-  getDoc
+  deleteDoc,
 } from "firebase/firestore"
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
 import { db, storage } from "@/lib/firebase"
@@ -46,10 +46,19 @@ export const updateEbookPlan = async (id: string, planData: Partial<EbookPlan>) 
 
 // Ebook Subscriptions
 export const createEbookSubscription = async (subscriptionData: Omit<EbookSubscription, 'id'>) => {
+  // Use the provided endDate or default to 30 days from now
+  let endDate: Date | any = subscriptionData.endDate
+  
+  if (!endDate) {
+    // Default to 30 days if no endDate provided
+    endDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+  }
+  
   return await addDoc(collection(db, "ebookSubscriptions"), {
     ...subscriptionData,
-    startDate: serverTimestamp(),
-    endDate: new Date(Date.now() + subscriptionData.duration * 24 * 60 * 60 * 1000),
+    startDate: subscriptionData.startDate || serverTimestamp(),
+    endDate: endDate,
+    isConfigured: subscriptionData.isConfigured || false, // Default to false for new subscriptions
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   })
@@ -96,7 +105,7 @@ export const checkUserBookAccess = async (userId: string, bookId: string): Promi
     for (const subscriptionDoc of subscriptionsSnapshot.docs) {
       const subscription = subscriptionDoc.data()
       
-      // Check if subscription is still valid (not expired)
+      // Check if subscription is still valid (not expired or paused)
       const endDate = subscription.endDate?.toDate()
       if (endDate && endDate < new Date()) {
         // Update subscription status to expired
@@ -104,6 +113,11 @@ export const checkUserBookAccess = async (userId: string, bookId: string): Promi
           status: 'expired',
           updatedAt: serverTimestamp()
         })
+        continue
+      }
+
+      // Skip paused subscriptions
+      if (subscription.status === 'paused') {
         continue
       }
 
@@ -242,3 +256,46 @@ export const defaultEbookPlans: Omit<EbookPlan, 'id'>[] = [
     duration: 1825, // 5 years
   },
 ]
+
+// Delete functions
+export const deleteEbookOrder = async (orderId: string) => {
+  return await deleteDoc(doc(db, "ebookOrders", orderId))
+}
+
+export const deleteEbookSubscription = async (subscriptionId: string) => {
+  return await deleteDoc(doc(db, "ebookSubscriptions", subscriptionId))
+}
+
+// Delete order and related subscription
+export const deleteOrderAndSubscription = async (orderId: string, userId: string, planId: string) => {
+  try {
+    // First delete the order
+    await deleteEbookOrder(orderId)
+    
+    // Find and delete related subscription
+    // We'll find the subscription by userId and planId since there's no direct reference
+    const subscriptionsQuery = query(
+      collection(db, "ebookSubscriptions"),
+      where("userId", "==", userId),
+      where("planId", "==", planId)
+    )
+    
+    const subscriptionsSnapshot = await getDocs(subscriptionsQuery)
+    
+    // Delete all matching subscriptions (should typically be one)
+    const deletePromises = subscriptionsSnapshot.docs.map(subscriptionDoc => 
+      deleteEbookSubscription(subscriptionDoc.id)
+    )
+    
+    await Promise.all(deletePromises)
+    
+    return {
+      success: true,
+      deletedOrder: orderId,
+      deletedSubscriptions: subscriptionsSnapshot.docs.length
+    }
+  } catch (error) {
+    console.error("Error deleting order and subscription:", error)
+    throw error
+  }
+}

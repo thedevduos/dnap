@@ -21,8 +21,9 @@ export interface EbookSubscription {
   maxBooks?: number
   startDate: Date
   endDate: Date
-  status: 'active' | 'expired' | 'cancelled'
+  status: 'active' | 'expired' | 'cancelled' | 'paused'
   autoRenew: boolean
+  isConfigured: boolean // Track if user has configured their book selection
   createdAt: Date
   updatedAt: Date
 }

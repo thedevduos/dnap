@@ -4,9 +4,9 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { BookOpen, Calendar, Clock, Star } from "lucide-react"
+import { BookOpen, Calendar, Clock } from "lucide-react"
 import { useEbookSubscriptions } from "@/hooks/use-ebook-subscriptions"
-import { useAuth } from "@/contexts/auth-context"
+import { useUser } from "@/contexts/user-context"
 import { useToast } from "@/hooks/use-toast"
 import { PlanSelectionModal } from "@/components/ebook/plan-selection-modal"
 import { updateEbookSubscription } from "@/lib/ebook-utils"
@@ -14,7 +14,7 @@ import { Link } from "react-router-dom"
 
 export default function EbooksPage() {
   const { subscriptions, loading } = useEbookSubscriptions()
-  const { user } = useAuth()
+  const { isAdmin } = useUser()
   const { toast } = useToast()
   const [showPlanSelection, setShowPlanSelection] = useState(false)
   const [pendingSubscription, setPendingSubscription] = useState<any>(null)
@@ -24,11 +24,11 @@ export default function EbooksPage() {
     if (subscriptions.length > 0) {
       const needsSelection = subscriptions.find(sub => 
         sub.status === 'active' && 
-        sub.planType !== 'multiple' || 
-        (sub.planType === 'multiple' && 
-         sub.planTitle !== 'Premium' && 
-         sub.planTitle !== 'Lifetime' &&
-         (!sub.selectedBooks || sub.selectedBooks.length === 0))
+        !sub.isConfigured && // Only show modal for unconfigured subscriptions
+        (sub.planType !== 'multiple' || 
+         (sub.planType === 'multiple' && 
+          sub.planTitle !== 'Premium' && 
+          sub.planTitle !== 'Lifetime'))
       )
       
       if (needsSelection) {
@@ -44,6 +44,7 @@ export default function EbooksPage() {
     try {
       await updateEbookSubscription(pendingSubscription.id, {
         selectedBooks,
+        isConfigured: true, // Mark subscription as configured
         updatedAt: new Date()
       })
       
@@ -174,6 +175,14 @@ export default function EbooksPage() {
                   </div>
                 )}
 
+                {/* Configuration Status */}
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Configuration:</p>
+                  <Badge variant={subscription.isConfigured ? "default" : "secondary"}>
+                    {subscription.isConfigured ? "Configured" : "Needs Setup"}
+                  </Badge>
+                </div>
+
                 {subscription.status === 'active' && (
                   <div className="space-y-2">
                     <Button asChild className="w-full">
@@ -183,8 +192,9 @@ export default function EbooksPage() {
                       </Link>
                     </Button>
                     
-                    {subscription.planType !== 'multiple' || 
-                     (subscription.planTitle !== 'Premium' && subscription.planTitle !== 'Lifetime') ? (
+                    {/* Only admins can change book selection */}
+                    {isAdmin && (subscription.planType !== 'multiple' || 
+                     (subscription.planTitle !== 'Premium' && subscription.planTitle !== 'Lifetime')) ? (
                       <Button 
                         variant="outline" 
                         className="w-full"
@@ -193,7 +203,7 @@ export default function EbooksPage() {
                           setShowPlanSelection(true)
                         }}
                       >
-                        Change Book Selection
+                        Change Book Selection (Admin)
                       </Button>
                     ) : null}
                   </div>

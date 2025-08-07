@@ -1,6 +1,6 @@
 "use client"
 
-import React, { createContext, useContext, useEffect, useState } from "react"
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from "react"
 import { useToast } from "@/hooks/use-toast"
 import { EbookPlan } from "@/types/ebook"
 
@@ -13,7 +13,8 @@ interface EbookCartContextType {
   items: EbookCartItem[]
   addToCart: (plan: EbookPlan) => void
   removeFromCart: (planId: string) => void
-  clearCart: () => void
+  clearCart: (showToast?: boolean) => void
+  replaceCart: (plan: EbookPlan) => void
   getTotalPrice: () => number
   getTotalItems: () => number
   isInCart: (planId: string) => boolean
@@ -50,7 +51,7 @@ export function EbookCartProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('dna-publications-ebook-cart', JSON.stringify(items))
   }, [items])
 
-  const addToCart = (plan: EbookPlan) => {
+  const addToCart = useCallback((plan: EbookPlan) => {
     setItems(prevItems => {
       const existingItem = prevItems.find(i => i.plan.id === plan.id)
       if (existingItem) {
@@ -67,9 +68,9 @@ export function EbookCartProvider({ children }: { children: React.ReactNode }) {
         return [...prevItems, { plan, quantity: 1 }]
       }
     })
-  }
+  }, [])
 
-  const removeFromCart = (planId: string) => {
+  const removeFromCart = useCallback((planId: string) => {
     setItems(prevItems => {
       const item = prevItems.find(i => i.plan.id === planId)
       if (item) {
@@ -80,37 +81,48 @@ export function EbookCartProvider({ children }: { children: React.ReactNode }) {
       }
       return prevItems.filter(i => i.plan.id !== planId)
     })
-  }
+  }, [])
 
-  const clearCart = () => {
+  const clearCart = useCallback((showToast?: boolean) => {
     setItems([])
+    if (showToast !== false) {
+      toast({
+        title: "Cart Cleared",
+        description: "All plans have been removed from your cart",
+      })
+    }
+  }, [])
+
+  const replaceCart = useCallback((plan: EbookPlan) => {
+    setItems([{ plan, quantity: 1 }])
     toast({
-      title: "Cart Cleared",
-      description: "All plans have been removed from your cart",
+      title: "Cart Replaced",
+      description: `${plan.title} has been added to your cart`,
     })
-  }
+  }, [])
 
-  const getTotalPrice = () => {
+  const getTotalPrice = useCallback(() => {
     return items.reduce((total, item) => total + item.plan.price, 0)
-  }
+  }, [items])
 
-  const getTotalItems = () => {
+  const getTotalItems = useCallback(() => {
     return items.length
-  }
+  }, [items])
 
-  const isInCart = (planId: string) => {
+  const isInCart = useCallback((planId: string) => {
     return items.some(item => item.plan.id === planId)
-  }
+  }, [items])
 
-  const value = {
+  const value = useMemo(() => ({
     items,
     addToCart,
     removeFromCart,
     clearCart,
+    replaceCart,
     getTotalPrice,
     getTotalItems,
     isInCart,
-  }
+  }), [items, addToCart, removeFromCart, clearCart, replaceCart, getTotalPrice, getTotalItems, isInCart])
 
   return <EbookCartContext.Provider value={value}>{children}</EbookCartContext.Provider>
 }

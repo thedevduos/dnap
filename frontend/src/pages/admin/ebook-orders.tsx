@@ -13,15 +13,22 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table"
-import { Package, Search, Eye, RefreshCw } from "lucide-react"
+import { Package, Search, Eye, RefreshCw, Trash2 } from "lucide-react"
 import { AdminLayout } from "@/components/admin/admin-layout"
 import { collection, onSnapshot, orderBy, query } from "firebase/firestore"
 import { db } from "@/lib/firebase"
+import { deleteOrderAndSubscription } from "@/lib/ebook-utils"
+import { useToast } from "@/hooks/use-toast"
 
 export default function EbookOrdersPage() {
   const [orders, setOrders] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
+  const [selectedOrder, setSelectedOrder] = useState<any>(null)
+  const [showViewModal, setShowViewModal] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [orderToDelete, setOrderToDelete] = useState<any>(null)
+  const { toast } = useToast()
 
   useEffect(() => {
     const q = query(collection(db, "ebookOrders"), orderBy("createdAt", "desc"))
@@ -38,6 +45,39 @@ export default function EbookOrdersPage() {
 
     return () => unsubscribe()
   }, [])
+
+  const handleViewOrder = (order: any) => {
+    setSelectedOrder(order)
+    setShowViewModal(true)
+  }
+
+  const handleDeleteOrder = (order: any) => {
+    setOrderToDelete(order)
+    setShowDeleteConfirm(true)
+  }
+
+  const confirmDeleteOrder = async () => {
+    if (!orderToDelete) return
+
+    try {
+      await deleteOrderAndSubscription(orderToDelete.id, orderToDelete.userId, orderToDelete.planId)
+      
+      toast({
+        title: "Order Deleted",
+        description: "Order and related subscription have been deleted successfully.",
+      })
+      
+      setShowDeleteConfirm(false)
+      setOrderToDelete(null)
+    } catch (error) {
+      console.error("Error deleting order:", error)
+      toast({
+        title: "Error",
+        description: "Failed to delete order and subscription. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
 
   const filteredOrders = orders.filter(order =>
     order.planTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -205,10 +245,21 @@ export default function EbookOrdersPage() {
                         {order.createdAt?.toLocaleDateString()}
                       </TableCell>
                       <TableCell>
-                        <Button variant="outline" size="sm">
-                          <Eye className="h-4 w-4 mr-1" />
-                          View
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm" onClick={() => handleViewOrder(order)}>
+                            <Eye className="h-4 w-4 mr-1" />
+                            View
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => handleDeleteOrder(order)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            Delete
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -218,6 +269,139 @@ export default function EbookOrdersPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Order Details Modal */}
+      {selectedOrder && (
+        <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 ${showViewModal ? 'block' : 'hidden'}`}>
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">Order Details</h2>
+              <Button variant="ghost" onClick={() => setShowViewModal(false)}>×</Button>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h3 className="font-semibold text-gray-700">Order Information</h3>
+                  <div className="mt-2 space-y-1">
+                    <p><span className="font-medium">Order ID:</span> #{selectedOrder.id}</p>
+                    <p><span className="font-medium">User ID:</span> {selectedOrder.userId}</p>
+                    <p><span className="font-medium">Transaction ID:</span> {selectedOrder.transactionId || 'N/A'}</p>
+                    <p><span className="font-medium">Status:</span> 
+                      <Badge className={`ml-2 ${getStatusColor(selectedOrder.status)}`}>
+                        {selectedOrder.status}
+                      </Badge>
+                    </p>
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="font-semibold text-gray-700">Plan Details</h3>
+                  <div className="mt-2 space-y-1">
+                    <p><span className="font-medium">Plan:</span> {selectedOrder.planTitle}</p>
+                    <p><span className="font-medium">Plan ID:</span> {selectedOrder.planId}</p>
+                    <p><span className="font-medium">Plan Type:</span> {selectedOrder.planType}</p>
+                    <p><span className="font-medium">Duration:</span> {selectedOrder.duration} days</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h3 className="font-semibold text-gray-700">Payment Information</h3>
+                  <div className="mt-2 space-y-1">
+                    <p><span className="font-medium">Amount:</span> ₹{selectedOrder.amount}</p>
+                    <p><span className="font-medium">Payment Method:</span> 
+                      <Badge variant="outline" className="ml-2">
+                        {selectedOrder.paymentMethod === 'razorpay' ? 'Razorpay' : 
+                         selectedOrder.paymentMethod === 'zoho' ? 'Zoho Pay' : 
+                         selectedOrder.paymentMethod}
+                      </Badge>
+                    </p>
+                    <p><span className="font-medium">Payment ID:</span> {selectedOrder.paymentId || 'N/A'}</p>
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="font-semibold text-gray-700">Timestamps</h3>
+                  <div className="mt-2 space-y-1">
+                    <p><span className="font-medium">Created:</span> {selectedOrder.createdAt?.toLocaleString()}</p>
+                    <p><span className="font-medium">Updated:</span> {selectedOrder.updatedAt?.toLocaleString() || 'N/A'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {selectedOrder.notes && (
+                <div>
+                  <h3 className="font-semibold text-gray-700">Notes</h3>
+                  <p className="mt-2 p-3 bg-gray-50 rounded-md">{selectedOrder.notes}</p>
+                </div>
+              )}
+
+              {selectedOrder.error && (
+                <div>
+                  <h3 className="font-semibold text-red-700">Error Details</h3>
+                  <p className="mt-2 p-3 bg-red-50 rounded-md text-red-800">{selectedOrder.error}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {orderToDelete && (
+        <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 ${showDeleteConfirm ? 'block' : 'hidden'}`}>
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-red-600">Confirm Delete</h2>
+              <Button variant="ghost" onClick={() => setShowDeleteConfirm(false)}>×</Button>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="flex items-center justify-center mb-4">
+                <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center">
+                  <Trash2 className="h-6 w-6 text-red-600" />
+                </div>
+              </div>
+              
+              <div className="text-center">
+                <p className="text-lg font-medium mb-2">Delete Order and Subscription?</p>
+                <p className="text-gray-600 mb-4">
+                  This will permanently delete:
+                </p>
+                <div className="bg-gray-50 p-3 rounded-md text-left">
+                  <p><strong>Order:</strong> #{orderToDelete.id.slice(-8)}</p>
+                  <p><strong>Plan:</strong> {orderToDelete.planTitle}</p>
+                  <p><strong>Amount:</strong> ₹{orderToDelete.amount}</p>
+                  <p><strong>User:</strong> {orderToDelete.userId.slice(-8)}</p>
+                </div>
+                <p className="text-red-600 text-sm mt-3">
+                  <strong>Warning:</strong> This action cannot be undone. Both the order and any related subscription will be deleted.
+                </p>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  variant="destructive"
+                  onClick={confirmDeleteOrder}
+                  className="flex-1"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   )
 }

@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { BookOpen, Eye, Lock } from "lucide-react"
+import { BookOpen, Eye, Lock, Star } from "lucide-react"
 import { useUserEbookAccess } from "@/hooks/use-user-ebook-access"
 import { useAuth } from "@/contexts/auth-context"
 import { useToast } from "@/hooks/use-toast"
@@ -209,13 +209,6 @@ export default function MyBooksPage() {
             bookTitle={selectedBook.title}
           />
         )}
-
-        <PlanSelectionModal
-          open={showPlanSelection}
-          onOpenChange={setShowPlanSelection}
-          subscription={pendingSubscription}
-          onSelectionComplete={handleSelectionComplete}
-        />
       </div>
     </div>
   )

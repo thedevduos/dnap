@@ -348,9 +348,11 @@ export const storeCartData = (cartItems: any[], formData: any, appliedCoupon?: a
   }
 };
 
-export const storeEbookOrderData = (plan: any, userId: string): void => {
+export const storeEbookOrderData = (orderData: any, userId: string): void => {
   try {
-    const orderData = {
+    const plan = orderData.plan || orderData; // Handle both new and old format
+    
+    const ebookOrderData = {
       isEbookOrder: true,
       userId: userId,
       planId: plan.id,
@@ -358,12 +360,15 @@ export const storeEbookOrderData = (plan: any, userId: string): void => {
       planType: plan.type,
       maxBooks: plan.maxBooks,
       duration: plan.duration,
-      amount: plan.price,
-      status: 'pending'
+      amount: orderData.finalAmount || plan.price, // Store as 'amount' field
+      total: orderData.finalAmount || plan.price, // Also store as 'total' for backward compatibility
+      status: 'pending',
+      appliedCoupon: orderData.appliedCoupon || null,
+      discount: orderData.discount || 0
     };
     
-    sessionStorage.setItem('pendingOrderData', JSON.stringify(orderData));
-    console.log('E-book order data stored:', orderData);
+    sessionStorage.setItem('pendingOrderData', JSON.stringify(ebookOrderData));
+    console.log('E-book order data stored:', ebookOrderData);
   } catch (error) {
     console.error('Failed to store e-book order data:', error);
   }

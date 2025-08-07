@@ -454,6 +454,11 @@ export const deleteTestimonial = async (id: string) => {
 
 // Books
 export const addBook = async (bookData: any) => {
+  // Validate that PDF URL is present
+  if (!bookData.pdfUrl) {
+    throw new Error("PDF URL is required to add a book")
+  }
+  
   return await addDoc(collection(db, "books"), {
     ...bookData,
     createdAt: serverTimestamp(),
@@ -461,6 +466,11 @@ export const addBook = async (bookData: any) => {
 }
 
 export const updateBook = async (id: string, bookData: any) => {
+  // Validate that PDF URL is present
+  if (!bookData.pdfUrl) {
+    throw new Error("PDF URL is required to update a book")
+  }
+  
   return await updateDoc(doc(db, "books", id), {
     ...bookData,
     updatedAt: serverTimestamp(),

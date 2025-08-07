@@ -10,6 +10,7 @@ export function EbookCartIcon() {
   const { getTotalItems } = useEbookCart()
   const itemCount = getTotalItems()
 
+  // Show the icon if there are items in the cart
   if (itemCount === 0) return null
 
   return (

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { CheckCircle, Package, ArrowRight } from "lucide-react"
 import { useCart } from "@/contexts/cart-context"
+import { useEbookCart } from "@/contexts/ebook-cart-context"
 import { updateOrderStatus, addTransaction, processRefund } from "@/lib/firebase-utils"
 import { useToast } from "@/hooks/use-toast"
 import { collection, addDoc, serverTimestamp, doc, updateDoc, increment, query, where, getDocs } from "firebase/firestore"
@@ -28,6 +29,7 @@ export default function PaymentSuccessPage() {
   const addAddressRef = useRef<any>(null)
   
   const { clearCart } = useCart()
+  const { clearCart: clearEbookCart } = useEbookCart()
   const { toast } = useToast()
   const { addAddress } = useUser()
   
@@ -39,17 +41,36 @@ export default function PaymentSuccessPage() {
   useEffect(() => {
     // Check if this effect has already run for this payment session
     const effectRunFlag = sessionStorage.getItem('successPageEffectRun')
-    if (effectRunFlag) {
+    
+    // Check if we have fresh payment data that should trigger reprocessing
+    const paymentMethod = searchParams.get('method') || 'razorpay'
+    let hasFreshPaymentData = false
+    
+    if (paymentMethod === 'zoho') {
+      const paymentId = searchParams.get('payment_id')
+      hasFreshPaymentData = !!paymentId
+    } else if (paymentMethod === 'razorpay') {
+      const razorpayResponse = sessionStorage.getItem('razorpayResponse')
+      hasFreshPaymentData = !!razorpayResponse
+    }
+    
+    // If we have fresh payment data, clear the effect run flag to allow reprocessing
+    if (hasFreshPaymentData && effectRunFlag) {
+      console.log('Fresh payment data detected, clearing effect run flag for reprocessing...')
+      sessionStorage.removeItem('successPageEffectRun')
+    }
+    
+    const updatedEffectRunFlag = sessionStorage.getItem('successPageEffectRun')
+    if (updatedEffectRunFlag) {
       console.log('Effect already run for this payment session, skipping...')
+      setProcessing(false)
       return
     }
 
-    // Mark that this effect has run
-    sessionStorage.setItem('successPageEffectRun', 'true')
-    
     // Prevent multiple processing attempts - use a more robust approach
     if (effectRunRef.current) {
       console.log('Effect already run, skipping...')
+      setProcessing(false)
       return
     }
 
@@ -58,6 +79,7 @@ export default function PaymentSuccessPage() {
     // Prevent multiple processing attempts
     if (processedRef.current || processingRef.current || mountedRef.current) {
       console.log('Payment already processed, currently processing, or component already mounted, skipping...')
+      setProcessing(false)
       return
     }
 
@@ -66,17 +88,28 @@ export default function PaymentSuccessPage() {
     // Clear any existing payment processed flag on mount to ensure fresh processing
     sessionStorage.removeItem('paymentProcessed')
     
-    // Additional check: if we've already processed this payment, skip
-    const paymentMethod = searchParams.get('method') || 'razorpay'
+    // Check if we have payment data to process
+    let hasPaymentData = false
+    
     if (paymentMethod === 'razorpay') {
       const razorpayResponse = sessionStorage.getItem('razorpayResponse')
-      if (!razorpayResponse) {
-        console.log('No Razorpay response found, skipping...')
-        setProcessing(false)
-        return
-      }
+      hasPaymentData = !!razorpayResponse
+    } else if (paymentMethod === 'zoho') {
+      const paymentId = searchParams.get('payment_id')
+      const sessionId = searchParams.get('session_id')
+      const storedSessionData = sessionStorage.getItem('zoho_payment_session')
+      hasPaymentData = !!(paymentId || (sessionId && storedSessionData))
+    }
+    
+    if (!hasPaymentData) {
+      console.log('No payment data found, skipping...')
+      setProcessing(false)
+      return
     }
 
+    // Mark that this effect has run
+    sessionStorage.setItem('successPageEffectRun', 'true')
+    
     console.log('Starting payment processing...')
     processingRef.current = true
     const processPaymentSuccess = async () => {
@@ -177,23 +210,39 @@ export default function PaymentSuccessPage() {
             userEmail: orderData.userEmail,
             items: orderData.items?.length || 0,
             total: orderData.total,
+            amount: orderData.amount, // Add amount field for ebook orders
+            planId: orderData.planId, // Add plan fields for ebook orders
+            planTitle: orderData.planTitle,
             shippingAddress: orderData.shippingAddress,
             isEbookOrder: isEbookOrder
           } : null)
           
           if (orderData) {
             if (isEbookOrder) {
+              // Validate required fields for ebook orders
+              if (!orderData.amount && !orderData.total) {
+                throw new Error('Order amount is missing for ebook order')
+              }
+              
+              const orderAmount = orderData.amount || orderData.total
+              
               // Handle e-book subscription order
               const ebookOrderRef = await createEbookOrder({
                 userId: orderData.userId,
                 planId: orderData.planId,
                 planTitle: orderData.planTitle,
-                amount: orderData.total,
+                amount: orderAmount,
                 paymentMethod: paymentMethod,
                 transactionId: paymentMethod === 'razorpay' ? paymentData.razorpay_payment_id : 
                               paymentMethod === 'zoho' ? paymentData.paymentId : null,
-                status: 'confirmed'
+                status: 'confirmed',
+                createdAt: new Date()
               })
+
+              // Calculate subscription dates
+              const startDate = new Date()
+              const endDate = new Date()
+              endDate.setDate(endDate.getDate() + (orderData.duration || 30)) // Default to 30 days if duration not specified
 
               // Create e-book subscription
               const subscriptionRef = await createEbookSubscription({
@@ -203,14 +252,18 @@ export default function PaymentSuccessPage() {
                 planType: orderData.planType,
                 selectedBooks: [],
                 maxBooks: orderData.maxBooks,
-                duration: orderData.duration,
+                startDate: startDate,
+                endDate: endDate,
                 status: 'active',
-                autoRenew: false
+                autoRenew: false,
+                isConfigured: false, // New subscriptions need book selection
+                createdAt: new Date(),
+                updatedAt: new Date()
               })
 
               setOrderDetails({
                 orderId: ebookOrderRef.id,
-                amount: orderData.total,
+                amount: orderAmount,
                 transactionId: paymentMethod === 'razorpay' ? paymentData.razorpay_payment_id : 
                               paymentMethod === 'zoho' ? paymentData.paymentId : null,
                 paymentMethod: paymentMethod,
@@ -274,6 +327,7 @@ export default function PaymentSuccessPage() {
 
             // Clear cart first
             clearCartRef.current()
+            clearEbookCart()
 
             // Now remove the razorpay response since processing is complete
             if (paymentMethod === 'razorpay') {
@@ -360,7 +414,25 @@ export default function PaymentSuccessPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Processing your payment...</p>
+          <p className="text-muted-foreground mb-4">Processing your payment...</p>
+          <Button 
+            variant="outline" 
+            onClick={() => {
+              // Clear all flags and retry
+              sessionStorage.removeItem('successPageEffectRun')
+              sessionStorage.removeItem('paymentProcessed')
+              sessionStorage.removeItem('paymentProcessing')
+              processedRef.current = false
+              processingRef.current = false
+              mountedRef.current = false
+              effectRunRef.current = false
+              setProcessing(false)
+              // Force a page reload to retry
+              window.location.reload()
+            }}
+          >
+            Retry Processing
+          </Button>
         </div>
       </div>
     )
