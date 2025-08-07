@@ -46,7 +46,7 @@ export default function AdminPayments() {
   const handleRefund = async (transaction: any) => {
     const transactionId = transaction.gatewayTransactionId || transaction.id
     const amount = transaction.amount || 0
-    const paymentMethod = transaction.paymentMethod || 'payu'
+    const paymentMethod = transaction.paymentMethod || 'razorpay'
     
     if (!transactionId) {
       toast({
@@ -234,8 +234,7 @@ export default function AdminPayments() {
               </TableCell>
               <TableCell>
                 <Badge variant="outline">
-                      {transaction.paymentMethod === 'razorpay' ? 'Razorpay' :
-    transaction.paymentMethod === 'payu' ? 'PayU' :
+                  {transaction.paymentMethod === 'razorpay' ? 'Razorpay' :
     transaction.paymentMethod === 'zoho' ? 'Zoho Pay' :
     transaction.paymentMethod || 'Unknown'}
                 </Badge>
@@ -413,9 +412,8 @@ export default function AdminPayments() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Methods</SelectItem>
-                                          <SelectItem value="payu">PayU</SelectItem>
-                        <SelectItem value="razorpay">Razorpay</SelectItem>
-                        <SelectItem value="zoho">Zoho Pay</SelectItem>
+                  <SelectItem value="razorpay">Razorpay</SelectItem>
+                  <SelectItem value="zoho">Zoho Pay</SelectItem>
                 </SelectContent>
               </Select>
             </div>

@@ -21,7 +21,6 @@ import { validateCoupon } from "@/lib/firebase-utils"
 import { Badge } from "@/components/ui/badge"
 import { AddressModal } from "@/components/profile/address-modal"
 import { 
-  handlePayUPayment, 
   handleRazorpayPayment, 
   handleZohoPayment,
   getPaymentMethodDisplayName,
@@ -123,7 +122,7 @@ export default function CheckoutPage() {
             state: orderData.shippingAddress.state || '',
             postalCode: orderData.shippingAddress.postalCode || '',
             country: orderData.shippingAddress.country || 'India',
-            paymentMethod: orderData.paymentMethod || 'payu',
+            paymentMethod: orderData.paymentMethod || 'razorpay',
             shippingMethod: orderData.shippingMethod || 'standard'
           }))
         }
@@ -464,29 +463,6 @@ export default function CheckoutPage() {
       }
 
       switch (formData.paymentMethod) {
-        case 'payu':
-          console.log('Creating PayU payment request...')
-          await handlePayUPayment(paymentData)
-          
-          // Show loading message
-          toast({
-            title: "Redirecting to Payment Gateway",
-            description: `Please wait while we redirect you to ${getPaymentMethodDisplayName('payu')}...`,
-          })
-          
-          // Add a timeout in case PayU doesn't respond
-          setTimeout(() => {
-            if (paymentProcessing) {
-              setPaymentProcessing(false)
-              toast({
-                title: "Payment Gateway Timeout",
-                description: "The payment gateway is taking longer than expected. Please try again.",
-                variant: "destructive"
-              })
-            }
-          }, 30000) // 30 seconds timeout
-          break
-
         case 'razorpay':
           console.log('Creating Razorpay payment request...')
           await handleRazorpayPayment(paymentData)
@@ -889,17 +865,7 @@ export default function CheckoutPage() {
                         </div>
                       </Label>
                     </div>
-                    <div className="flex items-center space-x-2 p-4 border rounded-lg">
-                      <RadioGroupItem value="payu" id="payu" />
-                      <Label htmlFor="payu" className="flex-1">
-                        <div>
-                          <p className="font-medium">{getPaymentMethodDisplayName('payu')}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {getPaymentMethodDescription('payu')}
-                          </p>
-                        </div>
-                      </Label>
-                    </div>
+
 
                   </RadioGroup>
                 </CardContent>

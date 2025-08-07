@@ -24,7 +24,7 @@ export function TransactionModal({ open, onOpenChange, transaction }: Transactio
   const handleRefund = async () => {
     const transactionId = transaction.gatewayTransactionId || transaction.id
     const amount = transaction.amount || 0
-    const paymentMethod = transaction.paymentMethod || 'payu'
+    const paymentMethod = transaction.paymentMethod || 'razorpay'
     
     if (!transactionId) {
       toast({
@@ -192,10 +192,9 @@ export function TransactionModal({ open, onOpenChange, transaction }: Transactio
               <div className="flex justify-between">
                 <span>Payment Method</span>
                 <span>
-                                  {transaction.paymentMethod === 'payu' ? 'PayU' :
-                transaction.paymentMethod === 'razorpay' ? 'Razorpay' :
+                  {transaction.paymentMethod === 'razorpay' ? 'Razorpay' :
                 transaction.paymentMethod === 'zoho' ? 'Zoho Pay' :
-                transaction.paymentMethod || "PayU"}
+                transaction.paymentMethod || "Razorpay"}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -237,7 +236,7 @@ export function TransactionModal({ open, onOpenChange, transaction }: Transactio
                 </div>
                 <p className="text-sm text-yellow-700 mt-1">
                   This will process a full refund of ₹{typeof transaction.amount === 'number' ? transaction.amount.toLocaleString() : transaction.amount} 
-                  via {transaction.paymentMethod === 'payu' ? 'PayU' : transaction.paymentMethod === 'razorpay' ? 'Razorpay' : transaction.paymentMethod === 'zoho' ? 'Zoho Pay' : 'the payment gateway'}.
+                  via {transaction.paymentMethod === 'razorpay' ? 'Razorpay' : transaction.paymentMethod === 'zoho' ? 'Zoho Pay' : 'the payment gateway'}.
                   This action cannot be undone.
                 </p>
               </div>

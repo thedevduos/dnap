@@ -242,8 +242,8 @@ export default function OrderDetailPage() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm">
-                    {order.paymentMethod === 'payu' ? 'PayU Payment Gateway' :
-                 order.paymentMethod === 'razorpay' ? 'Razorpay' :
+                    {order.paymentMethod === 'razorpay' ? 'Razorpay' :
+                 order.paymentMethod === 'zoho' ? 'Zoho Pay' :
                  order.paymentMethod}
                   </p>
                   {order.transactionId && (

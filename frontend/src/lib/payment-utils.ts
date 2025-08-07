@@ -30,42 +30,6 @@ export const initializeRazorpay = async (): Promise<any> => {
   return window.Razorpay;
 };
 
-// PayU Payment Handler
-export const handlePayUPayment = async (paymentData: any): Promise<void> => {
-  const response = await fetch(`${import.meta.env.VITE_BACKEND_API_URL}/api/payment/create-payment`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      ...paymentData,
-      paymentMethod: 'payu'
-    }),
-  });
-
-  const result = await response.json();
-  
-  if (result.success) {
-    // Create form and submit to PayU
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = result.paymentUrl;
-    
-    Object.keys(result.params).forEach(key => {
-      const input = document.createElement('input');
-      input.type = 'hidden';
-      input.name = key;
-      input.value = result.params[key];
-      form.appendChild(input);
-    });
-    
-    document.body.appendChild(form);
-    form.submit();
-  } else {
-    throw new Error(result.message || 'Failed to create PayU payment');
-  }
-};
-
 // Razorpay Payment Handler
 export const handleRazorpayPayment = async (paymentData: any): Promise<void> => {
   const response = await fetch(`${import.meta.env.VITE_BACKEND_API_URL}/api/payment/create-payment`, {
@@ -324,8 +288,6 @@ export const verifyPaymentResponse = async (responseData: any, paymentMethod: st
 // Get Payment Method Display Name
 export const getPaymentMethodDisplayName = (method: string): string => {
   switch (method) {
-    case 'payu':
-      return 'PayU Payment Gateway';
     case 'razorpay':
       return 'Razorpay';
     case 'zoho':
@@ -437,8 +399,6 @@ export const hasStoredOrderData = (): boolean => {
 // Get Payment Method Description
 export const getPaymentMethodDescription = (method: string): string => {
   switch (method) {
-    case 'payu':
-      return 'Pay securely with credit/debit cards, net banking, UPI, and digital wallets';
     case 'razorpay':
       return 'Pay securely with credit/debit cards, net banking, UPI, popular digital wallets, and international cards';
     case 'zoho':

@@ -24,7 +24,7 @@ router.post('/create-payment', async (req, res) => {
     }
 
     // Validate payment method
-    const validPaymentMethods = ['payu', 'razorpay', 'zoho'];
+    const validPaymentMethods = ['razorpay', 'zoho'];
     if (!validPaymentMethods.includes(paymentMethod)) {
       return res.status(400).json({
         success: false,

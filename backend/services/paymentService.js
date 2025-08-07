@@ -6,13 +6,6 @@ if (typeof fetch === 'undefined') {
   global.fetch = require('node-fetch');
 }
 
-// PayU Configuration
-const PAYU_CONFIG = {
-  key: process.env.PAYU_KEY,
-  salt: process.env.PAYU_SALT,
-  baseUrl: 'https://secure.payu.in/_payment'  
-};
-
 // Razorpay Configuration
 const RAZORPAY_CONFIG = {
   keyId: process.env.RZP_KEY_ID,
@@ -28,26 +21,6 @@ if (RAZORPAY_CONFIG.keyId && RAZORPAY_CONFIG.keySecret) {
   });
 }
 
-// Generate PayU hash
-const generatePayUHash = (params) => {
-  const { key, txnid, amount, productinfo, firstname, email, salt } = params;
-  
-  const hashString = `${key}|${txnid}|${amount}|${productinfo}|${firstname}|${email}|||||||||||${salt}`;
-  const hash = crypto.createHash('sha512').update(hashString).digest('hex');
-  
-  return hash;
-};
-
-// Verify PayU response hash
-const verifyPayUResponse = (params) => {
-  const { key, txnid, amount, productinfo, firstname, email, status, salt } = params;
-  
-  const hashString = `${salt}|${status}|||||||||||${email}|${firstname}|${productinfo}|${amount}|${txnid}|${key}`;
-  const hash = crypto.createHash('sha512').update(hashString).digest('hex');
-  
-  return hash;
-};
-
 // Create payment request
 const createPaymentRequest = async (orderData) => {
   try {
@@ -62,9 +35,6 @@ const createPaymentRequest = async (orderData) => {
     } = orderData;
 
     switch (paymentMethod) {
-      case 'payu':
-        return await createPayUPayment(orderId, amount, customerName, customerEmail, customerPhone, productInfo);
-      
       case 'razorpay':
         return await createRazorpayPayment(orderId, amount, customerName, customerEmail, customerPhone, productInfo);
       
@@ -79,36 +49,6 @@ const createPaymentRequest = async (orderData) => {
     console.error('Error creating payment request:', error);
     throw new Error('Failed to create payment request');
   }
-};
-
-// Create PayU payment
-const createPayUPayment = async (orderId, amount, customerName, customerEmail, customerPhone, productInfo) => {
-  const txnid = `TXN_${orderId}_${Date.now()}`;
-  
-  const paymentParams = {
-    key: PAYU_CONFIG.key,
-    txnid,
-    amount: amount.toString(),
-    productinfo: productInfo,
-    firstname: customerName.split(' ')[0],
-    email: customerEmail,
-    phone: customerPhone,
-    surl: `${process.env.FRONTEND_URL}/payment/success`,
-    furl: `${process.env.FRONTEND_URL}/payment/failure`,
-    service_provider: 'payu_paisa',
-    salt: PAYU_CONFIG.salt
-  };
-
-  // Generate hash
-  const hash = generatePayUHash(paymentParams);
-  paymentParams.hash = hash;
-
-  return {
-    success: true,
-    paymentMethod: 'payu',
-    paymentUrl: PAYU_CONFIG.baseUrl,
-    params: paymentParams
-  };
 };
 
 // Create Razorpay payment
@@ -185,9 +125,6 @@ const createZohoPayment = async (orderId, amount, customerName, customerEmail, c
 const verifyPaymentResponse = async (responseData, paymentMethod) => {
   try {
     switch (paymentMethod) {
-      case 'payu':
-        return await verifyPayUResponseData(responseData);
-      
       case 'razorpay':
         return await verifyRazorpayResponse(responseData);
       
@@ -202,49 +139,6 @@ const verifyPaymentResponse = async (responseData, paymentMethod) => {
     console.error('Error verifying payment response:', error);
     throw new Error('Payment verification failed');
   }
-};
-
-// Verify PayU response
-const verifyPayUResponseData = async (responseData) => {
-  const {
-    mihpayid,
-    mode,
-    status,
-    unmappedstatus,
-    key,
-    txnid,
-    amount,
-    productinfo,
-    firstname,
-    email,
-    hash
-  } = responseData;
-
-  // Verify hash
-  const calculatedHash = verifyPayUResponse({
-    key,
-    txnid,
-    amount,
-    productinfo,
-    firstname,
-    email,
-    status,
-    salt: PAYU_CONFIG.salt
-  });
-
-  if (hash !== calculatedHash) {
-    throw new Error('Invalid payment response hash');
-  }
-
-  return {
-    success: status === 'success',
-    transactionId: mihpayid,
-    paymentMode: mode,
-    status: unmappedstatus,
-    txnid,
-    amount: parseFloat(amount),
-    verified: true
-  };
 };
 
 // Verify Razorpay response
@@ -348,9 +242,6 @@ const processRefund = async (transactionData) => {
     }
 
     switch (paymentMethod) {
-      case 'payu':
-        return await processPayURefund(transactionId, amount, refundAmount, reason);
-      
       case 'razorpay':
         return await processRazorpayRefund(transactionId, amount, refundAmount, reason);
       
@@ -364,88 +255,6 @@ const processRefund = async (transactionData) => {
   } catch (error) {
     console.error('Error processing refund:', error);
     throw new Error(`Failed to process refund: ${error.message}`);
-  }
-};
-
-// Process PayU refund
-const processPayURefund = async (transactionId, amount, refundAmount, reason) => {
-  try {
-    console.log('Processing PayU refund:', { transactionId, amount, refundAmount, reason });
-    
-    // Check if PayU credentials are configured
-    if (!PAYU_CONFIG.key || !PAYU_CONFIG.salt) {
-      throw new Error('PayU credentials are not configured. Please check your environment variables.');
-    }
-    
-    // Validate PayU specific requirements
-    if (!transactionId || typeof transactionId !== 'string') {
-      throw new Error('Valid PayU transaction ID is required');
-    }
-    
-    if (refundAmount <= 0 || refundAmount > amount) {
-      throw new Error('Invalid refund amount. Must be greater than 0 and not exceed original amount.');
-    }
-
-    // PayU Refund API endpoint
-    const apiUrl = 'https://info.payu.in/merchant/postservice.php?form=2';
-    
-    // Prepare request parameters
-    const requestParams = {
-      key: PAYU_CONFIG.key,
-      command: 'cancel_refund_transaction',
-      var1: transactionId, // Transaction ID
-      var2: refundAmount.toString(), // Refund amount
-      var3: reason || 'Admin initiated refund', // Refund reason
-      hash: crypto.createHash('sha512')
-        .update(`${PAYU_CONFIG.key}|cancel_refund_transaction|${transactionId}|${refundAmount}|${reason || 'Admin initiated refund'}|${PAYU_CONFIG.salt}`)
-        .digest('hex')
-    };
-
-    console.log('Making PayU API request for refund...');
-    
-    // Make API request to PayU
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams(requestParams).toString()
-    });
-
-    if (!response.ok) {
-      throw new Error(`PayU API request failed with status: ${response.status}`);
-    }
-
-    const responseText = await response.text();
-    console.log('PayU API response for refund:', responseText);
-
-    // Parse the response
-    if (responseText && responseText.trim() !== '') {
-      // PayU refund response typically contains status information
-      if (responseText.includes('success') || responseText.includes('SUCCESS')) {
-        const refundId = `REF_PAYU_${transactionId}_${Date.now()}`;
-        
-        console.log('PayU refund processed successfully:', refundId);
-        
-        return {
-          success: true,
-          refundId: refundId,
-          refundAmount: refundAmount,
-          status: 'processed',
-          message: 'PayU refund processed successfully',
-          transactionId: transactionId,
-          processedAt: new Date().toISOString(),
-          response: responseText
-        };
-      } else {
-        throw new Error(`PayU refund failed: ${responseText}`);
-      }
-    } else {
-      throw new Error('Empty response from PayU API');
-    }
-  } catch (error) {
-    console.error('PayU refund processing error:', error);
-    throw new Error(`PayU refund failed: ${error.message}`);
   }
 };
 
@@ -542,9 +351,6 @@ const processRazorpayRefund = async (transactionId, amount, refundAmount, reason
 const getTransactionStatus = async (txnid, paymentMethod) => {
   try {
     switch (paymentMethod) {
-      case 'payu':
-        return await getPayUTransactionStatus(txnid);
-      
       case 'razorpay':
         return await getRazorpayTransactionStatus(txnid);
       
@@ -558,89 +364,6 @@ const getTransactionStatus = async (txnid, paymentMethod) => {
   } catch (error) {
     console.error('Error getting transaction status:', error);
     throw new Error('Failed to get transaction status');
-  }
-};
-
-// Get PayU transaction status
-const getPayUTransactionStatus = async (txnid) => {
-  try {
-    console.log(`Fetching PayU transaction status for txnid: ${txnid}`);
-    
-    // Check if PayU credentials are configured
-    if (!PAYU_CONFIG.key || !PAYU_CONFIG.salt) {
-      throw new Error('PayU credentials are not configured. Please check your environment variables.');
-    }
-
-    // PayU Transaction Details API endpoint
-    const apiUrl = 'https://info.payu.in/merchant/postservice.php?form=2';
-    
-    // Prepare request parameters
-    const requestParams = {
-      key: PAYU_CONFIG.key,
-      command: 'get_Transaction_Details',
-      var1: txnid, // Specific transaction ID
-      hash: crypto.createHash('sha512')
-        .update(`${PAYU_CONFIG.key}|get_Transaction_Details|${txnid}|${PAYU_CONFIG.salt}`)
-        .digest('hex')
-    };
-
-    console.log('Making PayU API request for transaction status...');
-    
-    // Make API request to PayU
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams(requestParams).toString()
-    });
-
-    if (!response.ok) {
-      throw new Error(`PayU API request failed with status: ${response.status}`);
-    }
-
-    const responseText = await response.text();
-    console.log('PayU API response for transaction status:', responseText);
-
-    // Parse the response
-    if (responseText && responseText.trim() !== '') {
-      const lines = responseText.trim().split('\n');
-      const transactionLine = lines.find(line => line.includes(txnid));
-      
-      if (transactionLine) {
-        const parts = transactionLine.split('|');
-        if (parts.length >= 8) {
-          return {
-            success: true,
-            status: parts[2] || 'pending',
-            amount: parseFloat(parts[1]) || 0,
-            txnid: parts[7] || txnid,
-            customerName: parts[3] || 'Unknown',
-            customerEmail: parts[4] || 'unknown@example.com',
-            createdAt: parts[5] ? new Date(parts[5]).toISOString() : new Date().toISOString(),
-            currency: 'INR'
-          };
-        }
-      }
-    }
-
-    // If transaction not found or invalid response
-    return {
-      success: false,
-      status: 'not_found',
-      amount: 0,
-      txnid,
-      error: 'Transaction not found or invalid response'
-    };
-  } catch (error) {
-    console.error('Error in getPayUTransactionStatus:', error);
-    return {
-      success: false,
-      status: 'error',
-      amount: 0,
-      txnid,
-      error: error.message || 'Failed to get PayU transaction status'
-    };
   }
 };
 
@@ -692,17 +415,8 @@ const getAllTransactions = async () => {
   try {
     console.log('Fetching all transactions from payment gateways...');
     
-    let payuTransactions = { success: false, transactions: [] };
     let razorpayTransactions = { success: false, transactions: [] };
     let zohoTransactions = { success: false, transactions: [] };
-    
-    // Fetch PayU transactions with error handling
-    try {
-      payuTransactions = await getPayUAllTransactions();
-    } catch (error) {
-      console.error('Error fetching PayU transactions:', error);
-      payuTransactions = { success: false, transactions: [], error: error.message };
-    }
     
     // Fetch Razorpay transactions with error handling
     try {
@@ -723,7 +437,6 @@ const getAllTransactions = async () => {
     return {
       success: true,
       data: {
-        payu: payuTransactions,
         razorpay: razorpayTransactions,
         zoho: zohoTransactions
       }
@@ -734,130 +447,9 @@ const getAllTransactions = async () => {
       success: false,
       error: error.message,
       data: {
-        payu: { success: false, transactions: [] },
         razorpay: { success: false, transactions: [] },
         zoho: { success: false, transactions: [] }
       }
-    };
-  }
-};
-
-// Get all PayU transactions
-const getPayUAllTransactions = async () => {
-  try {
-    console.log('Fetching PayU transactions...');
-    
-    // Check if PayU credentials are configured
-    if (!PAYU_CONFIG.key || !PAYU_CONFIG.salt) {
-      console.warn('PayU credentials are not configured. Please check your environment variables.');
-      return {
-        success: false,
-        transactions: [],
-        error: 'PayU credentials are not configured'
-      };
-    }
-
-    // PayU Transaction Info API endpoint (matching documentation exactly)
-    const apiUrl = 'https://info.payu.in/merchant/postservice?form=2';
-    
-    // Prepare request parameters with date range (end date = current date/time, start date = end date - 7 days)
-    const endDate = new Date(); // Current date and time
-    const startDate = new Date(endDate);
-    startDate.setDate(endDate.getDate() - 7); // Start date = end date - 7 days
-    
-    // Format dates as YYYY-MM-DD HH:MM:SS (matching documentation format)
-    const startDateStr = startDate.toISOString().slice(0, 19).replace('T', ' ');
-    const endDateStr = endDate.toISOString().slice(0, 19).replace('T', ' ');
-    
-    // Calculate hash according to PayU documentation: sha512(key|command|var1|salt)
-    const hashString = `${PAYU_CONFIG.key}|get_transaction_info|${startDateStr}|${PAYU_CONFIG.salt}`;
-    const hash = crypto.createHash('sha512').update(hashString).digest('hex');
-    
-    // Request parameters matching the documentation example
-    const requestParams = {
-      key: PAYU_CONFIG.key,
-      command: 'get_transaction_info',
-      var1: startDateStr,
-      var2: endDateStr,
-      hash: hash
-    };
-
-    console.log('Making PayU API request for transaction details...');
-    
-    // Make API request to PayU
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams(requestParams).toString()
-    });
-
-    if (!response.ok) {
-      throw new Error(`PayU API request failed with status: ${response.status}`);
-    }
-
-    const responseText = await response.text();
-    console.log('PayU API response:', responseText);
-    console.log('PayU API response length:', responseText.length);
-    console.log('PayU API response type:', typeof responseText);
-
-    // Parse the response
-    let transactions = [];
-    
-    if (responseText && responseText.trim() !== '') {
-      try {
-        // PayU returns JSON response
-        const responseData = JSON.parse(responseText);
-        
-        if (responseData.status === 1 && responseData.Transaction_details && Array.isArray(responseData.Transaction_details)) {
-          transactions = responseData.Transaction_details.map(transaction => {
-            try {
-              return {
-                id: transaction.id || 'Unknown',
-                amount: parseFloat(transaction.amount) || 0,
-                status: transaction.status?.toLowerCase() || 'pending',
-                customerName: `${transaction.firstname || ''} ${transaction.lastname || ''}`.trim() || 'Unknown',
-                customerEmail: transaction.email || 'unknown@example.com',
-                paymentMethod: 'payu',
-                createdAt: transaction.addedon ? new Date(transaction.addedon).toISOString() : new Date().toISOString(),
-                orderId: transaction.txnid || null,
-                txnid: transaction.txnid || null,
-                currency: 'INR',
-                method: transaction.mode || 'online',
-                bankName: transaction.bank_name || null,
-                transactionFee: parseFloat(transaction.transaction_fee) || 0
-              };
-            } catch (parseError) {
-              console.warn('Error parsing PayU transaction:', transaction, parseError);
-              return null;
-            }
-          }).filter(Boolean); // Remove null entries
-        } else if (responseData.status === 0) {
-          console.warn('PayU API error:', responseData.msg);
-          if (responseData.message && responseData.message.includes('Invalid requests limit reached')) {
-            console.warn('PayU API rate limit reached. Please contact PayU support at care@payu.in');
-          }
-        }
-      } catch (parseError) {
-        console.warn('Error parsing PayU JSON response:', parseError);
-        console.warn('Raw response:', responseText);
-        transactions = [];
-      }
-    }
-
-    console.log(`Successfully fetched ${transactions.length} PayU transactions`);
-    
-    return {
-      success: true,
-      transactions
-    };
-  } catch (error) {
-    console.error('Error in getPayUAllTransactions:', error);
-    return {
-      success: false,
-      transactions: [],
-      error: error.message || 'Failed to fetch PayU transactions'
     };
   }
 };
@@ -952,7 +544,5 @@ module.exports = {
   verifyPaymentResponse,
   processRefund,
   getTransactionStatus,
-  getAllTransactions,
-  generatePayUHash,
-  verifyPayUResponse
+  getAllTransactions
 };

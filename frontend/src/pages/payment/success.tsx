@@ -66,7 +66,7 @@ export default function PaymentSuccessPage() {
     sessionStorage.removeItem('paymentProcessed')
     
     // Additional check: if we've already processed this payment, skip
-    const paymentMethod = searchParams.get('method') || 'payu'
+    const paymentMethod = searchParams.get('method') || 'razorpay'
     if (paymentMethod === 'razorpay') {
       const razorpayResponse = sessionStorage.getItem('razorpayResponse')
       if (!razorpayResponse) {
@@ -81,7 +81,7 @@ export default function PaymentSuccessPage() {
     const processPaymentSuccess = async () => {
       try {
         // Get payment method from URL params or session storage
-        const paymentMethod = searchParams.get('method') || 'payu'
+        const paymentMethod = searchParams.get('method') || 'razorpay'
         
         let paymentData: any = {}
         let verificationResult: any = null
@@ -123,21 +123,8 @@ export default function PaymentSuccessPage() {
           }
 
         } else {
-          // Handle PayU response
-          paymentData = {
-            mihpayid: searchParams.get('mihpayid'),
-            mode: searchParams.get('mode'),
-            status: searchParams.get('status'),
-            unmappedstatus: searchParams.get('unmappedstatus'),
-            key: searchParams.get('key'),
-            txnid: searchParams.get('txnid'),
-            amount: searchParams.get('amount'),
-            productinfo: searchParams.get('productinfo'),
-            firstname: searchParams.get('firstname'),
-            email: searchParams.get('email'),
-            hash: searchParams.get('hash')
-          }
-          verificationResult = await verifyPaymentResponse(paymentData, 'payu')
+          // Handle unknown payment method
+          throw new Error(`Unsupported payment method: ${paymentMethod}`)
         }
 
         // Log payment data for debugging
@@ -152,8 +139,7 @@ export default function PaymentSuccessPage() {
 
         // Check if an order with this transaction ID already exists
         const transactionId = paymentMethod === 'razorpay' ? paymentData.razorpay_payment_id : 
-                            paymentMethod === 'zoho' ? paymentData.paymentId :
-                            paymentData.mihpayid
+                            paymentMethod === 'zoho' ? paymentData.paymentId : null
         
         if (transactionId) {
           const existingOrderQuery = query(
@@ -195,8 +181,7 @@ export default function PaymentSuccessPage() {
             const orderRef = await addDoc(collection(db, "orders"), {
               ...orderData,
               transactionId: paymentMethod === 'razorpay' ? paymentData.razorpay_payment_id : 
-                            paymentMethod === 'zoho' ? paymentData.paymentId :
-                            paymentData.mihpayid,
+                            paymentMethod === 'zoho' ? paymentData.paymentId : null,
               createdAt: serverTimestamp()
             })
 
@@ -340,7 +325,7 @@ export default function PaymentSuccessPage() {
         sessionStorage.setItem('paymentProcessed', 'true')
         
         // Remove razorpay response on error as well
-        const paymentMethod = searchParams.get('method') || 'payu'
+        const paymentMethod = searchParams.get('method') || 'razorpay'
         if (paymentMethod === 'razorpay') {
           sessionStorage.removeItem('razorpayResponse')
         }

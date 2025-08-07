@@ -71,7 +71,7 @@ export function useTransactions() {
                 // Ensure consistent data types
                 amount: typeof data.amount === 'number' ? data.amount : parseFloat(data.amount || '0'),
                 status: data.status || 'pending',
-                paymentMethod: data.paymentMethod || 'payu',
+                paymentMethod: data.paymentMethod || 'razorpay',
                 orderId: data.orderId || '',
                 gatewayTransactionId: data.gatewayTransactionId || data.transactionId || '',
                 customerName: data.customerName || '',
@@ -139,21 +139,7 @@ export function useTransactions() {
         if (result.success && result.data) {
           const allPgTransactions: PaymentGatewayTransaction[] = []
           
-          // Process PayU transactions safely
-          if (result.data.payu?.success && Array.isArray(result.data.payu.transactions)) {
-            const payuTransactions = result.data.payu.transactions.map((t: any) => ({
-              id: t.id || `payu_${Date.now()}_${Math.random()}`,
-              amount: typeof t.amount === 'number' ? t.amount : parseFloat(t.amount || '0'),
-              status: t.status || 'pending',
-              customerName: t.customerName || 'Unknown',
-              customerEmail: t.customerEmail || 'unknown@example.com',
-              paymentMethod: 'payu',
-              createdAt: t.createdAt || new Date().toISOString(),
-              orderId: t.orderId || '',
-              refundAmount: typeof t.refundAmount === 'number' ? t.refundAmount : parseFloat(t.refundAmount || '0')
-            }))
-            allPgTransactions.push(...payuTransactions)
-          }
+
           
           // Process Razorpay transactions safely
           if (result.data.razorpay?.success && Array.isArray(result.data.razorpay.transactions)) {

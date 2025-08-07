@@ -109,7 +109,6 @@ export default function AdminOrders() {
     // Get payment method display name
     const getPaymentMethodName = (method: string) => {
       switch (method) {
-        case 'payu': return 'PayU'
         case 'razorpay': return 'Razorpay'
         case 'zoho': return 'Zoho Pay'
         default: return method

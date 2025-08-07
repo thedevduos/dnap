@@ -338,7 +338,7 @@ export const processRefund = async (transactionId: string, amount: number, payme
                         transactionId
     
     // Determine payment method
-    const refundPaymentMethod = transactionData.paymentMethod || paymentMethod || 'payu'
+    const refundPaymentMethod = transactionData.paymentMethod || paymentMethod || 'razorpay'
     
     console.log('Processing refund with gateway ID:', gatewayTxnId, 'method:', refundPaymentMethod)
     
