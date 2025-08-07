@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { useAuth } from "@/contexts/auth-context"
-import { BookWithEbook } from "@/types/ebook"
+import { BookWithEbook, EbookSubscription } from "@/types/ebook"
 
 export function useUserEbookAccess() {
   const [accessibleBooks, setAccessibleBooks] = useState<BookWithEbook[]>([])
@@ -42,7 +42,7 @@ export function useUserEbookAccess() {
       const activeSubscriptions = subscriptionsSnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
-      }))
+      })) as (EbookSubscription & { id: string })[]
 
       // Get all books that user has access to
       const accessibleBookIds = new Set<string>()
