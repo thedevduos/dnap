@@ -9,6 +9,7 @@ import { useUserEbookAccess } from "@/hooks/use-user-ebook-access"
 import { useAuth } from "@/contexts/auth-context"
 import { useToast } from "@/hooks/use-toast"
 import { PDFViewer } from "@/components/ebook/pdf-viewer"
+import { MobileOnlyAccess } from "@/components/ebook/mobile-only-access"
 import { checkUserBookAccess } from "@/lib/ebook-utils"
 import { Link } from "react-router-dom"
 
@@ -202,12 +203,14 @@ export default function MyBooksPage() {
         </div>
 
         {selectedBook && (
-          <PDFViewer
-            open={pdfViewerOpen}
-            onOpenChange={setPdfViewerOpen}
-            pdfUrl={selectedBook.pdfUrl}
-            bookTitle={selectedBook.title}
-          />
+          <MobileOnlyAccess>
+            <PDFViewer
+              open={pdfViewerOpen}
+              onOpenChange={setPdfViewerOpen}
+              pdfUrl={selectedBook.pdfUrl}
+              bookTitle={selectedBook.title}
+            />
+          </MobileOnlyAccess>
         )}
       </div>
     </div>

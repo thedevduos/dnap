@@ -11,11 +11,11 @@ export default defineConfig({
   },
   server: {
     allowedHosts: [
-      "8815782782b7.ngrok-free.app",
+      "0a935d9cd8b6.ngrok-free.app",
       "localhost",
       "127.0.0.1",
       "stage.dnap.in",
-      "dnap.in"
+      "dnap.in",
     ],
   },
 })
