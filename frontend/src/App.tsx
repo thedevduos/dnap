@@ -62,6 +62,11 @@ import AdminZohoConnection from "@/pages/admin/zoho-connection"
 import AdminEbookManagement from "@/pages/admin/ebook-management"
 import AdminEbookOrders from "@/pages/admin/ebook-orders"
 import AdminEbookSubscriptions from "@/pages/admin/ebook-subscriptions"
+import AdminAuthorBooks from "@/pages/admin/author-books"
+
+// Author Pages
+import AuthorDashboard from "@/pages/author/dashboard"
+import NewAuthorPage from "@/pages/new-author"
 
 import "./globals.css"
 
@@ -105,6 +110,20 @@ export default function App() {
                               <Route path="/ebook-management" element={<AdminEbookManagement />} />
                               <Route path="/ebook-orders" element={<AdminEbookOrders />} />
                               <Route path="/ebook-subscriptions" element={<AdminEbookSubscriptions />} />
+                              <Route path="/author-books" element={<AdminAuthorBooks />} />
+                            </Routes>
+                          </ProtectedRoute>
+                        }
+                      />
+
+                      {/* Protected Author Routes */}
+                      <Route
+                        path="/author/*"
+                        element={
+                          <ProtectedRoute>
+                            <SubscriptionExpiryChecker />
+                            <Routes>
+                              <Route path="/dashboard" element={<AuthorDashboard />} />
                             </Routes>
                           </ProtectedRoute>
                         }
@@ -168,6 +187,7 @@ export default function App() {
                                   <Route path="/refund-policy" element={<RefundPolicy />} />
                                   <Route path="/shipping-policy" element={<ShippingPolicy />} />
                                   <Route path="/terms-conditions" element={<TermsConditions />} />
+                                  <Route path="/new-author" element={<NewAuthorPage />} />
                                 </Routes>
                               </main>
                               <Footer />

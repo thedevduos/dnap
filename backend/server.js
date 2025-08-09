@@ -24,6 +24,7 @@ const emailService = require('./services/emailService');
 const paymentRoutes = require('./routes/payment');
 const whatsappRoutes = require('./routes/whatsapp');
 const zohoRoutes = require('./routes/zoho');
+const jiraRoutes = require('./routes/jira');
 
 // Import Zoho service for automated token refresh
 const zohoService = require('./services/zohoService');
@@ -280,6 +281,9 @@ app.use('/api/whatsapp', whatsappRoutes);
 
 // Zoho routes
 app.use('/api/zoho', zohoRoutes);
+
+// Jira routes
+app.use('/api/jira', jiraRoutes);
 
 // Zoho auto-refresh status endpoint
 app.get('/api/zoho/auto-refresh-status', async (req, res) => {

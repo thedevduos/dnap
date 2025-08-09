@@ -19,6 +19,7 @@ import { useUser } from "@/contexts/user-context"
 import { useToast } from "@/hooks/use-toast"
 import anime from "animejs"
 import { UpdatesBar } from "@/components/layout/updates-bar"
+import { AuthorDashboardLink } from "@/components/layout/author-dashboard-link"
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
