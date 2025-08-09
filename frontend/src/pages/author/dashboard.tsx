@@ -13,6 +13,9 @@ import { SalesReportModal } from "@/components/author/sales-report-modal"
 import { AffiliateLinksModal } from "@/components/author/affiliate-links-modal"
 import { collection, query, where, getDocs } from "firebase/firestore"
 import { db } from "@/lib/firebase"
+import { Label } from "@/components/ui/label"
+import { uploadAuthorFile, updateAuthorBookStage } from "@/lib/author-utils"
+import { useToast } from "@/hooks/use-toast"
 
 export default function AuthorDashboard() {
   const { books, loading } = useAuthorBooks()
@@ -23,6 +26,9 @@ export default function AuthorDashboard() {
   const [selectedBook, setSelectedBook] = useState<any>(null)
   const [authorStatus, setAuthorStatus] = useState<string>('pending')
   const [paymentRequired, setPaymentRequired] = useState<any>(null)
+  const [paymentScreenshotFile, setPaymentScreenshotFile] = useState<File | null>(null)
+  const [submittingPayment, setSubmittingPayment] = useState(false)
+  const { toast } = useToast()
 
   useEffect(() => {
     if (user) {
@@ -50,6 +56,37 @@ export default function AuthorDashboard() {
   const checkPaymentStatus = () => {
     const paymentRequiredBook = books.find(book => book.stage === 'payment')
     setPaymentRequired(paymentRequiredBook || null)
+  }
+
+  const handlePaymentFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null
+    setPaymentScreenshotFile(file)
+  }
+
+  const handleSubmitPaymentProof = async () => {
+    if (!user || !paymentRequired) return
+    if (!paymentScreenshotFile) {
+      toast({ title: "No file selected", description: "Please upload a screenshot image.", variant: "destructive" })
+      return
+    }
+
+    try {
+      setSubmittingPayment(true)
+      const url = await uploadAuthorFile(paymentScreenshotFile, 'payment_screenshots', user.uid)
+      await updateAuthorBookStage(paymentRequired.id, 'payment_verification', {
+        paymentScreenshot: url,
+        paymentStatus: 'paid'
+      })
+
+      toast({ title: "Payment submitted", description: "Your payment screenshot has been sent for verification." })
+      setPaymentScreenshotFile(null)
+      // Refresh local payment state
+      checkPaymentStatus()
+    } catch (error) {
+      toast({ title: "Upload failed", description: "Could not submit payment screenshot. Try again.", variant: 'destructive' })
+    } finally {
+      setSubmittingPayment(false)
+    }
   }
 
   const getStageColor = (stage: string) => {
@@ -118,12 +155,13 @@ export default function AuthorDashboard() {
                   <input
                     type="file"
                     accept="image/*"
+                    onChange={handlePaymentFileChange}
                     className="mt-2 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
                   />
                 </div>
 
-                <Button className="w-full">
-                  Submit Payment Screenshot
+                <Button className="w-full" onClick={handleSubmitPaymentProof} disabled={submittingPayment}>
+                  {submittingPayment ? 'Submitting...' : 'Submit Payment Screenshot'}
                 </Button>
               </div>
             </CardContent>

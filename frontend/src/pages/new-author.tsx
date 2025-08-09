@@ -43,7 +43,7 @@ export default function NewAuthorPage() {
     wordDoc: null as File | null
   })
 
-  const [uploading, setUploading] = useState({
+  const [uploading] = useState({
     pdf: false,
     image: false,
     wordDoc: false
@@ -130,7 +130,7 @@ export default function NewAuthorPage() {
     setIsSubmitting(true)
     try {
       // Create author account first
-      const { authorRef, authUser } = await createAuthorAccount(personalData)
+      const { authUser } = await createAuthorAccount(personalData)
       const authorId = authUser.user.uid
 
       // Upload files

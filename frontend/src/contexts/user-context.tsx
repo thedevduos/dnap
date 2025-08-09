@@ -398,6 +398,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   }
 
   const isAdmin = userProfile?.role === 'admin' || false
+  const isAuthor = userProfile?.role === 'author' || false
   
   // Consider both auth loading and user profile loading, and auth initialization
   const isLoading = authLoading || loading || !authInitialized
@@ -406,6 +407,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     userProfile,
     loading: isLoading,
     isAdmin,
+    isAuthor,
     updateProfile,
     addAddress,
     updateAddress,

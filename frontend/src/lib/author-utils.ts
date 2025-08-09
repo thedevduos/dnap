@@ -5,7 +5,6 @@ import {
   doc, 
   serverTimestamp,
   query,
-  where,
   getDocs,
   getDoc
 } from "firebase/firestore"

@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { 
   Table, 
@@ -22,7 +21,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { BookOpen, MoreHorizontal, Eye, DollarSign, Check, X, Edit } from "lucide-react"
+import { BookOpen, MoreHorizontal, Eye, DollarSign, Check, X } from "lucide-react"
 import { useAllAuthorBooks } from "@/hooks/use-all-author-books"
 import { updateAuthorBookStage, sendAuthorNotification } from "@/lib/author-utils"
 import { useToast } from "@/hooks/use-toast"
