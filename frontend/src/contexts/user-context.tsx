@@ -48,6 +48,7 @@ interface UserContextType {
   userProfile: UserProfile | null
   loading: boolean
   isAdmin: boolean
+  isAuthor: boolean
   updateProfile: (updates: Partial<UserProfile>) => Promise<void>
   addAddress: (address: Omit<Address, 'id'>) => Promise<void>
   updateAddress: (addressId: string, updates: Partial<Address>) => Promise<void>

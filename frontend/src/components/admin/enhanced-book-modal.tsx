@@ -12,6 +12,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
 import { addBook, updateBook, uploadImage, uploadBookPDF } from "@/lib/firebase-utils"
 import { useEbookPlans } from "@/hooks/use-ebook-plans"
+import { collection, query, where, getDocs } from "firebase/firestore"
+import { db } from "@/lib/firebase"
 import { Upload, ArrowLeft, ArrowRight, FileText, Image } from "lucide-react"
 
 interface EnhancedBookModalProps {
@@ -22,9 +24,12 @@ interface EnhancedBookModalProps {
 
 export function EnhancedBookModal({ isOpen, onClose, book }: EnhancedBookModalProps) {
   const [currentStep, setCurrentStep] = useState(1)
+  const [authors, setAuthors] = useState<any[]>([])
+  const [loadingAuthors, setLoadingAuthors] = useState(false)
   const [formData, setFormData] = useState({
     title: "",
     author: "",
+    authorId: "",
     category: "",
     price: "",
     description: "",
@@ -47,11 +52,36 @@ export function EnhancedBookModal({ isOpen, onClose, book }: EnhancedBookModalPr
   const { toast } = useToast()
   const { plans } = useEbookPlans()
 
+  // Load authors when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      loadAuthors()
+    }
+  }, [isOpen])
+
+  const loadAuthors = async () => {
+    setLoadingAuthors(true)
+    try {
+      const authorsQuery = query(collection(db, "authors"), where("status", "==", "active"))
+      const authorsSnapshot = await getDocs(authorsQuery)
+      const authorsData = authorsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }))
+      setAuthors(authorsData)
+    } catch (error) {
+      console.error("Error loading authors:", error)
+    } finally {
+      setLoadingAuthors(false)
+    }
+  }
+
   useEffect(() => {
     if (book) {
       setFormData({
         title: book.title || "",
         author: book.author || "",
+        authorId: book.authorId || "",
         category: book.category || "",
         price: book.price?.toString() || "",
         description: book.description || "",
@@ -70,6 +100,7 @@ export function EnhancedBookModal({ isOpen, onClose, book }: EnhancedBookModalPr
       setFormData({
         title: "",
         author: "",
+        authorId: "",
         category: "",
         price: "",
         description: "",
@@ -169,9 +200,21 @@ export function EnhancedBookModal({ isOpen, onClose, book }: EnhancedBookModalPr
   }
 
   const nextStep = () => {
-    if (currentStep < 3) {
+    if (currentStep < 4) {
       // If moving to step 3 (PDF upload), ensure previous steps are completed
       if (currentStep === 2) {
+        // Validate author assignment
+        if (!formData.authorId) {
+          toast({
+            title: "Author Required",
+            description: "Please assign an author to this book.",
+            variant: "destructive",
+          })
+          return
+        }
+      }
+      
+      if (currentStep === 3) {
         // Check if at least one visibility option is selected
         const hasVisibility = formData.ebookVisibility.general || 
                              formData.ebookVisibility.singleEbooks || 
@@ -216,6 +259,7 @@ export function EnhancedBookModal({ isOpen, onClose, book }: EnhancedBookModalPr
       const bookData = {
         title: formData.title,
         author: formData.author,
+        authorId: formData.authorId,
         category: formData.category,
         price: parseFloat(formData.price),
         description: formData.description,
@@ -268,8 +312,9 @@ export function EnhancedBookModal({ isOpen, onClose, book }: EnhancedBookModalPr
           <div className="flex items-center justify-center space-x-4">
             {[
               { step: 1, label: "Basic Details" },
-              { step: 2, label: "Visibility" },
-              { step: 3, label: "PDF Upload*" }
+              { step: 2, label: "Assign Author" },
+              { step: 3, label: "Visibility" },
+              { step: 4, label: "PDF Upload*" }
             ].map(({ step, label }) => (
               <div key={step} className="flex items-center">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
@@ -277,7 +322,7 @@ export function EnhancedBookModal({ isOpen, onClose, book }: EnhancedBookModalPr
                 }`}>
                   {step}
                 </div>
-                {step < 3 && (
+                {step < 4 && (
                   <div className={`w-12 h-0.5 mx-2 ${
                     currentStep > step ? 'bg-primary' : 'bg-muted'
                   }`} />
@@ -446,8 +491,59 @@ export function EnhancedBookModal({ isOpen, onClose, book }: EnhancedBookModalPr
               </Card>
             )}
 
-            {/* Step 2: E-book Visibility */}
+            {/* Step 2: Assign Author */}
             {currentStep === 2 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Assign Author</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div>
+                    <Label htmlFor="authorSelect">Select Author *</Label>
+                    {loadingAuthors ? (
+                      <div className="text-center py-4">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+                        <p className="text-sm text-muted-foreground mt-2">Loading authors...</p>
+                      </div>
+                    ) : (
+                      <Select
+                        value={formData.authorId}
+                        onValueChange={(value) => {
+                          const selectedAuthor = authors.find(a => a.id === value)
+                          setFormData({
+                            ...formData,
+                            authorId: value,
+                            author: selectedAuthor?.name || ""
+                          })
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select an author" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {authors.map(author => (
+                            <SelectItem key={author.id} value={author.id}>
+                              {author.name} ({author.email})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+                  
+                  {authors.length === 0 && !loadingAuthors && (
+                    <div className="text-center py-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <p className="text-sm text-yellow-800">
+                        No active authors found. Authors need to be approved before they can be assigned to books.
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Step 3: E-book Visibility */}
+            {currentStep === 3 && (
               <Card>
                 <CardHeader>
                   <CardTitle>E-book Visibility Settings</CardTitle>
@@ -521,8 +617,8 @@ export function EnhancedBookModal({ isOpen, onClose, book }: EnhancedBookModalPr
               </Card>
             )}
 
-            {/* Step 3: PDF Upload */}
-            {currentStep === 3 && (
+            {/* Step 4: PDF Upload */}
+            {currentStep === 4 && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center">
@@ -602,7 +698,7 @@ export function EnhancedBookModal({ isOpen, onClose, book }: EnhancedBookModalPr
                 Previous
               </Button>
               
-              {currentStep < 3 ? (
+              {currentStep < 4 ? (
                 <Button type="button" onClick={nextStep}>
                   Next
                   <ArrowRight className="h-4 w-4 ml-2" />

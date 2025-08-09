@@ -217,41 +217,30 @@ export const sendAuthorNotification = async (authorEmail: string, stage: string,
       return
     }
 
-    let subject = ''
-    let message = ''
+    const response = await fetch(`${backendUrl}/api/authors/send-notification`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        authorEmail,
+        stage,
+        bookTitle,
+        additionalData
+      }),
+    })
 
-    switch (stage) {
-      case 'review':
-        subject = `Book Submission Received - ${bookTitle}`
-        message = `Your book "${bookTitle}" has been submitted successfully and is now under review by our team.`
-        break
-      case 'payment':
-        subject = `Payment Required - ${bookTitle}`
-        message = `Your book "${bookTitle}" has been approved! Please complete the payment of ₹${additionalData?.amount} to proceed.`
-        break
-      case 'payment_verification':
-        subject = `Payment Under Verification - ${bookTitle}`
-        message = `We have received your payment screenshot for "${bookTitle}". Our team is verifying the payment.`
-        break
-      case 'editing':
-        subject = `Editing Started - ${bookTitle}`
-        message = `Great news! Your book "${bookTitle}" is now in the editing and proofreading stage.`
-        break
-      case 'completed':
-        subject = `Book Published - ${bookTitle}`
-        message = `Congratulations! Your book "${bookTitle}" has been successfully published and is now available for sale.`
-        break
-      case 'rejected':
-        subject = `Book Submission Update - ${bookTitle}`
-        message = `We regret to inform you that your book "${bookTitle}" could not be accepted for publication at this time.`
-        break
+    const result = await response.json()
+    
+    if (!result.success) {
+      throw new Error(result.message || 'Failed to send notification')
     }
 
-    // This would call your backend email service
-    // Implementation depends on your email service setup
-    console.log('Sending author notification:', { authorEmail, subject, message })
+    console.log('Author notification sent successfully:', result.messageId)
+    return result
     
   } catch (error) {
     console.error('Error sending author notification:', error)
+    throw error
   }
 }
