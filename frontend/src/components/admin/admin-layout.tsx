@@ -72,6 +72,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     { name: "Plans & Books", href: "/admin/ebook-management", icon: BookOpen, section: "ebook" },
     { name: "Orders", href: "/admin/ebook-orders", icon: ShoppingCart, section: "ebook" },
     { name: "Subscriptions", href: "/admin/ebook-subscriptions", icon: Users, section: "ebook" },
+    { name: "Author Books", href: "/admin/author-books", icon: BookOpen, section: "authors" },
     { name: "Books", href: "/admin/books", icon: BookOpen, section: "ecommerce" },
     { name: "Orders", href: "/admin/orders", icon: ShoppingCart, section: "ecommerce" },
     { name: "Customers", href: "/admin/customers", icon: CustomersIcon, section: "ecommerce" },
@@ -119,6 +120,8 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         return 'E-book Management'
       case 'ecommerce':
         return 'Ecommerce Management'
+      case 'authors':
+        return 'Authors Management'
       default:
         return section.replace(/([A-Z])/g, ' $1').trim()
     }

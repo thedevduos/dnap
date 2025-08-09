@@ -17,8 +17,9 @@ import { EbookCartIcon } from "./ebook-cart-icon"
 import { useAuth } from "@/contexts/auth-context"
 import { useUser } from "@/contexts/user-context"
 import { useToast } from "@/hooks/use-toast"
-import anime from "animejs"
+import anime from "animejs/lib/anime.es.js"
 import { UpdatesBar } from "@/components/layout/updates-bar"
+import { AuthorDashboardLink } from "@/components/layout/author-dashboard-link"
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -159,6 +160,8 @@ export function Header() {
                       Profile & Orders
                     </Link>
                   </DropdownMenuItem>
+                  {/* Author Dashboard (visible if user is an author) */}
+                  <AuthorDashboardLink />
                   {isAdmin && (
                     <>
                       <DropdownMenuSeparator />
@@ -225,6 +228,8 @@ export function Header() {
                       My Account
                     </Button>
                   </Link>
+                  {/* Author Dashboard (visible if user is an author) */}
+                  <AuthorDashboardLink isMobile />
                   {isAdmin && (
                     <Link to="/admin/dashboard" onClick={() => setIsMenuOpen(false)}>
                       <Button variant="outline" className="w-full justify-start">

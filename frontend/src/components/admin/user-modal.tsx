@@ -183,6 +183,7 @@ export function UserModal({ isOpen, onClose, user }: UserModalProps) {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="author">Author</SelectItem>
               </SelectContent>
             </Select>
           </div>

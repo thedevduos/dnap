@@ -48,6 +48,7 @@ interface UserContextType {
   userProfile: UserProfile | null
   loading: boolean
   isAdmin: boolean
+  isAuthor: boolean
   updateProfile: (updates: Partial<UserProfile>) => Promise<void>
   addAddress: (address: Omit<Address, 'id'>) => Promise<void>
   updateAddress: (addressId: string, updates: Partial<Address>) => Promise<void>
@@ -397,6 +398,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   }
 
   const isAdmin = userProfile?.role === 'admin' || false
+  const isAuthor = userProfile?.role === 'author' || false
   
   // Consider both auth loading and user profile loading, and auth initialization
   const isLoading = authLoading || loading || !authInitialized
@@ -405,6 +407,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     userProfile,
     loading: isLoading,
     isAdmin,
+    isAuthor,
     updateProfile,
     addAddress,
     updateAddress,
