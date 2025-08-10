@@ -33,6 +33,9 @@ interface Coupon {
   maxDiscountAmount?: number
   oncePerUser?: boolean
   usedByUsers?: string[]
+  isAffiliate?: boolean
+  authorId?: string
+  bookId?: string
 }
 
 // Shipping Methods
@@ -99,7 +102,7 @@ export const validateCoupon = async (code: string, orderValue: number, userId?: 
   }
   
   // Check if user has already used this coupon (for once per user coupons)
-  if (coupon.oncePerUser && userId && coupon.usedByUsers && coupon.usedByUsers.includes(userId)) {
+  if (coupon.oncePerUser && userId && coupon.usedByUsers && Array.isArray(coupon.usedByUsers) && coupon.usedByUsers.includes(userId)) {
     throw new Error("You have already used this coupon")
   }
   
@@ -125,17 +128,27 @@ export const validateCoupon = async (code: string, orderValue: number, userId?: 
 }
 
 export const applyCoupon = async (couponId: string, userId?: string) => {
-  const updateData: any = {
-    usedCount: increment(1),
-    lastUsed: serverTimestamp(),
+  try {
+    // Validate inputs
+    if (!couponId) {
+      throw new Error('Coupon ID is required')
+    }
+
+    const updateData: any = {
+      usedCount: increment(1),
+      lastUsed: serverTimestamp(),
+    }
+    
+    // If userId is provided, add to usedByUsers array for once per user tracking
+    if (userId) {
+      updateData.usedByUsers = arrayUnion(userId)
+    }
+    
+    return await updateDoc(doc(db, "coupons", couponId), updateData)
+  } catch (error) {
+    console.error('Error applying coupon:', error)
+    throw error
   }
-  
-  // If userId is provided, add to usedByUsers array for once per user tracking
-  if (userId) {
-    updateData.usedByUsers = arrayUnion(userId)
-  }
-  
-  return await updateDoc(doc(db, "coupons", couponId), updateData)
 }
 
 // Orders
@@ -479,6 +492,313 @@ export const updateBook = async (id: string, bookData: any) => {
 
 export const deleteBook = async (id: string) => {
   return await deleteDoc(doc(db, "books", id))
+}
+
+// Enhanced delete function that removes book, ebooks, author data, and author access
+export const deleteBookAndAuthorData = async (bookId: string) => {
+  try {
+    // First, get the book details to find the author
+    const bookDoc = await getDoc(doc(db, "books", bookId))
+    if (!bookDoc.exists()) {
+      throw new Error('Book not found')
+    }
+    
+    const bookData = bookDoc.data()
+    const authorEmail = bookData.authorEmail
+    const authorId = bookData.authorId
+    const bookTitle = bookData.title
+    
+    console.log('Deleting book and ALL related data:', { bookId, authorEmail, authorId, bookTitle })
+    
+    // 1. Delete the book from books collection
+    await deleteDoc(doc(db, "books", bookId))
+    console.log('✓ Book deleted from books collection')
+    
+    // 2. Delete related ebook data
+    // Delete ebook orders that reference this book
+    const ebookOrdersQuery = query(
+      collection(db, "ebookOrders"),
+      where("bookId", "==", bookId)
+    )
+    const ebookOrdersSnapshot = await getDocs(ebookOrdersQuery)
+    const ebookOrderDeletes = ebookOrdersSnapshot.docs.map(doc => deleteDoc(doc.ref))
+    await Promise.all(ebookOrderDeletes)
+    console.log(`✓ Deleted ${ebookOrdersSnapshot.docs.length} ebook orders`)
+    
+    // Delete ebook subscriptions that might be related to this book
+    const ebookSubscriptionsQuery = query(
+      collection(db, "ebookSubscriptions"),
+      where("bookId", "==", bookId)
+    )
+    const ebookSubscriptionsSnapshot = await getDocs(ebookSubscriptionsQuery)
+    const ebookSubscriptionDeletes = ebookSubscriptionsSnapshot.docs.map(doc => deleteDoc(doc.ref))
+    await Promise.all(ebookSubscriptionDeletes)
+    console.log(`✓ Deleted ${ebookSubscriptionsSnapshot.docs.length} ebook subscriptions`)
+    
+    // 3. Delete related orders that contain this book
+    const ordersQuery = query(collection(db, "orders"))
+    const ordersSnapshot = await getDocs(ordersQuery)
+    const orderDeletes = []
+    
+    for (const orderDoc of ordersSnapshot.docs) {
+      const orderData = orderDoc.data()
+      if (orderData.items && Array.isArray(orderData.items)) {
+        const hasBook = orderData.items.some((item: any) => item.bookId === bookId)
+        if (hasBook) {
+          orderDeletes.push(deleteDoc(orderDoc.ref))
+        }
+      }
+    }
+    
+    if (orderDeletes.length > 0) {
+      await Promise.all(orderDeletes)
+      console.log(`✓ Deleted ${orderDeletes.length} orders containing this book`)
+    }
+    
+    // 4. Delete reviews for this book
+    const reviewsQuery = query(
+      collection(db, "reviews"),
+      where("bookId", "==", bookId)
+    )
+    const reviewsSnapshot = await getDocs(reviewsQuery)
+    const reviewDeletes = reviewsSnapshot.docs.map(doc => deleteDoc(doc.ref))
+    await Promise.all(reviewDeletes)
+    console.log(`✓ Deleted ${reviewsSnapshot.docs.length} reviews`)
+    
+    // 5. Delete affiliate links for this book
+    const affiliateLinksQuery = query(
+      collection(db, "affiliateLinks"),
+      where("bookId", "==", bookId)
+    )
+    const affiliateLinksSnapshot = await getDocs(affiliateLinksQuery)
+    const affiliateLinkDeletes = affiliateLinksSnapshot.docs.map(doc => deleteDoc(doc.ref))
+    await Promise.all(affiliateLinkDeletes)
+    console.log(`✓ Deleted ${affiliateLinksSnapshot.docs.length} affiliate links`)
+    
+    // 6. Delete coupons associated with this book
+    const couponsQuery = query(
+      collection(db, "coupons"),
+      where("bookId", "==", bookId)
+    )
+    const couponsSnapshot = await getDocs(couponsQuery)
+    const couponDeletes = couponsSnapshot.docs.map(doc => deleteDoc(doc.ref))
+    await Promise.all(couponDeletes)
+    console.log(`✓ Deleted ${couponsSnapshot.docs.length} coupons`)
+    
+    // 7. Delete transactions related to this book
+    const transactionsQuery = query(collection(db, "transactions"))
+    const transactionsSnapshot = await getDocs(transactionsQuery)
+    const transactionDeletes = []
+    
+    for (const transactionDoc of transactionsSnapshot.docs) {
+      const transactionData = transactionDoc.data()
+      if (transactionData.bookId === bookId || 
+          (transactionData.orderId && orderDeletes.some((_, index) => 
+            ordersSnapshot.docs[index]?.id === transactionData.orderId
+          ))) {
+        transactionDeletes.push(deleteDoc(transactionDoc.ref))
+      }
+    }
+    
+    if (transactionDeletes.length > 0) {
+      await Promise.all(transactionDeletes)
+      console.log(`✓ Deleted ${transactionDeletes.length} transactions related to this book`)
+    }
+    
+    // 8. Delete author books for THIS SPECIFIC BOOK only (not all author books)
+    let authorBooksDeleted = 0
+    if (authorId) {
+      // Find the specific author book that corresponds to this published book
+      const authorBooksQuery = query(
+        collection(db, "authorBooks"),
+        where("assignedBookId", "==", bookId)
+      )
+      const authorBooksSnapshot = await getDocs(authorBooksQuery)
+      const authorBookDeletes = authorBooksSnapshot.docs.map(doc => deleteDoc(doc.ref))
+      await Promise.all(authorBookDeletes)
+      authorBooksDeleted = authorBooksSnapshot.docs.length
+      console.log(`✓ Deleted ${authorBooksDeleted} author book entries for this specific book`)
+      
+      // Check if author has any other books in the main books collection
+      const otherBooksQuery = query(
+        collection(db, "books"),
+        where("authorId", "==", authorId)
+      )
+      const otherBooksSnapshot = await getDocs(otherBooksQuery)
+      
+      // If this was the author's only book, revoke their author access
+      if (otherBooksSnapshot.empty) {
+        console.log('✓ This was the author\'s only book, revoking author access')
+        
+        // Update author status in authors collection
+        const authorsQuery = query(collection(db, "authors"), where("uid", "==", authorId))
+        const authorsSnapshot = await getDocs(authorsQuery)
+        
+        if (!authorsSnapshot.empty) {
+          const authorDoc = authorsSnapshot.docs[0]
+          await updateDoc(doc(db, "authors", authorDoc.id), {
+            status: 'revoked',
+            revokedAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+          })
+          console.log('✓ Author status updated to revoked')
+        }
+        
+        // Update user role in users collection
+        const usersQuery = query(collection(db, "users"), where("uid", "==", authorId))
+        const usersSnapshot = await getDocs(usersQuery)
+        
+        if (!usersSnapshot.empty) {
+          const userDoc = usersSnapshot.docs[0]
+          await updateDoc(doc(db, "users", userDoc.id), {
+            role: 'customer',
+            updatedAt: serverTimestamp()
+          })
+          console.log('✓ User role changed to customer')
+        }
+        
+        // Update user profile in userProfiles collection
+        const userProfileDoc = await getDoc(doc(db, "userProfiles", authorId))
+        if (userProfileDoc.exists()) {
+          await updateDoc(doc(db, "userProfiles", authorId), {
+            role: 'customer',
+            updatedAt: serverTimestamp()
+          })
+          console.log('✓ User profile role updated to customer')
+        } else {
+          // Create customer profile if it doesn't exist
+          const authorData = authorsSnapshot.docs[0]?.data()
+          await setDoc(doc(db, "userProfiles", authorId), {
+            id: authorId,
+            email: authorEmail,
+            displayName: authorData?.name || '',
+            firstName: authorData?.name?.split(' ')[0] || '',
+            lastName: authorData?.name?.split(' ').slice(1).join(' ') || '',
+            phone: authorData?.mobile || '',
+            role: 'customer',
+            addresses: [],
+            preferences: {
+              newsletter: true,
+              notifications: true,
+              language: 'en'
+            },
+            orderHistory: [],
+            wishlist: [],
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+          })
+          console.log('✓ Created customer profile for former author')
+        }
+        
+        // Send notification email to author about access revocation
+        try {
+          const { sendAuthorNotification } = await import('./author-utils')
+          await sendAuthorNotification(
+            authorEmail,
+            'access_revoked',
+            bookTitle,
+            { reason: 'Book deleted' }
+          )
+          console.log('✓ Sent access revocation email to author')
+        } catch (emailError) {
+          console.error('Failed to send access revocation email:', emailError)
+          // Don't throw error as the main operation was successful
+        }
+      } else {
+        console.log('✓ Author has other books, keeping author access')
+        
+        // Send notification to author about this specific book deletion
+        if (authorEmail) {
+          try {
+            const { sendAuthorNotification } = await import('./author-utils')
+            await sendAuthorNotification(
+              authorEmail,
+              'book_deleted',
+              bookTitle,
+              { reason: 'Book removed from catalog' }
+            )
+            console.log('✓ Sent book deletion notification to author')
+          } catch (emailError) {
+            console.error('Failed to send book deletion notification:', emailError)
+          }
+        }
+      }
+    }
+    
+    // 9. Delete any wishlist entries for this book
+    const userProfilesQuery = query(collection(db, "userProfiles"))
+    const userProfilesSnapshot = await getDocs(userProfilesQuery)
+    const wishlistUpdates = []
+    
+    for (const profileDoc of userProfilesSnapshot.docs) {
+      const profileData = profileDoc.data()
+      if (profileData.wishlist && Array.isArray(profileData.wishlist)) {
+        const updatedWishlist = profileData.wishlist.filter((item: any) => item.bookId !== bookId)
+        if (updatedWishlist.length !== profileData.wishlist.length) {
+          wishlistUpdates.push(
+            updateDoc(doc(db, "userProfiles", profileDoc.id), {
+              wishlist: updatedWishlist,
+              updatedAt: serverTimestamp()
+            })
+          )
+        }
+      }
+    }
+    
+    if (wishlistUpdates.length > 0) {
+      await Promise.all(wishlistUpdates)
+      console.log(`✓ Removed book from ${wishlistUpdates.length} user wishlists`)
+    }
+    
+    // 10. Delete any cart items for this book
+    const cartUpdates = []
+    for (const profileDoc of userProfilesSnapshot.docs) {
+      const profileData = profileDoc.data()
+      if (profileData.cart && Array.isArray(profileData.cart)) {
+        const updatedCart = profileData.cart.filter((item: any) => item.bookId !== bookId)
+        if (updatedCart.length !== profileData.cart.length) {
+          cartUpdates.push(
+            updateDoc(doc(db, "userProfiles", profileDoc.id), {
+              cart: updatedCart,
+              updatedAt: serverTimestamp()
+            })
+          )
+        }
+      }
+    }
+    
+    if (cartUpdates.length > 0) {
+      await Promise.all(cartUpdates)
+      console.log(`✓ Removed book from ${cartUpdates.length} user carts`)
+    }
+    
+    console.log('✓ COMPLETE: Book and ALL related data deletion completed successfully')
+    
+    return {
+      success: true,
+      bookId,
+      bookTitle,
+      authorEmail,
+      authorId,
+      deletedItems: {
+        book: 1,
+        ebookOrders: ebookOrdersSnapshot.docs.length,
+        ebookSubscriptions: ebookSubscriptionsSnapshot.docs.length,
+        orders: orderDeletes.length,
+        reviews: reviewsSnapshot.docs.length,
+        affiliateLinks: affiliateLinksSnapshot.docs.length,
+        coupons: couponsSnapshot.docs.length,
+        transactions: transactionDeletes.length,
+        authorBooks: authorBooksDeleted,
+        wishlistUpdates: wishlistUpdates.length,
+        cartUpdates: cartUpdates.length
+      }
+    }
+    
+  } catch (error) {
+    console.error('Error deleting book and author data:', error)
+    throw error
+  }
 }
 
 // Featured Books

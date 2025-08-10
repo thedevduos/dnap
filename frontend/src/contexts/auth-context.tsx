@@ -9,12 +9,14 @@ import {
   signInWithPopup, 
   GoogleAuthProvider,
   createUserWithEmailAndPassword,
-  updateProfile
+  updateProfile,
+  deleteUser
 } from "firebase/auth"
-import { doc, setDoc, serverTimestamp } from "firebase/firestore"
+import { doc, setDoc, serverTimestamp, query, collection, where, getDocs } from "firebase/firestore"
 import { auth } from "@/lib/firebase"
 import { db } from "@/lib/firebase"
 import { subscribeToNewsletter } from "@/lib/firebase-utils"
+import { sendCustomerWelcomeEmail } from "@/lib/email-utils"
 
 interface AuthContextType {
   user: User | null
@@ -119,6 +121,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
+      // Send welcome email
+      try {
+        await sendCustomerWelcomeEmail({
+          name: `${userData.firstName} ${userData.lastName}`,
+          email: userData.email,
+          mobile: userData.phone,
+        })
+      } catch (error) {
+        console.warn("Failed to send welcome email:", error)
+        // Don't throw error here as user was created successfully
+      }
+
     } catch (error) {
       console.error('Registration error:', error)
       throw error
@@ -130,6 +144,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const result = await signInWithPopup(auth, provider)
       console.log('Google login result:', result)
+      
+      // Check if user exists in database
+      const user = result.user
+      
+      // Check if user exists in users collection by email
+      const usersQuery = query(collection(db, "users"), where("email", "==", user.email))
+      const usersSnapshot = await getDocs(usersQuery)
+      
+      if (usersSnapshot.empty) {
+        // User doesn't exist, delete the user from Firebase Auth and throw error
+        try {
+          await deleteUser(user)
+          console.log('User deleted from Firebase Authentication')
+        } catch (deleteError) {
+          console.warn('Failed to delete user from Firebase Auth:', deleteError)
+          // Still sign out even if deletion fails
+          await signOut(auth)
+        }
+        
+        const error = new Error('USER_NOT_FOUND')
+        ;(error as any).email = user.email
+        throw error
+      }
+      
+      console.log('User found in users collection, allowing login')
       // Let the user context handle profile creation/loading
       // This avoids race conditions and ensures consistent logic
     } catch (error) {

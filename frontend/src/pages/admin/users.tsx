@@ -82,6 +82,8 @@ export default function AdminUsers() {
     switch (role) {
       case "admin":
         return <Badge className="bg-red-600">Admin</Badge>
+      case "author":
+        return <Badge className="bg-green-600">Author</Badge>
       case "editor":
         return <Badge className="bg-blue-600">Editor</Badge>
       case "user":

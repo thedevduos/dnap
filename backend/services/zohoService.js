@@ -640,7 +640,7 @@ const getAllZohoPayments = async () => {
       amount: parseFloat(payment.amount),
       status: payment.status === 'succeeded' ? 'success' : payment.status,
       customerName: payment.customer_name || 'Unknown',
-      customerEmail: payment.customer_email || 'unknown@example.com',
+              customerEmail: payment.customer_email || 'No email provided',
       paymentMethod: 'zoho',
       createdAt: payment.date || new Date().toISOString(),
       currency: payment.currency || 'INR',

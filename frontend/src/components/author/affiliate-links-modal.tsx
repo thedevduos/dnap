@@ -110,24 +110,19 @@ export function AffiliateLinksModal({ open, onOpenChange, book }: AffiliateLinks
           <DialogTitle>Affiliate Links - {book.title}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
-          {/* Create New Link */}
-          <Card>
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle>Create Affiliate Link</CardTitle>
-                <Button onClick={handleCreateLink} disabled={creating}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  {creating ? "Creating..." : "Create New Link"}
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Create affiliate links with embedded coupon codes to track your referral sales.
-              </p>
-            </CardContent>
-          </Card>
+        <div className="space-y-4">
+          <div className="text-center">
+            <LinkIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Affiliate Links</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Create affiliate links to track sales performance for your books. 
+              These links include tracking codes but no discounts.
+            </p>
+            <Button onClick={handleCreateLink} disabled={creating}>
+              <Plus className="h-4 w-4 mr-2" />
+              {creating ? "Creating..." : "Create Affiliate Link"}
+            </Button>
+          </div>
 
           {/* Existing Links */}
           <Card>

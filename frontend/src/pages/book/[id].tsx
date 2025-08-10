@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useParams, Link } from "react-router-dom"
+import { useParams, Link, useSearchParams } from "react-router-dom"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -15,6 +15,7 @@ import { useUser } from "@/contexts/user-context"
 import { useAuth } from "@/contexts/auth-context"
 import { useToast } from "@/hooks/use-toast"
 import { addReview } from "@/lib/firebase-utils"
+import { trackAffiliateClick } from "@/lib/author-utils"
 import { LoginPopup } from "@/components/ui/login-popup"
 
 interface Review {
@@ -42,6 +43,7 @@ interface Book {
 
 export default function BookDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const [searchParams] = useSearchParams()
   const [book, setBook] = useState<Book | null>(null)
   const [reviews, setReviews] = useState<Review[]>([])
   const [relatedBooks, setRelatedBooks] = useState<Book[]>([])
@@ -59,8 +61,29 @@ export default function BookDetailPage() {
     if (id) {
       loadBookDetails()
       loadReviews()
+      handleAffiliateTracking()
     }
   }, [id])
+
+  const handleAffiliateTracking = async () => {
+    try {
+      const refCode = searchParams.get('ref')
+      const couponCode = searchParams.get('coupon')
+      
+      if (refCode) {
+        // Track affiliate link click
+        await trackAffiliateClick(refCode)
+        
+        // Store affiliate info in session storage for checkout
+        sessionStorage.setItem('affiliateRef', refCode)
+        if (couponCode) {
+          sessionStorage.setItem('affiliateCoupon', couponCode)
+        }
+      }
+    } catch (error) {
+      console.error('Error tracking affiliate click:', error)
+    }
+  }
 
   const loadBookDetails = async () => {
     try {
@@ -118,7 +141,8 @@ export default function BookDetailPage() {
         author: book.author,
         price: book.price,
         imageUrl: book.imageUrl,
-        category: book.category || ''
+        category: book.category || '',
+        quantity: 1
       })
     }
   }

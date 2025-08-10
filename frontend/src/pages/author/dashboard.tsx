@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { BookOpen, TrendingUp, Link as LinkIcon, Plus, Eye, BarChart } from "lucide-react"
+import { BookOpen, TrendingUp, Link as LinkIcon, Plus, Eye, BarChart, Upload } from "lucide-react"
 import { useAuthorBooks } from "@/hooks/use-author-books"
 import { useAuth } from "@/contexts/auth-context"
 import { AuthorLayout } from "@/components/author/author-layout"
@@ -14,7 +14,7 @@ import { AffiliateLinksModal } from "@/components/author/affiliate-links-modal"
 import { collection, query, where, getDocs } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { Label } from "@/components/ui/label"
-import { uploadAuthorFile, updateAuthorBookStage } from "@/lib/author-utils"
+import { uploadAuthorFile, updateAuthorBookStage, sendAuthorNotification } from "@/lib/author-utils"
 import { useToast } from "@/hooks/use-toast"
 
 export default function AuthorDashboard() {
@@ -63,27 +63,43 @@ export default function AuthorDashboard() {
     setPaymentScreenshotFile(file)
   }
 
-  const handleSubmitPaymentProof = async () => {
-    if (!user || !paymentRequired) return
-    if (!paymentScreenshotFile) {
-      toast({ title: "No file selected", description: "Please upload a screenshot image.", variant: "destructive" })
-      return
-    }
-
+  const handleSubmitPayment = async () => {
+    if (!paymentScreenshotFile || !paymentRequired) return
+    
+    setSubmittingPayment(true)
     try {
-      setSubmittingPayment(true)
-      const url = await uploadAuthorFile(paymentScreenshotFile, 'payment_screenshots', user.uid)
+      // Upload payment screenshot
+      const screenshotUrl = await uploadAuthorFile(paymentScreenshotFile, 'payments', user!.uid)
+      
+      // Update book stage to payment_verification
       await updateAuthorBookStage(paymentRequired.id, 'payment_verification', {
-        paymentScreenshot: url,
-        paymentStatus: 'paid'
+        paymentScreenshot: screenshotUrl,
+        paymentStatus: 'submitted'
       })
 
-      toast({ title: "Payment submitted", description: "Your payment screenshot has been sent for verification." })
+      // Send notification to admin
+      if (paymentRequired.authorEmail) {
+        await sendAuthorNotification(
+          paymentRequired.authorEmail,
+          'payment_verification',
+          paymentRequired.title
+        )
+      }
+
+      toast({
+        title: "Payment Submitted",
+        description: "Your payment screenshot has been submitted for verification.",
+      })
+
+      // Reset form
       setPaymentScreenshotFile(null)
-      // Refresh local payment state
-      checkPaymentStatus()
+      setPaymentRequired(null)
     } catch (error) {
-      toast({ title: "Upload failed", description: "Could not submit payment screenshot. Try again.", variant: 'destructive' })
+      toast({
+        title: "Error",
+        description: "Failed to submit payment. Please try again.",
+        variant: "destructive"
+      })
     } finally {
       setSubmittingPayment(false)
     }
@@ -136,33 +152,99 @@ export default function AuthorDashboard() {
                 </div>
               </div>
 
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <h4 className="font-semibold text-blue-900 mb-2">Payment Methods</h4>
+                <div className="space-y-2 text-sm text-blue-800">
+                  <p><strong>UPI:</strong> dnapublications@okicici</p>
+                  <p><strong>Bank Transfer:</strong></p>
+                  <ul className="ml-4 space-y-1">
+                    <li>Account Name: DNA Publications</li>
+                    <li>Account Number: 1234567890</li>
+                    <li>IFSC Code: ICIC0001234</li>
+                    <li>Bank: ICICI Bank</li>
+                  </ul>
+                  <p><strong>Paytm:</strong> 7598691689</p>
+                </div>
+              </div>
+
               <div className="space-y-4">
-                <h4 className="font-semibold">Payment Methods:</h4>
-                <div className="space-y-2 text-sm">
-                  <p>• Bank Transfer: [Bank details will be provided]</p>
-                  <p>• UPI: [UPI ID will be provided]</p>
-                  <p>• Online Payment: [Payment link will be provided]</p>
-                </div>
-                
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="text-sm text-blue-800">
-                    After making the payment, please upload the screenshot below for verification.
-                  </p>
-                </div>
-
                 <div>
-                  <Label>Payment Screenshot</Label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handlePaymentFileChange}
-                    className="mt-2 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
-                  />
+                  <Label htmlFor="paymentScreenshot">Upload Payment Screenshot *</Label>
+                  <div className="mt-2">
+                    <input
+                      type="file"
+                      id="paymentScreenshot"
+                      accept="image/*,.pdf"
+                      onChange={handlePaymentFileChange}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => document.getElementById("paymentScreenshot")?.click()}
+                      className="w-full"
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      {paymentScreenshotFile ? paymentScreenshotFile.name : "Upload Payment Screenshot"}
+                    </Button>
+                    {paymentScreenshotFile && (
+                      <p className="text-sm text-green-600 mt-2">
+                        ✓ {paymentScreenshotFile.name} selected
+                      </p>
+                    )}
+                  </div>
                 </div>
 
-                <Button className="w-full" onClick={handleSubmitPaymentProof} disabled={submittingPayment}>
-                  {submittingPayment ? 'Submitting...' : 'Submit Payment Screenshot'}
+                <Button 
+                  onClick={handleSubmitPayment}
+                  disabled={!paymentScreenshotFile || submittingPayment}
+                  className="w-full"
+                >
+                  {submittingPayment ? "Submitting..." : "Submit Payment for Verification"}
                 </Button>
+              </div>
+
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <h4 className="font-semibold text-yellow-900 mb-2">Important Notes:</h4>
+                <ul className="text-sm text-yellow-800 space-y-1">
+                  <li>• Please include the transaction ID/reference number in your payment</li>
+                  <li>• Upload a clear screenshot or PDF of the payment confirmation</li>
+                  <li>• Payment verification typically takes 1-2 business days</li>
+                  <li>• You'll receive an email notification once payment is verified</li>
+                </ul>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </AuthorLayout>
+    )
+  }
+
+  // Show payment verification status page
+  const paymentVerificationBook = books.find(book => book.stage === 'payment_verification')
+  if (paymentVerificationBook) {
+    return (
+      <AuthorLayout>
+        <div className="max-w-2xl mx-auto">
+          <Card>
+            <CardHeader className="text-center">
+              <CardTitle className="text-2xl text-blue-600">Payment Under Verification</CardTitle>
+            </CardHeader>
+            <CardContent className="text-center space-y-6">
+              <div className="animate-pulse">
+                <BookOpen className="h-16 w-16 text-blue-600 mx-auto mb-4" />
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold mb-2">"{paymentVerificationBook.title}" - Payment Submitted</h3>
+                <p className="text-muted-foreground">
+                  We have received your payment screenshot and are currently verifying it. 
+                  This process typically takes 1-2 business days.
+                </p>
+              </div>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm text-blue-800">
+                  You'll receive an email notification once the payment verification is complete.
+                </p>
               </div>
             </CardContent>
           </Card>

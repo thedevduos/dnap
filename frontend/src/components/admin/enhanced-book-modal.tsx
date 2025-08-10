@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
 import { addBook, updateBook, uploadImage, uploadBookPDF } from "@/lib/firebase-utils"
 import { useEbookPlans } from "@/hooks/use-ebook-plans"
@@ -62,7 +63,11 @@ export function EnhancedBookModal({ isOpen, onClose, book }: EnhancedBookModalPr
   const loadAuthors = async () => {
     setLoadingAuthors(true)
     try {
-      const authorsQuery = query(collection(db, "authors"), where("status", "==", "active"))
+      // Load all authors regardless of status, but exclude revoked/suspended ones
+      const authorsQuery = query(
+        collection(db, "authors"), 
+        where("status", "in", ["active", "pending"])
+      )
       const authorsSnapshot = await getDocs(authorsQuery)
       const authorsData = authorsSnapshot.docs.map(doc => ({
         id: doc.id,
@@ -71,6 +76,21 @@ export function EnhancedBookModal({ isOpen, onClose, book }: EnhancedBookModalPr
       setAuthors(authorsData)
     } catch (error) {
       console.error("Error loading authors:", error)
+      // Fallback: try to load all authors without status filter
+      try {
+        const allAuthorsQuery = query(collection(db, "authors"))
+        const allAuthorsSnapshot = await getDocs(allAuthorsQuery)
+        const allAuthorsData = allAuthorsSnapshot.docs
+          .map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          } as any))
+          .filter((author: any) => author.status !== 'revoked' && author.status !== 'suspended')
+        setAuthors(allAuthorsData)
+      } catch (fallbackError) {
+        console.error("Error loading authors (fallback):", fallbackError)
+        setAuthors([])
+      }
     } finally {
       setLoadingAuthors(false)
     }
@@ -248,6 +268,16 @@ export function EnhancedBookModal({ isOpen, onClose, book }: EnhancedBookModalPr
       toast({
         title: "PDF Required",
         description: "Please upload a PDF file before saving the book.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Validate that author is assigned
+    if (!formData.authorId) {
+      toast({
+        title: "Author Required",
+        description: "Please assign an author to the book.",
         variant: "destructive",
       })
       return
@@ -523,7 +553,15 @@ export function EnhancedBookModal({ isOpen, onClose, book }: EnhancedBookModalPr
                         <SelectContent>
                           {authors.map(author => (
                             <SelectItem key={author.id} value={author.id}>
-                              {author.name} ({author.email})
+                              <div className="flex items-center justify-between w-full">
+                                <span>{author.name} ({author.email})</span>
+                                <Badge 
+                                  variant={author.status === 'active' ? 'default' : 'secondary'}
+                                  className="ml-2 text-xs"
+                                >
+                                  {author.status === 'active' ? 'Active' : 'Pending'}
+                                </Badge>
+                              </div>
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -534,7 +572,10 @@ export function EnhancedBookModal({ isOpen, onClose, book }: EnhancedBookModalPr
                   {authors.length === 0 && !loadingAuthors && (
                     <div className="text-center py-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                       <p className="text-sm text-yellow-800">
-                        No active authors found. Authors need to be approved before they can be assigned to books.
+                        No authors found. Authors need to register and be approved before they can be assigned to books.
+                      </p>
+                      <p className="text-xs text-yellow-700 mt-1">
+                        Check the Author Books section to see pending author submissions.
                       </p>
                     </div>
                   )}

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,13 +10,61 @@ import { Label } from "@/components/ui/label"
 import { ArrowLeft, ArrowRight, Upload, BookOpen, User, FileText } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useNavigate } from "react-router-dom"
-import { createAuthorAccount, uploadAuthorFile, submitAuthorBook } from "@/lib/author-utils"
+import { createAuthorAccount, upgradeCustomerToAuthor, uploadAuthorFile, submitAuthorBook } from "@/lib/author-utils"
+import { useAuth } from "@/contexts/auth-context"
+import { doc, getDoc } from "firebase/firestore"
+import { db } from "@/lib/firebase"
 
 export default function NewAuthorPage() {
   const [currentStep, setCurrentStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isCheckingUser, setIsCheckingUser] = useState(true)
+  const [existingUser, setExistingUser] = useState<any>(null)
   const { toast } = useToast()
   const navigate = useNavigate()
+  const { user } = useAuth()
+
+  // Check if user is already logged in and get their profile
+  useEffect(() => {
+    const checkExistingUser = async () => {
+      if (user) {
+        try {
+          // Get user profile from userProfiles collection
+          const userProfileDoc = await getDoc(doc(db, "userProfiles", user.uid))
+          if (userProfileDoc.exists()) {
+            const userData = userProfileDoc.data()
+            setExistingUser(userData)
+            
+            // Pre-fill form with existing user data
+            setPersonalData({
+              name: userData.displayName || userData.firstName + ' ' + userData.lastName || '',
+              email: userData.email || '',
+              mobile: userData.phone || '',
+              phone: userData.phone || '',
+              city: '',
+              address: ''
+            })
+            
+            // If user is already an author, redirect them
+            if (userData.role === 'author') {
+              toast({
+                title: "Already an Author",
+                description: "You are already registered as an author. Please use the author dashboard.",
+                variant: "destructive"
+              })
+              navigate('/author/dashboard')
+              return
+            }
+          }
+        } catch (error) {
+          console.error('Error checking existing user:', error)
+        }
+      }
+      setIsCheckingUser(false)
+    }
+
+    checkExistingUser()
+  }, [user, navigate, toast])
 
   // Form data
   const [personalData, setPersonalData] = useState({
@@ -86,6 +134,17 @@ export default function NewAuthorPage() {
             return false
           }
         }
+        
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        if (!emailRegex.test(personalData.email)) {
+          toast({
+            title: "Invalid Email",
+            description: "Please enter a valid email address",
+            variant: "destructive"
+          })
+          return false
+        }
         break
       case 2:
         const bookRequired = ['title', 'category', 'genre', 'pages', 'language', 'description']
@@ -129,9 +188,30 @@ export default function NewAuthorPage() {
 
     setIsSubmitting(true)
     try {
-      // Create author account first
-      const { authUser } = await createAuthorAccount(personalData)
-      const authorId = authUser.user.uid
+      let authorId: string
+
+      // Check if user is already logged in and is a customer
+      if (user && existingUser && existingUser.role === 'customer') {
+        // Upgrade existing customer to author
+        console.log('Upgrading existing customer to author')
+        const result = await upgradeCustomerToAuthor(personalData, user.uid)
+        authorId = result.existingUserId
+        
+        toast({
+          title: "Account Upgraded!",
+          description: "Your customer account has been upgraded to author status.",
+        })
+      } else {
+        // Create new author account
+        console.log('Creating new author account')
+        const { authUser } = await createAuthorAccount(personalData)
+        authorId = authUser.user.uid
+        
+        toast({
+          title: "Account Created!",
+          description: "Your author account has been created successfully.",
+        })
+      }
 
       // Upload files
       const [pdfUrl, imageUrl, wordDocUrl] = await Promise.all([
@@ -152,13 +232,20 @@ export default function NewAuthorPage() {
 
       toast({
         title: "Submission Successful!",
-        description: "Your author account and book have been submitted for review.",
+        description: "Your book has been submitted for review. You will receive an email with further instructions.",
       })
 
-      // Redirect to login page
-      navigate('/auth/login')
+      // Redirect based on user status
+      if (user && existingUser) {
+        // User was already logged in, redirect to author dashboard
+        navigate('/author/dashboard')
+      } else {
+        // New user, redirect to login page
+        navigate('/auth/login')
+      }
 
     } catch (error: any) {
+      console.error('Submission error:', error)
       toast({
         title: "Submission Failed",
         description: error.message || "Failed to submit your application. Please try again.",
@@ -169,13 +256,38 @@ export default function NewAuthorPage() {
     }
   }
 
+  // Show loading while checking user status
+  if (isCheckingUser) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Checking your account status...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto">
           <div className="mb-8">
             <h1 className="text-3xl font-bold mb-2">Become an Author</h1>
-            <p className="text-muted-foreground">Join DNA Publications and share your story with the world</p>
+            <p className="text-muted-foreground">
+              {existingUser ? 
+                "Upgrade your account and share your story with the world" : 
+                "Join DNA Publications and share your story with the world"
+              }
+            </p>
+            {existingUser && (
+              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  <strong>Welcome back!</strong> We found your existing account. Your information has been pre-filled. 
+                  You can update any details before submitting your author application.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Step Indicator */}
@@ -507,7 +619,7 @@ export default function NewAuthorPage() {
                     onClick={handleSubmit}
                     disabled={isSubmitting}
                   >
-                    {isSubmitting ? "Submitting..." : "Submit Application"}
+                    {isSubmitting ? "Submitting..." : existingUser ? "Upgrade to Author & Submit" : "Submit Application"}
                   </Button>
                 )}
               </div>

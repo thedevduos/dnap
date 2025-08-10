@@ -63,9 +63,14 @@ import AdminEbookManagement from "@/pages/admin/ebook-management"
 import AdminEbookOrders from "@/pages/admin/ebook-orders"
 import AdminEbookSubscriptions from "@/pages/admin/ebook-subscriptions"
 import AdminAuthorBooks from "@/pages/admin/author-books"
+import AdminAffiliateLinks from "@/pages/admin/affiliate-links"
+import AdminSalesReports from "@/pages/admin/sales-reports"
 
 // Author Pages
 import AuthorDashboard from "@/pages/author/dashboard"
+import AuthorBooksPage from "@/pages/author/books"
+import AuthorSalesPage from "@/pages/author/sales"
+import AuthorAffiliatePage from "@/pages/author/affiliate"
 import NewAuthorPage from "@/pages/new-author"
 
 import "./globals.css"
@@ -111,6 +116,8 @@ export default function App() {
                               <Route path="/ebook-orders" element={<AdminEbookOrders />} />
                               <Route path="/ebook-subscriptions" element={<AdminEbookSubscriptions />} />
                               <Route path="/author-books" element={<AdminAuthorBooks />} />
+                              <Route path="/affiliate-links" element={<AdminAffiliateLinks />} />
+                              <Route path="/sales-reports" element={<AdminSalesReports />} />
                             </Routes>
                           </ProtectedRoute>
                         }
@@ -124,6 +131,9 @@ export default function App() {
                             <SubscriptionExpiryChecker />
                             <Routes>
                               <Route path="/dashboard" element={<AuthorDashboard />} />
+                              <Route path="/books" element={<AuthorBooksPage />} />
+                              <Route path="/sales" element={<AuthorSalesPage />} />
+                              <Route path="/affiliate" element={<AuthorAffiliatePage />} />
                             </Routes>
                           </ProtectedRoute>
                         }

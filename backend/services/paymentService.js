@@ -489,7 +489,7 @@ const getRazorpayAllTransactions = async () => {
             amount: Math.round((payment.amount || 0) / 100), // Convert from paise to rupees
             status: payment.status || 'pending',
             customerName: payment.notes?.customer_name || 'Unknown',
-            customerEmail: payment.email || 'unknown@example.com',
+            customerEmail: payment.email || 'No email provided',
             paymentMethod: 'razorpay',
             createdAt: new Date((payment.created_at || 0) * 1000).toISOString(),
             currency: payment.currency || 'INR',

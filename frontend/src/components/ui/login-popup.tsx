@@ -93,11 +93,22 @@ export function LoginPopup({ open, onOpenChange, action = "continue" }: LoginPop
       })
       onOpenChange(false)
     } catch (error: any) {
-      toast({
-        title: "Login Failed",
-        description: error.message || "Please try again.",
-        variant: "destructive",
-      })
+      if (error.message === 'USER_NOT_FOUND') {
+        toast({
+          title: "Account Not Found",
+          description: "Please register first before signing in with Google.",
+          variant: "destructive",
+        })
+        // Close popup and redirect to registration
+        onOpenChange(false)
+        // You might want to add navigation here or handle it differently
+      } else {
+        toast({
+          title: "Login Failed",
+          description: error.message || "Please try again.",
+          variant: "destructive",
+        })
+      }
     } finally {
       setLoading(false)
     }

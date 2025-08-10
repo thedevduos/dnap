@@ -20,13 +20,14 @@ import { useToast } from "@/hooks/use-toast"
 import anime from "animejs/lib/anime.es.js"
 import { UpdatesBar } from "@/components/layout/updates-bar"
 import { AuthorDashboardLink } from "@/components/layout/author-dashboard-link"
+import { BookOpen } from "lucide-react"
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const location = useLocation()
   
   const { user, logout, loading: authLoading } = useAuth()
-  const { isAdmin, loading: userLoading } = useUser()
+  const { isAdmin, userProfile, loading: userLoading } = useUser()
   const { toast } = useToast()
 
   useEffect(() => {
@@ -162,6 +163,18 @@ export function Header() {
                   </DropdownMenuItem>
                   {/* Author Dashboard (visible if user is an author) */}
                   <AuthorDashboardLink />
+                  {/* Become an Author (visible if user is a customer) */}
+                  {userProfile && userProfile.role === 'customer' && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem asChild>
+                        <Link to="/new-author">
+                          <BookOpen className="mr-2 h-4 w-4" />
+                          Become an Author
+                        </Link>
+                      </DropdownMenuItem>
+                    </>
+                  )}
                   {isAdmin && (
                     <>
                       <DropdownMenuSeparator />
@@ -230,6 +243,15 @@ export function Header() {
                   </Link>
                   {/* Author Dashboard (visible if user is an author) */}
                   <AuthorDashboardLink isMobile />
+                  {/* Become an Author (visible if user is a customer) */}
+                  {userProfile && userProfile.role === 'customer' && (
+                    <Link to="/new-author" onClick={() => setIsMenuOpen(false)}>
+                      <Button variant="outline" className="w-full justify-start">
+                        <BookOpen className="w-4 h-4 mr-2" />
+                        Become an Author
+                      </Button>
+                    </Link>
+                  )}
                   {isAdmin && (
                     <Link to="/admin/dashboard" onClick={() => setIsMenuOpen(false)}>
                       <Button variant="outline" className="w-full justify-start">

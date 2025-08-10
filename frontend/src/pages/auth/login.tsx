@@ -64,11 +64,26 @@ export default function LoginPage() {
       // Simple redirect to intended destination
       navigate(from, { replace: true })
     } catch (error: any) {
-      toast({
-        title: "Google Login Failed",
-        description: "Failed to login with Google. Please try again.",
-        variant: "destructive",
-      })
+      if (error.message === 'USER_NOT_FOUND') {
+        toast({
+          title: "Account Not Found",
+          description: "Please register first before signing in with Google.",
+          variant: "destructive",
+        })
+        // Redirect to registration page
+        navigate('/auth/register', { 
+          state: { 
+            from: location.state?.from,
+            googleEmail: error.email // Pass the Google email for pre-filling
+          } 
+        })
+      } else {
+        toast({
+          title: "Google Login Failed",
+          description: "Failed to login with Google. Please try again.",
+          variant: "destructive",
+        })
+      }
     } finally {
       setIsLoading(false)
     }

@@ -79,7 +79,8 @@ export function FeaturedBooks() {
       author: book.author,
       price: book.price,
       imageUrl: book.imageUrl,
-      category: book.category
+      category: book.category,
+      quantity: 1
     })
   }
 

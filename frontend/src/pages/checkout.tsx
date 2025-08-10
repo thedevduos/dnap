@@ -29,6 +29,7 @@ import {
   clearOrderData
 } from "@/lib/payment-utils"
 
+
 interface CheckoutForm {
   email: string
   firstName: string
@@ -399,9 +400,18 @@ export default function CheckoutPage() {
         }
       }
 
-      // Create a temporary order ID for the payment request
-      const tempOrderId = `TEMP_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-      
+      // Get affiliate information from session storage
+      const affiliateRef = sessionStorage.getItem('affiliateRef')
+      const affiliateCoupon = sessionStorage.getItem('affiliateCoupon')
+
+      // Calculate totals
+      const subtotal = getTotalPrice()
+      const shipping = selectedShippingMethod.price
+      const finalTotal = subtotal + shipping - discount
+
+      // Create temporary order ID
+      const tempOrderId = `ORDER_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+
       // Store order data in sessionStorage for payment success page
       const orderData = {
         userId: user?.uid || null,
@@ -441,7 +451,10 @@ export default function CheckoutPage() {
         discount: discount,
         status: 'pending',
         userEmail: formData.email,
-        saveAddress: false // Already saved above, so set to false
+        saveAddress: false, // Already saved above, so set to false
+        // Add affiliate tracking information
+        affiliateRef: affiliateRef || null,
+        affiliateCoupon: affiliateCoupon || null
       }
       
       storeOrderData(orderData)

@@ -28,12 +28,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { BookOpen, Plus, MoreHorizontal, Edit, Trash2, Star, Grid, List } from "lucide-react"
+import { BookOpen, Plus, MoreHorizontal, Edit, Trash2, Star, Grid, List, User } from "lucide-react"
 import { useBooks } from "@/hooks/use-books"
-import { deleteBook, toggleFeaturedBook, getFeaturedBooksCount } from "@/lib/firebase-utils"
+import { deleteBookAndAuthorData, toggleFeaturedBook, getFeaturedBooksCount } from "@/lib/firebase-utils"
 import { useToast } from "@/hooks/use-toast"
 import { AdminLayout } from "@/components/admin/admin-layout"
 import { EnhancedBookModal } from "@/components/admin/enhanced-book-modal"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 export default function AdminBooks() {
   const { books, loading } = useBooks()
@@ -42,6 +43,9 @@ export default function AdminBooks() {
   const [selectedBook, setSelectedBook] = useState<any>(null)
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [bookToDelete, setBookToDelete] = useState<any>(null)
+  const [showAssignAuthorModal, setShowAssignAuthorModal] = useState(false)
+  const [bookToAssignAuthor, setBookToAssignAuthor] = useState<any>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const handleEdit = (book: any) => {
     setSelectedBook(book)
@@ -56,26 +60,34 @@ export default function AdminBooks() {
   const confirmDeleteBook = async () => {
     if (!bookToDelete) return
 
+    setIsDeleting(true)
     try {
-      await deleteBook(bookToDelete.id)
+      const result = await deleteBookAndAuthorData(bookToDelete.id)
       toast({
         title: "Success",
-        description: "Book deleted successfully",
+        description: `Book "${bookToDelete.title}" and ALL related data deleted successfully. Deleted: ${result.deletedItems.book} book, ${result.deletedItems.ebookOrders} ebook orders, ${result.deletedItems.ebookSubscriptions} ebook subscriptions, ${result.deletedItems.orders} orders, ${result.deletedItems.reviews} reviews, ${result.deletedItems.affiliateLinks} affiliate links, ${result.deletedItems.coupons} coupons, ${result.deletedItems.transactions} transactions, ${result.deletedItems.authorBooks} author books, ${result.deletedItems.wishlistUpdates} wishlist updates, and ${result.deletedItems.cartUpdates} cart updates.`,
       })
     } catch (error) {
+      console.error('Delete error:', error)
       toast({
         title: "Error",
-        description: "Failed to delete book",
+        description: "Failed to delete book and related data",
         variant: "destructive",
       })
     } finally {
       setBookToDelete(null)
+      setIsDeleting(false)
     }
   }
 
   const handleModalClose = () => {
     setIsModalOpen(false)
     setSelectedBook(null)
+  }
+
+  const handleAssignAuthor = (book: any) => {
+    setBookToAssignAuthor(book)
+    setShowAssignAuthorModal(true)
   }
 
   const handleToggleFeatured = async (book: any) => {
@@ -225,12 +237,21 @@ export default function AdminBooks() {
                               <Edit className="h-4 w-4 mr-2" />
                               Edit
                             </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleAssignAuthor(book)}>
+                              <User className="h-4 w-4 mr-2" />
+                              Assign Author
+                            </DropdownMenuItem>
                             <DropdownMenuItem 
                               onClick={() => handleDelete(book.id)}
                               className="text-red-600"
+                              disabled={isDeleting}
                             >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete
+                              {isDeleting ? (
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600 mr-2"></div>
+                              ) : (
+                                <Trash2 className="h-4 w-4 mr-2" />
+                              )}
+                              {isDeleting ? "Deleting..." : "Delete"}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -298,8 +319,13 @@ export default function AdminBooks() {
                           size="icon"
                           onClick={() => handleDelete(book.id)}
                           className="text-red-600 hover:text-red-700 h-8 w-8"
+                          disabled={isDeleting}
                         >
-                          <Trash2 className="h-3 w-3" />
+                          {isDeleting ? (
+                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-red-600"></div>
+                          ) : (
+                            <Trash2 className="h-3 w-3" />
+                          )}
                         </Button>
                       </div>
                     </CardContent>
@@ -317,12 +343,59 @@ export default function AdminBooks() {
         book={selectedBook}
       />
 
+      {/* Assign Author Modal */}
+      <Dialog open={showAssignAuthorModal} onOpenChange={setShowAssignAuthorModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Assign Author to "{bookToAssignAuthor?.title}"</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="font-semibold mb-2">Book Details:</h4>
+              <div className="text-sm space-y-1">
+                <div><span className="font-medium">Title:</span> {bookToAssignAuthor?.title}</div>
+                <div><span className="font-medium">Current Author:</span> {bookToAssignAuthor?.author || 'Not assigned'}</div>
+                <div><span className="font-medium">Category:</span> {bookToAssignAuthor?.category}</div>
+              </div>
+            </div>
+            
+            <div>
+              <p className="text-sm text-muted-foreground mb-4">
+                To assign an author to this book, please edit the book and use the "Assign Author" step in the book creation modal.
+              </p>
+              <Button 
+                onClick={() => {
+                  setShowAssignAuthorModal(false)
+                  setSelectedBook(bookToAssignAuthor)
+                  setIsModalOpen(true)
+                }}
+                className="w-full"
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Edit Book to Assign Author
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <AlertDialog open={!!bookToDelete} onOpenChange={() => setBookToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Book</AlertDialogTitle>
+            <AlertDialogTitle>Delete Book and Author Data</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{bookToDelete?.title}"? This action cannot be undone.
+              Are you sure you want to delete "{bookToDelete?.title}"? This will permanently delete EVERYTHING related to this book:
+              <br />• The book from the collection
+              <br />• All related ebook orders and subscriptions
+              <br />• All orders containing this book
+              <br />• All reviews for this book
+              <br />• All affiliate links and coupons
+              <br />• All transactions related to this book
+              <br />• Author book entry (but NOT the author account)
+              <br />• Remove book from all user wishlists and carts
+              <br />• All sales data for this book
+              <br /><br />
+              <strong>⚠️ This action cannot be undone. The author will keep their account and access to other books.</strong>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -330,8 +403,9 @@ export default function AdminBooks() {
             <AlertDialogAction
               onClick={confirmDeleteBook}
               className="bg-red-600 hover:bg-red-700"
+              disabled={isDeleting}
             >
-              Delete Book
+              {isDeleting ? "Deleting..." : "Delete Book and All Data"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

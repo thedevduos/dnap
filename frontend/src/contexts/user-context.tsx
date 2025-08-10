@@ -205,34 +205,53 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             
             setUserProfile(adminProfile)
           } else {
-            // User is not an admin, create regular customer profile
-            console.log('Creating new customer profile for:', authUser.email)
-            const newProfile: UserProfile = {
-              id: authUser.uid,
-              email: authUser.email || '',
-              displayName: authUser.displayName || '',
-              role: 'customer', // Default role for new users
-              photoURL: authUser.photoURL || '',
-              addresses: [],
-              preferences: {
-                newsletter: true,
-                notifications: true,
-                language: 'en'
-              },
-              orderHistory: [],
-              wishlist: [],
-              createdAt: new Date(),
-              updatedAt: new Date()
+            // User is not an admin, check if profile was just created by registration
+            // Add a small delay to allow for registration to complete
+            await new Promise(resolve => setTimeout(resolve, 1000))
+            
+            // Check again if profile exists (it might have been created during registration)
+            const retryUserDoc = await getDoc(doc(db, "userProfiles", authUser.uid))
+            
+            if (retryUserDoc.exists()) {
+              const data = retryUserDoc.data()
+              console.log('Found user profile after retry:', data)
+              const updatedProfile = {
+                ...data,
+                photoURL: authUser.photoURL || data.photoURL || '',
+                createdAt: data.createdAt?.toDate() || new Date(),
+                updatedAt: data.updatedAt?.toDate() || new Date(),
+              } as UserProfile
+              setUserProfile(updatedProfile)
+            } else {
+              // User is not an admin and no profile exists, create regular customer profile
+              console.log('Creating new customer profile for:', authUser.email)
+              const newProfile: UserProfile = {
+                id: authUser.uid,
+                email: authUser.email || '',
+                displayName: authUser.displayName || '',
+                role: 'customer', // Default role for new users
+                photoURL: authUser.photoURL || '',
+                addresses: [],
+                preferences: {
+                  newsletter: true,
+                  notifications: true,
+                  language: 'en'
+                },
+                orderHistory: [],
+                wishlist: [],
+                createdAt: new Date(),
+                updatedAt: new Date()
+              }
+              
+              // Save the new profile
+              await setDoc(doc(db, "userProfiles", authUser.uid), {
+                ...newProfile,
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp()
+              })
+              
+              setUserProfile(newProfile)
             }
-            
-            // Save the new profile
-            await setDoc(doc(db, "userProfiles", authUser.uid), {
-              ...newProfile,
-              createdAt: serverTimestamp(),
-              updatedAt: serverTimestamp()
-            })
-            
-            setUserProfile(newProfile)
           }
         }
       }

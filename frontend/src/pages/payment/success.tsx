@@ -15,6 +15,7 @@ import { useUser } from "@/contexts/user-context"
 import { applyCoupon } from "@/lib/firebase-utils"
 import { verifyPaymentResponse, getPaymentMethodDisplayName, getOrderData, clearOrderData } from "@/lib/payment-utils"
 import { createEbookSubscription, createEbookOrder } from "@/lib/ebook-utils"
+import { trackAffiliateSale } from "@/lib/author-utils"
 
 export default function PaymentSuccessPage() {
   const [searchParams] = useSearchParams()
@@ -279,6 +280,16 @@ export default function PaymentSuccessPage() {
                 createdAt: serverTimestamp()
               })
 
+              // Track affiliate sale if applicable
+              if (orderData.affiliateRef) {
+                try {
+                  await trackAffiliateSale(orderData.affiliateRef, orderRef.id, orderData.total)
+                } catch (affiliateError) {
+                  console.warn('Failed to track affiliate sale:', affiliateError)
+                  // Don't throw error as the order was successful
+                }
+              }
+
               // Update customer's order count and total spent
               if (orderData.userId) {
                 const userProfileRef = doc(db, "userProfiles", orderData.userId)
@@ -290,8 +301,13 @@ export default function PaymentSuccessPage() {
               }
 
               // Apply coupon usage
-              if (orderData.appliedCoupon) {
-                await applyCoupon(orderData.appliedCoupon.id, orderData.userId)
+              if (orderData.appliedCoupon && orderData.appliedCoupon.id) {
+                try {
+                  await applyCoupon(orderData.appliedCoupon.id, orderData.userId)
+                } catch (couponError) {
+                  console.warn('Failed to apply coupon usage:', couponError)
+                  // Don't throw error as the payment was successful
+                }
               }
 
               // Update order status

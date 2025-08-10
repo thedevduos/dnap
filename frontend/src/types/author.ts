@@ -17,6 +17,7 @@ export interface AuthorBook {
   id: string
   authorId: string
   authorName: string
+  authorEmail?: string
   title: string
   category: string
   genre: string
