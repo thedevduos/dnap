@@ -129,6 +129,19 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     }
   ]
 
+  // Initialize with the current section expanded on first load
+  useEffect(() => {
+    if (expandedSections.length === 0) {
+      const currentSection = sections.find(section => 
+        section.items.some(item => item.href === location.pathname)
+      )
+      
+      if (currentSection) {
+        setExpandedSections([currentSection.id])
+      }
+    }
+  }, [location.pathname, sections, expandedSections.length])
+
   const toggleSection = (sectionId: string) => {
     setExpandedSections(prev => 
       prev.includes(sectionId) 
@@ -163,7 +176,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     }
   }
 
-  const renderNavigationItem = (item: any) => {
+  const renderNavigationItem = (item: any, isMobile: boolean = false) => {
     const isActive = location.pathname === item.href
     return (
       <Link
@@ -175,7 +188,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             ? "bg-orange-600 text-white"
             : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
         )}
-        onClick={() => setSidebarOpen(false)}
+        onClick={isMobile ? () => setSidebarOpen(false) : undefined}
       >
         <item.icon className="mr-3 h-5 w-5 flex-shrink-0" />
         {item.name}
@@ -183,7 +196,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     )
   }
 
-  const renderSection = (section: any) => {
+  const renderSection = (section: any, isMobile: boolean = false) => {
     const isExpanded = isSectionExpanded(section.id)
     const hasActiveItem = isCurrentPathInSection(section.id)
 
@@ -211,7 +224,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         
         {isExpanded && (
           <div className="ml-6 space-y-1">
-            {section.items.map(renderNavigationItem)}
+            {section.items.map((item: any) => renderNavigationItem(item, isMobile))}
           </div>
         )}
       </div>
@@ -236,7 +249,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             </Button>
           </div>
           <nav className="flex-1 space-y-2 px-2 py-4 overflow-y-auto max-h-[calc(100vh-4rem)]">
-            {sections.map(renderSection)}
+            {sections.map(section => renderSection(section, true))}
           </nav>
         </div>
       </div>
@@ -253,7 +266,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             </Link>
           </div>
           <nav className="flex-1 space-y-2 px-2 py-4 overflow-y-auto max-h-[calc(100vh-4rem)]">
-            {sections.map(renderSection)}
+            {sections.map(section => renderSection(section, false))}
           </nav>
         </div>
       </div>

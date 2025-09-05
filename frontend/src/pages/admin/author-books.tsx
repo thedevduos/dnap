@@ -675,7 +675,6 @@ export default function AdminAuthorBooks() {
                     </div>
                     <div className="space-y-2">
                       <p><strong>Category:</strong> {selectedBook.category}</p>
-                      <p><strong>Genre:</strong> {selectedBook.genre}</p>
                       <p><strong>Pages:</strong> {selectedBook.pages}</p>
                       <p><strong>Language:</strong> {selectedBook.language}</p>
                     </div>

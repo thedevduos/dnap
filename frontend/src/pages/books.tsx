@@ -147,7 +147,7 @@ export default function BooksPage() {
             Our Book Collection
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8">
-            Discover our extensive collection of books across various genres
+            Discover our extensive collection of books across various categories
           </p>
 
           {/* Admin restriction notice */}
@@ -175,7 +175,7 @@ export default function BooksPage() {
           <div className="max-w-md mx-auto relative mb-8">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
-              placeholder="Search books, authors, or genres..."
+              placeholder="Search books, authors, or categories..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"

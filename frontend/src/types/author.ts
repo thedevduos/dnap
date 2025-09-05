@@ -20,7 +20,6 @@ export interface AuthorBook {
   authorEmail?: string
   title: string
   category: string
-  genre: string
   pages: number
   language: string
   description: string

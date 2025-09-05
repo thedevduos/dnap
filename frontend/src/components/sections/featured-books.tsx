@@ -109,7 +109,7 @@ export function FeaturedBooks() {
             Featured Books
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Discover our handpicked selection of exceptional books across various genres
+            Discover our handpicked selection of exceptional books across various categories
           </p>
         </div>
 
@@ -157,7 +157,7 @@ export function FeaturedBooks() {
               <CardContent className="p-6">
                 <div className="mb-2">
                   <Badge variant="outline" className="text-xs">
-                    {book.genre}
+                    {book.category}
                   </Badge>
                 </div>
 

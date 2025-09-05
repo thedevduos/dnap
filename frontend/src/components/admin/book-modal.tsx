@@ -179,6 +179,9 @@ export function BookModal({ isOpen, onClose, book }: BookModalProps) {
                   <SelectItem value="Mystery">Mystery</SelectItem>
                   <SelectItem value="Sci-Fi">Sci-Fi</SelectItem>
                   <SelectItem value="Fantasy">Fantasy</SelectItem>
+                  <SelectItem value="Self-Help">Self-Help</SelectItem>
+                  <SelectItem value="Academic Books">Academic Books</SelectItem>
+                  <SelectItem value="Law Books">Law Books</SelectItem>
                 </SelectContent>
               </Select>
             </div>

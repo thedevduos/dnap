@@ -540,7 +540,7 @@ const createCustomerWelcomeEmailTemplate = (userData: {
                 <h3>🎉 What You Can Do Now</h3>
                 <div class="feature-item">
                     <span class="feature-icon">📚</span>
-                    <strong>Browse Our Collection:</strong> Explore our wide range of books across various genres
+                    <strong>Browse Our Collection:</strong> Explore our wide range of books across various categories
                 </div>
                 <div class="feature-item">
                     <span class="feature-icon">❤️</span>

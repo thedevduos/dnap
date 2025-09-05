@@ -26,7 +26,6 @@ export function NewBookModal({ open, onOpenChange }: NewBookModalProps) {
   const [bookData, setBookData] = useState({
     title: "",
     category: "",
-    genre: "",
     pages: "",
     language: "",
     description: ""
@@ -41,7 +40,7 @@ export function NewBookModal({ open, onOpenChange }: NewBookModalProps) {
   const categories = [
     "Fiction", "Non-Fiction", "Poetry", "Biography", "Science", 
     "History", "Romance", "Mystery", "Sci-Fi", "Fantasy", 
-    "Self-Help", "Business", "Health", "Travel", "Children"
+    "Self-Help", "Academic Books", "Law Books", "Business", "Health", "Travel", "Children"
   ]
 
   const languages = [
@@ -59,7 +58,7 @@ export function NewBookModal({ open, onOpenChange }: NewBookModalProps) {
 
   const validateStep = (step: number) => {
     if (step === 1) {
-      const required = ['title', 'category', 'genre', 'pages', 'language', 'description']
+      const required = ['title', 'category', 'pages', 'language', 'description']
       for (const field of required) {
         if (!bookData[field as keyof typeof bookData]) {
           toast({
@@ -71,10 +70,10 @@ export function NewBookModal({ open, onOpenChange }: NewBookModalProps) {
         }
       }
     } else if (step === 2) {
-      if (!files.pdf || !files.image) {
+      if (!files.wordDoc) {
         toast({
           title: "Missing Files",
-          description: "Please upload both PDF and cover image",
+          description: "Please upload the Word document",
           variant: "destructive"
         })
         return false
@@ -128,7 +127,6 @@ export function NewBookModal({ open, onOpenChange }: NewBookModalProps) {
       setBookData({
         title: "",
         category: "",
-        genre: "",
         pages: "",
         language: "",
         description: ""
@@ -198,33 +196,21 @@ export function NewBookModal({ open, onOpenChange }: NewBookModalProps) {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="category">Category *</Label>
-                  <Select
-                    value={bookData.category}
-                    onValueChange={(value) => handleBookDataChange('category', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map(category => (
-                        <SelectItem key={category} value={category}>{category}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="genre">Genre *</Label>
-                  <Input
-                    id="genre"
-                    value={bookData.genre}
-                    onChange={(e) => handleBookDataChange('genre', e.target.value)}
-                    placeholder="Book genre"
-                    required
-                  />
-                </div>
+              <div>
+                <Label htmlFor="category">Category *</Label>
+                <Select
+                  value={bookData.category}
+                  onValueChange={(value) => handleBookDataChange('category', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map(category => (
+                      <SelectItem key={category} value={category}>{category}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -274,9 +260,37 @@ export function NewBookModal({ open, onOpenChange }: NewBookModalProps) {
           {/* Step 2: File Upload */}
           {currentStep === 2 && (
             <div className="space-y-6">
-              {/* PDF Upload */}
+              {/* Word Document Upload (Required) */}
               <div>
-                <Label>Book PDF *</Label>
+                <Label>Word Document *</Label>
+                <div className="mt-2">
+                  <input
+                    type="file"
+                    id="wordDoc"
+                    accept=".doc,.docx"
+                    onChange={(e) => handleFileChange('wordDoc', e.target.files?.[0] || null)}
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => document.getElementById("wordDoc")?.click()}
+                    className="w-full"
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload Word Document
+                  </Button>
+                  {files.wordDoc && (
+                    <p className="text-sm text-green-600 mt-2">
+                      ✓ {files.wordDoc.name} selected
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* PDF Upload (Optional) */}
+              <div>
+                <Label>Book PDF (Optional)</Label>
                 <div className="mt-2">
                   <input
                     type="file"
@@ -302,9 +316,9 @@ export function NewBookModal({ open, onOpenChange }: NewBookModalProps) {
                 </div>
               </div>
 
-              {/* Cover Image Upload */}
+              {/* Cover Image Upload (Optional) */}
               <div>
-                <Label>Cover Image *</Label>
+                <Label>Cover Image (Optional)</Label>
                 <div className="mt-2">
                   <input
                     type="file"
@@ -331,34 +345,6 @@ export function NewBookModal({ open, onOpenChange }: NewBookModalProps) {
                         className="w-32 h-40 object-cover rounded mt-2"
                       />
                     </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Word Document Upload (Optional) */}
-              <div>
-                <Label>Word Document (Optional)</Label>
-                <div className="mt-2">
-                  <input
-                    type="file"
-                    id="wordDoc"
-                    accept=".doc,.docx"
-                    onChange={(e) => handleFileChange('wordDoc', e.target.files?.[0] || null)}
-                    className="hidden"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => document.getElementById("wordDoc")?.click()}
-                    className="w-full"
-                  >
-                    <Upload className="h-4 w-4 mr-2" />
-                    Upload Word Document
-                  </Button>
-                  {files.wordDoc && (
-                    <p className="text-sm text-green-600 mt-2">
-                      ✓ {files.wordDoc.name} selected
-                    </p>
                   )}
                 </div>
               </div>
