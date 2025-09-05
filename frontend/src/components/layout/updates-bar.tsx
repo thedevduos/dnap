@@ -1,18 +1,17 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { X, Sparkles, ChevronLeft, ChevronRight } from "lucide-react"
+import { Sparkles, ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useUpdates } from "@/hooks/use-updates"
 import anime from "animejs"
 
 export function UpdatesBar() {
-  const [isVisible, setIsVisible] = useState(true)
   const [currentUpdate, setCurrentUpdate] = useState(0)
   const { updates } = useUpdates()
 
   useEffect(() => {
-    if (isVisible && updates.length > 0) {
+    if (updates.length > 0) {
       anime({
         targets: ".updates-bar",
         translateY: [-50, 0],
@@ -28,7 +27,7 @@ export function UpdatesBar() {
 
       return () => clearInterval(rotateInterval)
     }
-  }, [isVisible, updates.length])
+  }, [updates.length])
 
   useEffect(() => {
     if (updates.length > 0) {
@@ -42,15 +41,19 @@ export function UpdatesBar() {
     }
   }, [currentUpdate, updates])
 
-  const handlePrevious = () => {
+  const handlePrevious = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
     setCurrentUpdate((prev) => (prev - 1 + updates.length) % updates.length)
   }
 
-  const handleNext = () => {
+  const handleNext = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
     setCurrentUpdate((prev) => (prev + 1) % updates.length)
   }
 
-  if (!isVisible || updates.length === 0) return null
+  if (updates.length === 0) return null
 
   return (
     <div className="updates-bar bg-gradient-to-r from-green-600 to-green-700 text-white py-4 px-4 relative overflow-hidden shadow-lg">
@@ -62,7 +65,8 @@ export function UpdatesBar() {
               variant="ghost"
               size="sm"
               onClick={handlePrevious}
-              className="absolute left-0 text-white/70 hover:text-white hover:bg-white/20 h-8 w-8 p-0 rounded-full"
+              className="absolute left-0 text-white/70 hover:text-white hover:bg-white/20 h-8 w-8 p-0 rounded-full z-10"
+              type="button"
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -70,7 +74,8 @@ export function UpdatesBar() {
               variant="ghost"
               size="sm"
               onClick={handleNext}
-              className="absolute right-0 text-white/70 hover:text-white hover:bg-white/20 h-8 w-8 p-0 rounded-full"
+              className="absolute right-0 text-white/70 hover:text-white hover:bg-white/20 h-8 w-8 p-0 rounded-full z-10"
+              type="button"
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
@@ -84,16 +89,6 @@ export function UpdatesBar() {
             {updates[currentUpdate]?.textEnglish || "Welcome to DNA Publications!"}
           </span>
         </div>
-
-        {/* Close Button */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setIsVisible(false)}
-          className="absolute right-4 text-white/70 hover:text-white hover:bg-white/20 h-8 w-8 p-0 rounded-full"
-        >
-          <X className="h-4 w-4" />
-        </Button>
       </div>
 
       {/* Progress Indicator */}
@@ -101,11 +96,13 @@ export function UpdatesBar() {
         <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2">
           <div className="flex space-x-1">
             {updates.map((_, index) => (
-              <div
+              <button
                 key={index}
-                className={`h-1 w-8 rounded-full transition-all duration-300 ${
-                  index === currentUpdate ? 'bg-white' : 'bg-white/30'
+                onClick={() => setCurrentUpdate(index)}
+                className={`h-1 w-8 rounded-full transition-all duration-300 cursor-pointer ${
+                  index === currentUpdate ? 'bg-white' : 'bg-white/30 hover:bg-white/50'
                 }`}
+                type="button"
               />
             ))}
           </div>
