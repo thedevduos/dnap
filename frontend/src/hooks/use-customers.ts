@@ -33,13 +33,39 @@ export function useCustomers() {
         ...doc.data(),
       }))
 
-      setCustomers(customersData)
+      // Deduplicate customers based on email address
+      const uniqueCustomers = customersData.reduce((acc: Customer[], current) => {
+        const existingCustomer = acc.find(customer => customer.email === current.email)
+        if (!existingCustomer) {
+          acc.push(current)
+        } else {
+          // If duplicate found, keep the one with more recent createdAt or more complete data
+          if (current.createdAt && existingCustomer.createdAt) {
+            if (current.createdAt.toDate() > existingCustomer.createdAt.toDate()) {
+              const index = acc.findIndex(customer => customer.email === current.email)
+              acc[index] = current
+            }
+          } else if (current.displayName && !existingCustomer.displayName) {
+            // Prefer customer with display name
+            const index = acc.findIndex(customer => customer.email === current.email)
+            acc[index] = current
+          }
+        }
+        return acc
+      }, [])
 
-      // Calculate analytics
-      const total = customersData.length
-      const active = customersData.filter(c => !c.suspended).length
-      const newsletter = customersData.filter(c => c.preferences?.newsletter).length
-      const withOrders = customersData.filter(c => (c.orderCount || 0) > 0).length
+      // Log deduplication info for debugging
+      if (customersData.length !== uniqueCustomers.length) {
+        console.log(`Deduplicated customers: ${customersData.length} -> ${uniqueCustomers.length}`)
+      }
+
+      setCustomers(uniqueCustomers)
+
+      // Calculate analytics using deduplicated data
+      const total = uniqueCustomers.length
+      const active = uniqueCustomers.filter(c => !c.suspended).length
+      const newsletter = uniqueCustomers.filter(c => c.preferences?.newsletter).length
+      const withOrders = uniqueCustomers.filter(c => (c.orderCount || 0) > 0).length
 
       setAnalytics({ total, active, newsletter, withOrders })
       setLoading(false)
