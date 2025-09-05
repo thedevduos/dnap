@@ -27,8 +27,6 @@ import { useUser } from "@/contexts/user-context"
 import { useToast } from "@/hooks/use-toast"
 import { useOrders } from "@/hooks/use-orders"
 import { useWishlist } from "@/hooks/use-wishlist"
-import { useEbookOrders } from "@/hooks/use-ebook-orders"
-import { useEbookSubscriptions } from "@/hooks/use-ebook-subscriptions"
 import { AddressModal } from "@/components/profile/address-modal"
 import { Link } from "react-router-dom"
 import { checkSubscriberStatus, unsubscribeFromNewsletter, subscribeToNewsletter, updateSubscriberStatus } from "@/lib/firebase-utils"
@@ -38,8 +36,6 @@ export default function ProfilePage() {
   const { userProfile, updateProfile, removeAddress, setDefaultAddress } = useUser()
   const { orders, loading: ordersLoading } = useOrders()
   const { wishlistBooks, loading: wishlistLoading } = useWishlist()
-  const { orders: ebookOrders, loading: ebookOrdersLoading } = useEbookOrders()
-  const { subscriptions: ebookSubscriptions, loading: ebookSubscriptionsLoading } = useEbookSubscriptions()
   const { toast } = useToast()
   
   const [isEditing, setIsEditing] = useState(false)
@@ -245,10 +241,6 @@ export default function ProfilePage() {
               <TabsTrigger value="orders" className="flex items-center gap-2">
                 <Package className="h-4 w-4" />
                 Orders
-              </TabsTrigger>
-              <TabsTrigger value="ebooks" className="flex items-center gap-2">
-                <Book className="h-4 w-4" />
-                E-books
               </TabsTrigger>
               <TabsTrigger value="wishlist" className="flex items-center gap-2">
                 <Heart className="h-4 w-4" />
@@ -561,176 +553,6 @@ export default function ProfilePage() {
               </Card>
             </TabsContent>
 
-            {/* E-books Tab */}
-            <TabsContent value="ebooks">
-              <div className="space-y-6">
-                {/* E-book Orders */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>E-book Orders</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {ebookOrdersLoading ? (
-                      <div className="text-center py-8">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                        <p className="mt-2 text-muted-foreground">Loading e-book orders...</p>
-                      </div>
-                    ) : ebookOrders.length === 0 ? (
-                      <div className="text-center py-8">
-                        <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                        <p className="text-muted-foreground">No e-book orders yet</p>
-                        <Button asChild className="mt-4">
-                          <Link to="/ebooks">Browse E-books</Link>
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        {ebookOrders.map((order) => (
-                          <Card key={order.id}>
-                            <CardContent className="p-4">
-                              <div className="flex justify-between items-start mb-4">
-                                <div>
-                                  <p className="font-medium">E-book Order #{order.id.slice(-8)}</p>
-                                  <p className="text-sm text-muted-foreground">
-                                    {order.createdAt?.toLocaleDateString()}
-                                  </p>
-                                  <p className="text-sm font-medium text-primary">{order.planTitle}</p>
-                                </div>
-                                <div className="text-right">
-                                  <Badge className={getOrderStatusColor(order.status)}>
-                                    {order.status}
-                                  </Badge>
-                                  <p className="text-sm font-medium mt-1">₹{order.amount}</p>
-                                </div>
-                              </div>
-                              
-                              <div className="space-y-2">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-12 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded flex items-center justify-center">
-                                    <Package className="w-6 h-6 text-white" />
-                                  </div>
-                                  <div className="flex-1">
-                                    <p className="text-sm font-medium">{order.planTitle} Plan</p>
-                                    <p className="text-xs text-muted-foreground">
-                                      Transaction ID: {order.transactionId}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                      Payment: {order.paymentMethod}
-                                    </p>
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="flex justify-between items-center mt-4 pt-4 border-t">
-                                <Button variant="outline" size="sm" asChild>
-                                  <Link to="/my-books">
-                                    <Eye className="h-4 w-4 mr-2" />
-                                    View My Books
-                                  </Link>
-                                </Button>
-                                {order.status === "confirmed" && (
-                                  <Button variant="outline" size="sm" asChild>
-                                    <Link to="/ebooks">Browse More</Link>
-                                  </Button>
-                                )}
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* E-book Subscriptions */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>E-book Subscriptions</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {ebookSubscriptionsLoading ? (
-                      <div className="text-center py-8">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                        <p className="mt-2 text-muted-foreground">Loading subscriptions...</p>
-                      </div>
-                    ) : ebookSubscriptions.length === 0 ? (
-                      <div className="text-center py-8">
-                        <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                        <p className="text-muted-foreground">No active subscriptions</p>
-                        <Button asChild className="mt-4">
-                          <Link to="/ebooks">Get a Subscription</Link>
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        {ebookSubscriptions.map((subscription) => (
-                          <Card key={subscription.id}>
-                            <CardContent className="p-4">
-                              <div className="flex justify-between items-start mb-4">
-                                <div>
-                                  <p className="font-medium">{subscription.planTitle}</p>
-                                  <p className="text-sm text-muted-foreground">
-                                    {subscription.planType === 'single' ? 'Single Book' : 'Multiple Books'}
-                                  </p>
-                                  {subscription.maxBooks && (
-                                    <p className="text-sm text-muted-foreground">
-                                      Max Books: {subscription.maxBooks}
-                                    </p>
-                                  )}
-                                </div>
-                                <div className="text-right">
-                                  <Badge className={
-                                    subscription.status === 'active' ? 'bg-green-100 text-green-800' :
-                                    subscription.status === 'expired' ? 'bg-red-100 text-red-800' :
-                                    'bg-gray-100 text-gray-800'
-                                  }>
-                                    {subscription.status}
-                                  </Badge>
-                                  <p className="text-sm text-muted-foreground mt-1">
-                                    {subscription.selectedBooks?.length || 0} books selected
-                                  </p>
-                                </div>
-                              </div>
-                              
-                              <div className="space-y-2">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-12 h-16 bg-gradient-to-br from-green-500 to-blue-600 rounded flex items-center justify-center">
-                                    <Package className="w-6 h-6 text-white" />
-                                  </div>
-                                  <div className="flex-1">
-                                    <p className="text-sm font-medium">Subscription Details</p>
-                                    <p className="text-xs text-muted-foreground">
-                                      Started: {subscription.startDate?.toLocaleDateString()}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                      Expires: {subscription.endDate?.toLocaleDateString()}
-                                    </p>
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="flex justify-between items-center mt-4 pt-4 border-t">
-                                <Button variant="outline" size="sm" asChild>
-                                  <Link to="/my-books">
-                                    <Eye className="h-4 w-4 mr-2" />
-                                    Read Books
-                                  </Link>
-                                </Button>
-                                {subscription.status === "active" && (
-                                  <Button variant="outline" size="sm" asChild>
-                                    <Link to="/ebooks">Manage Books</Link>
-                                  </Button>
-                                )}
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
 
             {/* Wishlist Tab */}
             <TabsContent value="wishlist">

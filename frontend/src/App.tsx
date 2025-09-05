@@ -6,10 +6,8 @@ import { Toaster } from "@/components/ui/toaster"
 import { ErrorBoundary } from "@/components/ui/error-boundary"
 import { AuthProvider } from "@/contexts/auth-context"
 import { CartProvider } from "@/contexts/cart-context"
-import { EbookCartProvider } from "@/contexts/ebook-cart-context"
 import { UserProvider } from "@/contexts/user-context"
 import { ProtectedRoute } from "@/components/admin/protected-route"
-import { SubscriptionExpiryChecker } from "@/components/ebook/subscription-expiry-checker"
 import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
 
@@ -36,9 +34,6 @@ import RefundPolicy from "@/pages/refund-policy"
 import ShippingPolicy from "@/pages/shipping-policy"
 import TermsConditions from "@/pages/terms-conditions"
 import CareersPage from "@/pages/careers"
-import EbooksPage from "@/pages/ebooks"
-import MyBooksPage from "@/pages/my-books"
-import EbookCheckoutPage from "@/pages/ebook-checkout"
 
 // Admin Pages
 import AdminDashboard from "@/pages/admin/dashboard"
@@ -59,9 +54,6 @@ import AdminCustomers from "@/pages/admin/customers"
 import AdminAnalytics from "@/pages/admin/analytics"
 import AdminReviews from "@/pages/admin/reviews"
 import AdminZohoConnection from "@/pages/admin/zoho-connection"
-import AdminEbookManagement from "@/pages/admin/ebook-management"
-import AdminEbookOrders from "@/pages/admin/ebook-orders"
-import AdminEbookSubscriptions from "@/pages/admin/ebook-subscriptions"
 import AdminAuthorBooks from "@/pages/admin/author-books"
 import AdminAffiliateLinks from "@/pages/admin/affiliate-links"
 import AdminSalesReports from "@/pages/admin/sales-reports"
@@ -81,7 +73,6 @@ export default function App() {
       <AuthProvider>
         <UserProvider>
           <CartProvider>
-            <EbookCartProvider>
               <ThemeProvider defaultTheme="light" storageKey="dna-publications-theme">
                 <Router>
                   <div className="min-h-screen bg-background">
@@ -91,7 +82,6 @@ export default function App() {
                         path="/admin/*"
                         element={
                           <ProtectedRoute>
-                            <SubscriptionExpiryChecker />
                             <Routes>
                               <Route path="/" element={<AdminDashboard />} />
                               <Route path="/dashboard" element={<AdminDashboard />} />
@@ -112,9 +102,6 @@ export default function App() {
                               <Route path="/emails" element={<AdminEmails />} />
                               <Route path="/profile" element={<AdminProfile />} />
                               <Route path="/zoho-connection" element={<AdminZohoConnection />} />
-                              <Route path="/ebook-management" element={<AdminEbookManagement />} />
-                              <Route path="/ebook-orders" element={<AdminEbookOrders />} />
-                              <Route path="/ebook-subscriptions" element={<AdminEbookSubscriptions />} />
                               <Route path="/author-books" element={<AdminAuthorBooks />} />
                               <Route path="/affiliate-links" element={<AdminAffiliateLinks />} />
                               <Route path="/sales-reports" element={<AdminSalesReports />} />
@@ -128,7 +115,6 @@ export default function App() {
                         path="/author/*"
                         element={
                           <ProtectedRoute>
-                            <SubscriptionExpiryChecker />
                             <Routes>
                               <Route path="/dashboard" element={<AuthorDashboard />} />
                               <Route path="/books" element={<AuthorBooksPage />} />
@@ -144,7 +130,6 @@ export default function App() {
                         path="/*"
                         element={
                           <ErrorBoundary>
-                            <SubscriptionExpiryChecker />
                             <>
                               <Header />
                               <main>
@@ -158,21 +143,6 @@ export default function App() {
                                   <Route path="/checkout" element={
                                     <ProtectedRoute>
                                       <CheckoutPage />
-                                    </ProtectedRoute>
-                                  } />
-                                  <Route path="/ebooks" element={
-                                    <ProtectedRoute>
-                                      <EbooksPage />
-                                    </ProtectedRoute>
-                                  } />
-                                  <Route path="/my-books" element={
-                                    <ProtectedRoute>
-                                      <MyBooksPage />
-                                    </ProtectedRoute>
-                                  } />
-                                  <Route path="/ebook-checkout" element={
-                                    <ProtectedRoute>
-                                      <EbookCheckoutPage />
                                     </ProtectedRoute>
                                   } />
                                   <Route path="/auth/login" element={<LoginPage />} />
@@ -210,7 +180,6 @@ export default function App() {
                   </div>
                 </Router>
               </ThemeProvider>
-            </EbookCartProvider>
           </CartProvider>
         </UserProvider>
       </AuthProvider>

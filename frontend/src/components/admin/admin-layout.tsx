@@ -75,10 +75,6 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     { name: "Reviews", href: "/admin/reviews", icon: Star, section: "site-management" },
     { name: "Zoho Connection", href: "/admin/zoho-connection", icon: Settings, section: "site-management" },
     
-    // E-book Management
-    { name: "Plans & Books", href: "/admin/ebook-management", icon: BookOpen, section: "ebook" },
-    { name: "Orders", href: "/admin/ebook-orders", icon: ShoppingCart, section: "ebook" },
-    { name: "Subscriptions", href: "/admin/ebook-subscriptions", icon: Users, section: "ebook" },
     
     // Authors Management
     { name: "Author Books", href: "/admin/author-books", icon: BookOpen, section: "authors" },
@@ -108,12 +104,6 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       name: "Site Management",
       icon: Settings,
       items: navigation.filter(item => item.section === "site-management")
-    },
-    {
-      id: "ebook",
-      name: "E-book Management",
-      icon: BookOpen,
-      items: navigation.filter(item => item.section === "ebook")
     },
     {
       id: "authors",

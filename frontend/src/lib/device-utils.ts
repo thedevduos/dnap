@@ -330,7 +330,7 @@ export const checkDeviceCompatibility = (): {
   if (isDesktopDevice()) {
     return {
       isCompatible: false,
-      reason: 'Ebook reader is only available on mobile devices'
+      reason: 'Reader is only available on mobile devices'
     }
   }
   

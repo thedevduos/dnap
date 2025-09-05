@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Check, BookOpen, PenTool, GraduationCap, Heart, Users, FileText, Globe, Palette } from "lucide-react"
+import { Check, BookOpen, PenTool, GraduationCap, Heart } from "lucide-react"
 import anime from "animejs"
 
 type BookPublishingPackage = {
@@ -20,7 +20,7 @@ const bookPublishingPackages: BookPublishingPackage[] = [
   {
     id: "poem-quote",
     title: "Poem/Quote Book",
-    price: "₹1499 + GST",
+    price: "₹1,499 + GST",
     description: "Perfect for poetry collections and inspirational quotes",
     icon: PenTool,
     features: [
@@ -32,23 +32,9 @@ const bookPublishingPackages: BookPublishingPackage[] = [
     ]
   },
   {
-    id: "essays-stories",
-    title: "Essays / Short Stories Book",
-    price: "₹1499 + GST",
-    description: "Ideal for essay collections and short story anthologies",
-    icon: FileText,
-    features: [
-      "Professional formatting",
-      "ISBN registration",
-      "Print-ready files",
-      "Basic cover design",
-      "Distribution setup"
-    ]
-  },
-  {
     id: "novel-story",
     title: "Novel / Story Book",
-    price: "₹1999 + GST",
+    price: "₹1,999 + GST",
     description: "Complete novel and story book publishing package",
     icon: BookOpen,
     features: [
@@ -58,12 +44,13 @@ const bookPublishingPackages: BookPublishingPackage[] = [
       "Enhanced cover design",
       "Distribution setup",
       "Marketing support"
-    ]
+    ],
+    popular: true
   },
   {
     id: "academic-research",
     title: "Academic / Research Book",
-    price: "₹2999 + GST",
+    price: "₹2,999 + GST",
     description: "Specialized publishing for academic and research works",
     icon: GraduationCap,
     features: [
@@ -74,13 +61,12 @@ const bookPublishingPackages: BookPublishingPackage[] = [
       "Distribution setup",
       "Citation formatting",
       "Index creation"
-    ],
-    popular: false
+    ]
   },
   {
     id: "self-help-spiritual",
     title: "Self-Help / Spiritual Book",
-    price: "₹3999 + GST",
+    price: "₹3,999 + GST",
     description: "Comprehensive package for self-help and spiritual books",
     icon: Heart,
     features: [
@@ -91,85 +77,6 @@ const bookPublishingPackages: BookPublishingPackage[] = [
       "Distribution setup",
       "Marketing support",
       "Author consultation"
-    ]
-  },
-  {
-    id: "anthology-poetry",
-    title: "Anthology Poetry Package",
-    price: "₹30 per person",
-    description: "Collaborative poetry anthology publishing",
-    icon: Users,
-    features: [
-      "Multi-author formatting",
-      "ISBN registration",
-      "Print-ready files",
-      "Collaborative cover design",
-      "Individual contributor credits",
-      "Distribution setup"
-    ]
-  },
-  {
-    id: "anthology-story",
-    title: "Anthology Story Package",
-    price: "₹50 per person",
-    description: "Collaborative story anthology publishing",
-    icon: Users,
-    features: [
-      "Multi-author formatting",
-      "ISBN registration",
-      "Print-ready files",
-      "Collaborative cover design",
-      "Individual contributor credits",
-      "Distribution setup",
-      "Editorial review"
-    ]
-  },
-  {
-    id: "ghost-writing",
-    title: "Ghost Writing Package",
-    price: "₹5999 + GST",
-    description: "Complete ghost writing and publishing service",
-    icon: PenTool,
-    features: [
-      "Professional ghost writing",
-      "Professional formatting",
-      "ISBN registration",
-      "Print-ready files",
-      "Premium cover design",
-      "Distribution setup",
-      "Full publishing support"
-    ]
-  },
-  {
-    id: "translation",
-    title: "Translation Book Package",
-    price: "₹1999 + GST",
-    description: "Professional translation and publishing service",
-    icon: Globe,
-    features: [
-      "Professional translation",
-      "Professional formatting",
-      "ISBN registration",
-      "Print-ready files",
-      "Cover design",
-      "Distribution setup",
-      "Quality assurance"
-    ]
-  },
-  {
-    id: "illustrations-kids",
-    title: "Illustrations / Kids Book",
-    price: "₹3499 + GST",
-    description: "Specialized package for illustrated and children's books",
-    icon: Palette,
-    features: [
-      "Professional formatting",
-      "ISBN registration",
-      "Print-ready files",
-      "Custom illustrations",
-      "Child-friendly design",
-      "Distribution setup",
-      "Marketing support"
     ]
   }
 ]
@@ -216,7 +123,7 @@ export default function PricingPage() {
           </p>
         </div>
 
-        <div className="grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
           {bookPublishingPackages.map((pkg) => (
             <Card
               key={pkg.id}
@@ -242,7 +149,7 @@ export default function PricingPage() {
               </CardHeader>
 
               <CardContent>
-                <ul className="space-y-3 mb-6">
+                <ul className="space-y-3">
                   {pkg.features.map((feature, featureIndex) => (
                     <li key={featureIndex} className="flex items-center">
                       <Check className="h-4 w-4 text-orange-600 mr-3 flex-shrink-0" />

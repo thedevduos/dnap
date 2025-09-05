@@ -10,7 +10,6 @@
     "preview": "vite preview",
     "db:seed": "node scripts/seed.js",
     "db:seed-careers": "node scripts/seed-careers.js",
-    "db:seed-ebook-plans": "node scripts/seed-ebook-plans.js"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.14",

@@ -1,23 +1,13 @@
 "use client"
 
-import React, { useEffect, useRef, useState } from "react"
+import React, { useEffect, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Check, Star, Zap, Crown, Infinity } from "lucide-react"
-import { useEbookCart } from "@/contexts/ebook-cart-context"
-import { useEbookPlans } from "@/hooks/use-ebook-plans"
-import { useAuth } from "@/contexts/auth-context"
-import { LoginPopup } from "@/components/ui/login-popup"
+import { Check, BookOpen, PenTool, GraduationCap, Heart } from "lucide-react"
 import anime from "animejs"
 
 export function Pricing() {
   const sectionRef = useRef<HTMLElement>(null)
-  const [activeTab, setActiveTab] = useState<"multiple" | "single">("multiple")
-  const [showLoginPopup, setShowLoginPopup] = useState(false)
-  const { addToCart, isInCart } = useEbookCart()
-  const { plans, loading: plansLoading } = useEbookPlans()
-  const { user } = useAuth()
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -46,112 +36,84 @@ export function Pricing() {
     return () => observer.disconnect()
   }, [])
 
-  const handleAddToCart = (plan: any) => {
-    if (!user) {
-      setShowLoginPopup(true)
-      return
-    }
-    addToCart(plan)
-  }
 
   type Plan = {
     title: string
     price: string
     description: string
-    icon: typeof Star
+    icon: typeof BookOpen
     features: string[]
     period?: string
     popular?: boolean
   }
 
-  const multipleEbookPlans: Plan[] = [
+  const bookPublishingPlans: Plan[] = [
     {
-      title: "Basic",
-      price: "₹129",
-      period: "/month",
-      description: "3 Books per month",
-      icon: Star,
-      features: ["3 Books per month", "Online reading only", "Multiple formats (PDF, EPUB)", "Customer support"],
+      title: "Poem/Quote Book",
+      price: "₹1,499",
+      period: " + GST",
+      description: "Perfect for poetry collections and inspirational quotes",
+      icon: PenTool,
+      features: [
+        "Professional formatting",
+        "ISBN registration", 
+        "Print-ready files",
+        "Basic cover design",
+        "Distribution setup"
+      ],
     },
     {
-      title: "Standard",
-      price: "₹299",
-      period: "/month",
-      description: "10 Books per month",
-      icon: Zap,
+      title: "Novel / Story Book",
+      price: "₹1,999",
+      period: " + GST",
+      description: "Complete novel and story book publishing package",
+      icon: BookOpen,
       popular: true,
-      features: ["10 Books per month", "Online reading only", "Priority customer support", "New releases included"],
+      features: [
+        "Professional formatting",
+        "ISBN registration",
+        "Print-ready files", 
+        "Enhanced cover design",
+        "Distribution setup",
+        "Marketing support"
+      ],
     },
     {
-      title: "Premium",
-      price: "₹499",
-      period: "/month",
-      description: "Unlimited Books per month",
-      icon: Crown,
-      features: ["Unlimited Books per month", "Online reading only", "VIP customer support", "Early access to new releases", "Exclusive content"],
+      title: "Academic / Research Book",
+      price: "₹2,999",
+      period: " + GST",
+      description: "Specialized publishing for academic and research works",
+      icon: GraduationCap,
+      features: [
+        "Academic formatting",
+        "ISBN registration",
+        "Print-ready files",
+        "Professional cover design",
+        "Distribution setup",
+        "Citation formatting",
+        "Index creation"
+      ],
     },
     {
-      title: "Lifetime",
-      price: "₹4,999",
-      period: "one-time",
-      description: "Unlimited for 5 years",
-      icon: Infinity,
-      features: ["Unlimited access for 5 years", "Online reading only", "All future releases included", "VIP customer support", "Exclusive lifetime member perks"],
-    },
-  ]
-
-  const singleEbookPlans: Plan[] = [
-    {
-      title: "Basic",
-      price: "₹49",
-      period: "/month",
-      description: "Limited Collection Only",
-      icon: Star,
-      features: ["Limited collection access", "Online reading only", "Multiple formats (PDF, EPUB)", "Customer support"],
-    },
-    {
-      title: "Standard",
-      price: "₹99",
-      period: "/month",
-      description: "Additional Limited Books Only",
-      icon: Zap,
-      popular: true,
-      features: ["Additional limited books", "Online reading only", "Priority customer support", "New releases included"],
-    },
-    {
-      title: "Premium",
-      price: "₹149",
-      period: "/month",
-      description: "Any 1 Book - 1 Month Online Copy",
-      icon: Crown,
-      features: ["Any 1 book for 1 month", "Online reading only", "VIP customer support", "Flexible book selection"],
-    },
-    {
-      title: "Lifetime",
-      price: "₹999",
-      period: "one-time",
-      description: "For 5 years",
-      icon: Infinity,
-      features: ["Access for 5 years", "Online reading only", "All books included", "VIP customer support", "Exclusive lifetime member perks"],
+      title: "Self-Help / Spiritual Book",
+      price: "₹3,999",
+      period: " + GST",
+      description: "Comprehensive package for self-help and spiritual books",
+      icon: Heart,
+      features: [
+        "Professional formatting",
+        "ISBN registration",
+        "Print-ready files",
+        "Premium cover design",
+        "Distribution setup",
+        "Marketing support",
+        "Author consultation"
+      ],
     },
   ]
 
   const getCurrentPlans = () => {
-    if (plansLoading) return []
-    
-    // Use plans from database if available, otherwise use default plans
-    if (plans.length > 0) {
-      return plans.filter(plan => plan.type === activeTab)
-    } else {
-      switch (activeTab) {
-        case "multiple":
-          return multipleEbookPlans
-        case "single":
-          return singleEbookPlans
-        default:
-          return multipleEbookPlans
-      }
-    }
+    return bookPublishingPlans
   }
 
   const currentPlans = getCurrentPlans()
@@ -161,46 +123,21 @@ export function Pricing() {
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
-            Choose Your Plan
+            Book Publishing Rates
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Flexible pricing options to suit every reader
+            Professional book publishing services tailored to your needs
           </p>
         </div>
 
-        {/* Pricing Tabs */}
-        <div className="flex justify-center mb-12">
-          <div className="bg-muted p-1 rounded-lg">
-            {[
-              { key: "multiple", label: "Multiple E Books" },
-              { key: "single", label: "Single E Book" },
-            ].map((tab) => (
-              <Button
-                key={tab.key}
-                variant={activeTab === tab.key ? "default" : "ghost"}
-                onClick={() => setActiveTab(tab.key as any)}
-                className="mx-1"
-              >
-                {tab.label}
-              </Button>
-            ))}
-          </div>
-        </div>
 
-        {plansLoading ? (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-            <p className="mt-4 text-muted-foreground">Loading plans...</p>
-          </div>
-        ) : (
+        {
           <div className="grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
             {currentPlans.map((plan, index) => {
-              // Handle both EbookPlan and Plan types
-              const isEbookPlan = 'type' in plan
-              const planId = isEbookPlan ? plan.id : `plan-${index}`
-              const planPrice = isEbookPlan ? `₹${plan.price}` : plan.price
-              const planPeriod = isEbookPlan ? plan.period : plan.period
-              const planIcon = isEbookPlan ? Star : (plan as any).icon
+              const planId = `plan-${index}`
+              const planPrice = plan.price
+              const planPeriod = plan.period
+              const planIcon = (plan as any).icon
               
               return (
                 <Card
@@ -228,7 +165,7 @@ export function Pricing() {
                   </CardHeader>
 
                   <CardContent>
-                    <ul className="space-y-3 mb-6">
+                    <ul className="space-y-3">
                       {plan.features.map((feature, featureIndex) => (
                         <li key={featureIndex} className="flex items-center">
                           <Check className="h-4 w-4 text-primary mr-3 flex-shrink-0" />
@@ -236,37 +173,22 @@ export function Pricing() {
                         </li>
                       ))}
                     </ul>
-
-                    <Button 
-                      className="w-full group" 
-                      variant={plan.popular ? "default" : "outline"}
-                      onClick={() => handleAddToCart(plan)}
-                      disabled={isInCart(planId)}
-                    >
-                      {isInCart(planId) ? "In Cart" : "Choose Plan"}
-                    </Button>
                   </CardContent>
                 </Card>
               )
             })}
           </div>
-        )}
+        }
 
         <div className="mt-12 text-center">
           <p className="text-muted-foreground mb-4">
-            * Prices are subject to revision. Current prices are rough estimates.
+            * All prices are starting rates and may vary based on specific requirements.
           </p>
           <p className="text-sm text-muted-foreground">
-            All plans include customer support and regular updates. Contact us for custom enterprise solutions.
+            Contact us for custom packages and detailed quotations. GST applicable on all services.
           </p>
         </div>
       </div>
-      
-      <LoginPopup
-        open={showLoginPopup}
-        onOpenChange={setShowLoginPopup}
-        action="add plans to your cart"
-      />
     </section>
   )
 }

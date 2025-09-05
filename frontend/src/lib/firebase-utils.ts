@@ -18,7 +18,6 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
 import { createUserWithEmailAndPassword } from "firebase/auth"
 import { db, storage, auth } from "@/lib/firebase"
 import { sendWelcomeEmail } from "./email-utils"
-import { uploadBookPDF } from "./ebook-utils"
 
 interface Coupon {
   id: string
@@ -467,11 +466,6 @@ export const deleteTestimonial = async (id: string) => {
 
 // Books
 export const addBook = async (bookData: any) => {
-  // Validate that PDF URL is present
-  if (!bookData.pdfUrl) {
-    throw new Error("PDF URL is required to add a book")
-  }
-  
   return await addDoc(collection(db, "books"), {
     ...bookData,
     createdAt: serverTimestamp(),
@@ -479,11 +473,6 @@ export const addBook = async (bookData: any) => {
 }
 
 export const updateBook = async (id: string, bookData: any) => {
-  // Validate that PDF URL is present
-  if (!bookData.pdfUrl) {
-    throw new Error("PDF URL is required to update a book")
-  }
-  
   return await updateDoc(doc(db, "books", id), {
     ...bookData,
     updatedAt: serverTimestamp(),
@@ -494,7 +483,7 @@ export const deleteBook = async (id: string) => {
   return await deleteDoc(doc(db, "books", id))
 }
 
-// Enhanced delete function that removes book, ebooks, author data, and author access
+// Enhanced delete function that removes book, author data, and author access
 export const deleteBookAndAuthorData = async (bookId: string) => {
   try {
     // First, get the book details to find the author
@@ -514,26 +503,6 @@ export const deleteBookAndAuthorData = async (bookId: string) => {
     await deleteDoc(doc(db, "books", bookId))
     console.log('✓ Book deleted from books collection')
     
-    // 2. Delete related ebook data
-    // Delete ebook orders that reference this book
-    const ebookOrdersQuery = query(
-      collection(db, "ebookOrders"),
-      where("bookId", "==", bookId)
-    )
-    const ebookOrdersSnapshot = await getDocs(ebookOrdersQuery)
-    const ebookOrderDeletes = ebookOrdersSnapshot.docs.map(doc => deleteDoc(doc.ref))
-    await Promise.all(ebookOrderDeletes)
-    console.log(`✓ Deleted ${ebookOrdersSnapshot.docs.length} ebook orders`)
-    
-    // Delete ebook subscriptions that might be related to this book
-    const ebookSubscriptionsQuery = query(
-      collection(db, "ebookSubscriptions"),
-      where("bookId", "==", bookId)
-    )
-    const ebookSubscriptionsSnapshot = await getDocs(ebookSubscriptionsQuery)
-    const ebookSubscriptionDeletes = ebookSubscriptionsSnapshot.docs.map(doc => deleteDoc(doc.ref))
-    await Promise.all(ebookSubscriptionDeletes)
-    console.log(`✓ Deleted ${ebookSubscriptionsSnapshot.docs.length} ebook subscriptions`)
     
     // 3. Delete related orders that contain this book
     const ordersQuery = query(collection(db, "orders"))
@@ -782,8 +751,6 @@ export const deleteBookAndAuthorData = async (bookId: string) => {
       authorId,
       deletedItems: {
         book: 1,
-        ebookOrders: ebookOrdersSnapshot.docs.length,
-        ebookSubscriptions: ebookSubscriptionsSnapshot.docs.length,
         orders: orderDeletes.length,
         reviews: reviewsSnapshot.docs.length,
         affiliateLinks: affiliateLinksSnapshot.docs.length,
@@ -940,8 +907,6 @@ export const uploadImage = async (file: File, folder: string): Promise<string> =
   return downloadURL
 }
 
-// Export uploadBookPDF for use in components
-export { uploadBookPDF }
 
 // Users
 export const addUser = async (userData: any) => {

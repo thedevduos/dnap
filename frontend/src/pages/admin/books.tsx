@@ -65,7 +65,7 @@ export default function AdminBooks() {
       const result = await deleteBookAndAuthorData(bookToDelete.id)
       toast({
         title: "Success",
-        description: `Book "${bookToDelete.title}" and ALL related data deleted successfully. Deleted: ${result.deletedItems.book} book, ${result.deletedItems.ebookOrders} ebook orders, ${result.deletedItems.ebookSubscriptions} ebook subscriptions, ${result.deletedItems.orders} orders, ${result.deletedItems.reviews} reviews, ${result.deletedItems.affiliateLinks} affiliate links, ${result.deletedItems.coupons} coupons, ${result.deletedItems.transactions} transactions, ${result.deletedItems.authorBooks} author books, ${result.deletedItems.wishlistUpdates} wishlist updates, and ${result.deletedItems.cartUpdates} cart updates.`,
+        description: `Book "${bookToDelete.title}" and ALL related data deleted successfully. Deleted: ${result.deletedItems.book} book, ${result.deletedItems.orders} orders, ${result.deletedItems.reviews} reviews, ${result.deletedItems.affiliateLinks} affiliate links, ${result.deletedItems.coupons} coupons, ${result.deletedItems.transactions} transactions, ${result.deletedItems.authorBooks} author books, ${result.deletedItems.wishlistUpdates} wishlist updates, and ${result.deletedItems.cartUpdates} cart updates.`,
       })
     } catch (error) {
       console.error('Delete error:', error)
@@ -386,7 +386,6 @@ export default function AdminBooks() {
             <AlertDialogDescription>
               Are you sure you want to delete "{bookToDelete?.title}"? This will permanently delete EVERYTHING related to this book:
               <br />• The book from the collection
-              <br />• All related ebook orders and subscriptions
               <br />• All orders containing this book
               <br />• All reviews for this book
               <br />• All affiliate links and coupons

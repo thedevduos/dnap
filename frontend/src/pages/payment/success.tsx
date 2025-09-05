@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { CheckCircle, Package, ArrowRight } from "lucide-react"
 import { useCart } from "@/contexts/cart-context"
-import { useEbookCart } from "@/contexts/ebook-cart-context"
 import { updateOrderStatus, addTransaction, processRefund } from "@/lib/firebase-utils"
 import { useToast } from "@/hooks/use-toast"
 import { collection, addDoc, serverTimestamp, doc, updateDoc, increment, query, where, getDocs } from "firebase/firestore"
@@ -14,7 +13,6 @@ import { db } from "@/lib/firebase"
 import { useUser } from "@/contexts/user-context"
 import { applyCoupon } from "@/lib/firebase-utils"
 import { verifyPaymentResponse, getPaymentMethodDisplayName, getOrderData, clearOrderData } from "@/lib/payment-utils"
-import { createEbookSubscription, createEbookOrder } from "@/lib/ebook-utils"
 import { trackAffiliateSale } from "@/lib/author-utils"
 
 export default function PaymentSuccessPage() {
@@ -30,7 +28,6 @@ export default function PaymentSuccessPage() {
   const addAddressRef = useRef<any>(null)
   
   const { clearCart } = useCart()
-  const { clearCart: clearEbookCart } = useEbookCart()
   const { toast } = useToast()
   const { addAddress } = useUser()
   
@@ -202,76 +199,16 @@ export default function PaymentSuccessPage() {
           // Get stored order data from sessionStorage
           const orderData = getOrderData()
           
-          // Check if this is an ebook order
-          const isEbookOrder = orderData?.isEbookOrder
-          
           console.log('Stored order data found:', !!orderData)
           console.log('Order data details:', orderData ? {
             userId: orderData.userId,
             userEmail: orderData.userEmail,
             items: orderData.items?.length || 0,
             total: orderData.total,
-            amount: orderData.amount, // Add amount field for ebook orders
-            planId: orderData.planId, // Add plan fields for ebook orders
-            planTitle: orderData.planTitle,
-            shippingAddress: orderData.shippingAddress,
-            isEbookOrder: isEbookOrder
+            shippingAddress: orderData.shippingAddress
           } : null)
           
           if (orderData) {
-            if (isEbookOrder) {
-              // Validate required fields for ebook orders
-              if (!orderData.amount && !orderData.total) {
-                throw new Error('Order amount is missing for ebook order')
-              }
-              
-              const orderAmount = orderData.amount || orderData.total
-              
-              // Handle e-book subscription order
-              const ebookOrderRef = await createEbookOrder({
-                userId: orderData.userId,
-                planId: orderData.planId,
-                planTitle: orderData.planTitle,
-                amount: orderAmount,
-                paymentMethod: paymentMethod,
-                transactionId: paymentMethod === 'razorpay' ? paymentData.razorpay_payment_id : 
-                              paymentMethod === 'zoho' ? paymentData.paymentId : null,
-                status: 'confirmed',
-                createdAt: new Date()
-              })
-
-              // Calculate subscription dates
-              const startDate = new Date()
-              const endDate = new Date()
-              endDate.setDate(endDate.getDate() + (orderData.duration || 30)) // Default to 30 days if duration not specified
-
-              // Create e-book subscription
-              const subscriptionRef = await createEbookSubscription({
-                userId: orderData.userId,
-                planId: orderData.planId,
-                planTitle: orderData.planTitle,
-                planType: orderData.planType,
-                selectedBooks: [],
-                maxBooks: orderData.maxBooks,
-                startDate: startDate,
-                endDate: endDate,
-                status: 'active',
-                autoRenew: false,
-                isConfigured: false, // New subscriptions need book selection
-                createdAt: new Date(),
-                updatedAt: new Date()
-              })
-
-              setOrderDetails({
-                orderId: ebookOrderRef.id,
-                amount: orderAmount,
-                transactionId: paymentMethod === 'razorpay' ? paymentData.razorpay_payment_id : 
-                              paymentMethod === 'zoho' ? paymentData.paymentId : null,
-                paymentMethod: paymentMethod,
-                isEbookOrder: true,
-                subscriptionId: subscriptionRef.id
-              })
-            } else {
               // Handle regular book order
               const orderRef = await addDoc(collection(db, "orders"), {
                 ...orderData,
@@ -339,11 +276,9 @@ export default function PaymentSuccessPage() {
                               paymentMethod === 'zoho' ? paymentData.paymentId : null,
                 paymentMethod: paymentMethod
               })
-            }
 
             // Clear cart first
             clearCartRef.current()
-            clearEbookCart()
 
             // Now remove the razorpay response since processing is complete
             if (paymentMethod === 'razorpay') {
@@ -497,22 +432,22 @@ export default function PaymentSuccessPage() {
 
               <div className="space-y-3">
                 <Button asChild size="lg" className="w-full">
-                  <Link to={orderDetails?.isEbookOrder ? "/ebooks" : orderDetails ? `/order/${orderDetails.orderId}` : "/profile"}>
+                  <Link to={orderDetails ? `/order/${orderDetails.orderId}` : "/profile"}>
                     <Package className="w-5 h-5 mr-2" />
-                    {orderDetails?.isEbookOrder ? "View My E-books" : "View Order Details"}
+                    View Order Details
                   </Link>
                 </Button>
                 
                 <Button variant="outline" asChild className="w-full">
-                  <Link to={orderDetails?.isEbookOrder ? "/my-books" : "/books"}>
-                    {orderDetails?.isEbookOrder ? "Start Reading" : "Continue Shopping"}
+                  <Link to="/books">
+                    Continue Shopping
                     <ArrowRight className="w-5 h-5 ml-2" />
                   </Link>
                 </Button>
               </div>
 
               <div className="text-sm text-muted-foreground">
-                {orderDetails?.isEbookOrder ? (
+                {false ? (
                   <>
                     <p>Your e-book subscription is now active!</p>
                     <p>Start reading your selected books immediately.</p>

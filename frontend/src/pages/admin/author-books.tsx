@@ -25,12 +25,11 @@ import { db } from "@/lib/firebase"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
-import { useEbookPlans } from "@/hooks/use-ebook-plans"
-import { uploadBookPDF } from "@/lib/firebase-utils"
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
+import { storage } from "@/lib/firebase"
 
 export default function AdminAuthorBooks() {
   const { books, loading } = useAllAuthorBooks()
-  const { plans } = useEbookPlans()
   const { toast } = useToast()
   const [selectedBook, setSelectedBook] = useState<any>(null)
   const [showDetailsModal, setShowDetailsModal] = useState(false)
@@ -50,11 +49,6 @@ export default function AdminAuthorBooks() {
     rating: "4.5",
     pdfUrl: "",
     pdfSize: 0,
-    ebookVisibility: {
-      general: false,
-      singleEbooks: false,
-      plans: [] as string[]
-    }
   })
   const [_pdfFile, setPdfFile] = useState<File | null>(null)
   const [isPdfUploading, setIsPdfUploading] = useState(false)
@@ -180,30 +174,11 @@ export default function AdminAuthorBooks() {
       rating: "4.5",
       pdfUrl: book.pdfUrl || "",
       pdfSize: book.pdfSize || 0,
-      ebookVisibility: {
-        general: false,
-        singleEbooks: false,
-        plans: []
-      }
     })
     setCurrentStep(1)
     setShowBookCreationModal(true)
   }
 
-  const handlePlanToggle = (planId: string) => {
-    const currentPlans = bookCreationData.ebookVisibility.plans
-    const updatedPlans = currentPlans.includes(planId)
-      ? currentPlans.filter(id => id !== planId)
-      : [...currentPlans, planId]
-    
-    setBookCreationData({
-      ...bookCreationData,
-      ebookVisibility: {
-        ...bookCreationData.ebookVisibility,
-        plans: updatedPlans
-      }
-    })
-  }
 
   const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -222,7 +197,12 @@ export default function AdminAuthorBooks() {
     setIsPdfUploading(true)
 
     try {
-      const pdfUrl = await uploadBookPDF(file, selectedBook?.id || `temp_${Date.now()}`)
+      // Upload PDF file to storage
+      const timestamp = Date.now()
+      const fileName = `${timestamp}_${file.name}`
+      const storageRef = ref(storage, `book-pdfs/${fileName}`)
+      const snapshot = await uploadBytes(storageRef, file)
+      const pdfUrl = await getDownloadURL(snapshot.ref)
       setBookCreationData({ 
         ...bookCreationData, 
         pdfUrl,
@@ -244,7 +224,7 @@ export default function AdminAuthorBooks() {
   }
 
   const nextStep = () => {
-    if (currentStep < 3) {
+    if (currentStep < 2) {
       // Validate book details
       if (currentStep === 1) {
         if (!bookCreationData.title || !bookCreationData.price || !bookCreationData.description || !bookCreationData.category) {
@@ -257,21 +237,6 @@ export default function AdminAuthorBooks() {
         }
       }
       
-      // Validate visibility settings
-      if (currentStep === 2) {
-        const hasVisibility = bookCreationData.ebookVisibility.general || 
-                             bookCreationData.ebookVisibility.singleEbooks || 
-                             bookCreationData.ebookVisibility.plans.length > 0
-        
-        if (!hasVisibility) {
-          toast({
-            title: "Visibility Required",
-            description: "Please select at least one visibility option before proceeding.",
-            variant: "destructive",
-          })
-          return
-        }
-      }
       
       setCurrentStep(currentStep + 1)
     }
@@ -308,19 +273,6 @@ export default function AdminAuthorBooks() {
       return
     }
 
-    // Check if at least one visibility option is selected
-    const hasVisibility = bookCreationData.ebookVisibility.general || 
-                         bookCreationData.ebookVisibility.singleEbooks || 
-                         bookCreationData.ebookVisibility.plans.length > 0
-    
-    if (!hasVisibility) {
-      toast({
-        title: "Visibility Required",
-        description: "Please select at least one visibility option before publishing.",
-        variant: "destructive",
-      })
-      return
-    }
 
     try {
       // Create the book in the books collection
@@ -336,7 +288,6 @@ export default function AdminAuthorBooks() {
         pdfSize: bookCreationData.pdfSize,
         status: bookCreationData.status,
         rating: parseFloat(bookCreationData.rating),
-        ebookVisibility: bookCreationData.ebookVisibility,
         createdAt: new Date(),
       }
 
@@ -445,7 +396,7 @@ export default function AdminAuthorBooks() {
 
       let description = `"${selectedBook.title}" has been permanently deleted.`
       if (result.mainBookDeleted) {
-        description += " The published book and all related data (ebooks, reviews, affiliate links, etc.) have also been deleted."
+        description += " The published book and all related data (reviews, affiliate links, etc.) have also been deleted."
       }
 
       toast({
@@ -874,8 +825,7 @@ export default function AdminAuthorBooks() {
               <div className="flex items-center justify-center space-x-4">
                 {[
                   { step: 1, label: "Book Details" },
-                  { step: 2, label: "E-book Visibility" },
-                  { step: 3, label: "PDF Upload*" }
+                  { step: 2, label: "PDF Upload*" }
                 ].map(({ step, label }) => (
                   <div key={step} className="flex items-center">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
@@ -883,7 +833,7 @@ export default function AdminAuthorBooks() {
                     }`}>
                       {step}
                     </div>
-                    {step < 3 && (
+                    {step < 2 && (
                       <div className={`w-12 h-0.5 mx-2 ${
                         currentStep > step ? 'bg-primary' : 'bg-muted'
                       }`} />
@@ -1001,83 +951,9 @@ export default function AdminAuthorBooks() {
                 </Card>
               )}
 
-              {/* Step 2: E-book Visibility */}
-              {currentStep === 2 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>E-book Visibility Settings</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="space-y-4">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="general"
-                          checked={bookCreationData.ebookVisibility.general}
-                          onCheckedChange={(checked) => 
-                            setBookCreationData({
-                              ...bookCreationData,
-                              ebookVisibility: {
-                                ...bookCreationData.ebookVisibility,
-                                general: checked as boolean
-                              }
-                            })
-                          }
-                        />
-                        <Label htmlFor="general" className="text-sm font-medium">
-                          General (Available for multiple e-book plans)
-                        </Label>
-                      </div>
 
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="singleEbooks"
-                          checked={bookCreationData.ebookVisibility.singleEbooks}
-                          onCheckedChange={(checked) => 
-                            setBookCreationData({
-                              ...bookCreationData,
-                              ebookVisibility: {
-                                ...bookCreationData.ebookVisibility,
-                                singleEbooks: checked as boolean
-                              }
-                            })
-                          }
-                        />
-                        <Label htmlFor="singleEbooks" className="text-sm font-medium">
-                          Single E-books (Available for single e-book plans)
-                        </Label>
-                      </div>
-                    </div>
-
-                    <div>
-                      <Label className="text-sm font-medium mb-4 block">
-                        Specific Plan Visibility
-                      </Label>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {plans.map((plan) => (
-                          <div key={plan.id} className="flex items-center space-x-2 p-3 border rounded-lg">
-                            <Checkbox
-                              id={`plan-${plan.id}`}
-                              checked={bookCreationData.ebookVisibility.plans.includes(plan.id)}
-                              onCheckedChange={() => handlePlanToggle(plan.id)}
-                            />
-                            <div className="flex-1">
-                              <Label htmlFor={`plan-${plan.id}`} className="text-sm font-medium">
-                                {plan.title}
-                              </Label>
-                              <p className="text-xs text-muted-foreground">
-                                {plan.description} - ₹{plan.price}{plan.period}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Step 3: PDF Upload */}
-              {currentStep === 3 && (
+                          {/* Step 2: PDF Upload */}
+            {currentStep === 2 && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center">
@@ -1157,7 +1033,7 @@ export default function AdminAuthorBooks() {
                   Previous
                 </Button>
                 
-                {currentStep < 3 ? (
+                {currentStep < 2 ? (
                   <Button type="button" onClick={nextStep}>
                     Next
                     <ArrowRight className="h-4 w-4 ml-2" />
@@ -1202,7 +1078,6 @@ export default function AdminAuthorBooks() {
                     </p>
                     <ul className="text-sm text-orange-700 mt-1 ml-4 list-disc">
                       <li>The published book from the main collection</li>
-                      <li>All related ebook orders and subscriptions</li>
                       <li>All reviews and affiliate links</li>
                       <li>All coupons associated with this book</li>
                     </ul>
