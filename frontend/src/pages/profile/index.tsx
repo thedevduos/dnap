@@ -19,8 +19,7 @@ import {
   Trash2,
   Eye,
   Star,
-  Mail,
-  Book
+  Mail
 } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { useUser } from "@/contexts/user-context"
