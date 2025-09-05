@@ -1,20 +1,181 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Check, Star, Zap, Crown, Infinity } from "lucide-react"
+import { Check, BookOpen, PenTool, GraduationCap, Heart, Users, FileText, Globe, Palette } from "lucide-react"
 import anime from "animejs"
-import { useEbookCart } from "@/contexts/ebook-cart-context"
-import { useEbookPlans } from "@/hooks/use-ebook-plans"
-import { EbookPlan } from "@/types/ebook"
+
+type BookPublishingPackage = {
+  id: string
+  title: string
+  price: string
+  description: string
+  icon: typeof BookOpen
+  features: string[]
+  popular?: boolean
+}
+
+const bookPublishingPackages: BookPublishingPackage[] = [
+  {
+    id: "poem-quote",
+    title: "Poem/Quote Book",
+    price: "₹1499 + GST",
+    description: "Perfect for poetry collections and inspirational quotes",
+    icon: PenTool,
+    features: [
+      "Professional formatting",
+      "ISBN registration",
+      "Print-ready files",
+      "Basic cover design",
+      "Distribution setup"
+    ]
+  },
+  {
+    id: "essays-stories",
+    title: "Essays / Short Stories Book",
+    price: "₹1499 + GST",
+    description: "Ideal for essay collections and short story anthologies",
+    icon: FileText,
+    features: [
+      "Professional formatting",
+      "ISBN registration",
+      "Print-ready files",
+      "Basic cover design",
+      "Distribution setup"
+    ]
+  },
+  {
+    id: "novel-story",
+    title: "Novel / Story Book",
+    price: "₹1999 + GST",
+    description: "Complete novel and story book publishing package",
+    icon: BookOpen,
+    features: [
+      "Professional formatting",
+      "ISBN registration",
+      "Print-ready files",
+      "Enhanced cover design",
+      "Distribution setup",
+      "Marketing support"
+    ]
+  },
+  {
+    id: "academic-research",
+    title: "Academic / Research Book",
+    price: "₹2999 + GST",
+    description: "Specialized publishing for academic and research works",
+    icon: GraduationCap,
+    features: [
+      "Academic formatting",
+      "ISBN registration",
+      "Print-ready files",
+      "Professional cover design",
+      "Distribution setup",
+      "Citation formatting",
+      "Index creation"
+    ],
+    popular: false
+  },
+  {
+    id: "self-help-spiritual",
+    title: "Self-Help / Spiritual Book",
+    price: "₹3999 + GST",
+    description: "Comprehensive package for self-help and spiritual books",
+    icon: Heart,
+    features: [
+      "Professional formatting",
+      "ISBN registration",
+      "Print-ready files",
+      "Premium cover design",
+      "Distribution setup",
+      "Marketing support",
+      "Author consultation"
+    ]
+  },
+  {
+    id: "anthology-poetry",
+    title: "Anthology Poetry Package",
+    price: "₹30 per person",
+    description: "Collaborative poetry anthology publishing",
+    icon: Users,
+    features: [
+      "Multi-author formatting",
+      "ISBN registration",
+      "Print-ready files",
+      "Collaborative cover design",
+      "Individual contributor credits",
+      "Distribution setup"
+    ]
+  },
+  {
+    id: "anthology-story",
+    title: "Anthology Story Package",
+    price: "₹50 per person",
+    description: "Collaborative story anthology publishing",
+    icon: Users,
+    features: [
+      "Multi-author formatting",
+      "ISBN registration",
+      "Print-ready files",
+      "Collaborative cover design",
+      "Individual contributor credits",
+      "Distribution setup",
+      "Editorial review"
+    ]
+  },
+  {
+    id: "ghost-writing",
+    title: "Ghost Writing Package",
+    price: "₹5999 + GST",
+    description: "Complete ghost writing and publishing service",
+    icon: PenTool,
+    features: [
+      "Professional ghost writing",
+      "Professional formatting",
+      "ISBN registration",
+      "Print-ready files",
+      "Premium cover design",
+      "Distribution setup",
+      "Full publishing support"
+    ]
+  },
+  {
+    id: "translation",
+    title: "Translation Book Package",
+    price: "₹1999 + GST",
+    description: "Professional translation and publishing service",
+    icon: Globe,
+    features: [
+      "Professional translation",
+      "Professional formatting",
+      "ISBN registration",
+      "Print-ready files",
+      "Cover design",
+      "Distribution setup",
+      "Quality assurance"
+    ]
+  },
+  {
+    id: "illustrations-kids",
+    title: "Illustrations / Kids Book",
+    price: "₹3499 + GST",
+    description: "Specialized package for illustrated and children's books",
+    icon: Palette,
+    features: [
+      "Professional formatting",
+      "ISBN registration",
+      "Print-ready files",
+      "Custom illustrations",
+      "Child-friendly design",
+      "Distribution setup",
+      "Marketing support"
+    ]
+  }
+]
 
 export default function PricingPage() {
   const sectionRef = useRef<HTMLElement>(null)
-  const [activeTab, setActiveTab] = useState<"multiple" | "single">("multiple")
-  const { replaceCart, items, isInCart } = useEbookCart()
-  const { plans, loading: plansLoading } = useEbookPlans()
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -43,145 +204,63 @@ export default function PricingPage() {
     return () => observer.disconnect()
   }, [])
 
-  if (plansLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading pricing plans...</p>
-        </div>
-      </div>
-    )
-  }
-
-  // Filter plans by type
-  const multipleEbookPlans = plans.filter(plan => plan.type === 'multiple')
-  const singleEbookPlans = plans.filter(plan => plan.type === 'single')
-
-  const getCurrentPlans = () => {
-    switch (activeTab) {
-      case "multiple":
-        return multipleEbookPlans
-      case "single":
-        return singleEbookPlans
-      default:
-        return multipleEbookPlans
-    }
-  }
-
-  const getPlanIcon = (planTitle: string) => {
-    const title = planTitle.toLowerCase()
-    if (title.includes('basic')) return Star
-    if (title.includes('standard')) return Zap
-    if (title.includes('premium')) return Crown
-    if (title.includes('lifetime')) return Infinity
-    return Star // default
-  }
-
-  const handleChoosePlan = (plan: EbookPlan) => {
-    replaceCart(plan)
-  }
-
   return (
     <section ref={sectionRef} className="py-20 bg-background min-h-screen">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
           <h1 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-orange-500 to-amber-500 bg-clip-text text-transparent">
-            Choose Your Plan
+            Book Publishing Rates
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Flexible pricing options to suit every reader
+            Professional book publishing services tailored to your needs
           </p>
         </div>
 
-        {/* Pricing Tabs */}
-        <div className="flex justify-center mb-12">
-          <div className="bg-muted p-1 rounded-lg">
-            {[
-              { key: "multiple", label: "Multiple E Books" },
-              { key: "single", label: "Single E Book" },
-            ].map((tab) => (
-              <Button
-                key={tab.key}
-                variant={activeTab === tab.key ? "default" : "ghost"}
-                onClick={() => setActiveTab(tab.key as any)}
-                className="mx-1"
-              >
-                {tab.label}
-              </Button>
-            ))}
-          </div>
-        </div>
+        <div className="grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {bookPublishingPackages.map((pkg) => (
+            <Card
+              key={pkg.id}
+              className={`pricing-card relative group hover:shadow-xl transition-all duration-300 ${
+                pkg.popular ? "ring-2 ring-orange-500 scale-105" : ""
+              }`}
+            >
+              {pkg.popular && (
+                <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-orange-500">Most Popular</Badge>
+              )}
 
-        <div className="grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
-          {getCurrentPlans().length === 0 ? (
-            <div className="col-span-full text-center py-12">
-              <p className="text-muted-foreground text-lg">
-                No {activeTab === 'multiple' ? 'multiple' : 'single'} ebook plans available at the moment.
-              </p>
-              <p className="text-sm text-muted-foreground mt-2">
-                Please check back later or contact support.
-              </p>
-            </div>
-          ) : (
-            getCurrentPlans().map((plan) => (
-              <Card
-                key={plan.id}
-                className={`pricing-card relative group hover:shadow-xl transition-all duration-300 ${
-                  plan.popular ? "ring-2 ring-orange-500 scale-105" : ""
-                }`}
-              >
-                {plan.popular && (
-                  <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-orange-500">Most Popular</Badge>
-                )}
-
-                <CardHeader className="text-center pb-4">
-                  <div className="mb-4 flex justify-center">
-                    <div className="p-3 rounded-full bg-orange-100 group-hover:bg-orange-200 transition-colors duration-300">
-                      {(() => {
-                        const IconComponent = getPlanIcon(plan.title)
-                        return <IconComponent className="h-8 w-8 text-orange-600" />
-                      })()}
-                    </div>
+              <CardHeader className="text-center pb-4">
+                <div className="mb-4 flex justify-center">
+                  <div className="p-3 rounded-full bg-orange-100 group-hover:bg-orange-200 transition-colors duration-300">
+                    <pkg.icon className="h-8 w-8 text-orange-600" />
                   </div>
-                  <CardTitle className="text-xl font-bold">{plan.title}</CardTitle>
-                  <div className="text-3xl font-bold text-orange-600">
-                    ₹{plan.price}
-                    <span className="text-sm text-muted-foreground">{plan.period}</span>
-                  </div>
-                  <p className="text-muted-foreground">{plan.description}</p>
-                </CardHeader>
+                </div>
+                <CardTitle className="text-lg font-bold">{pkg.title}</CardTitle>
+                <div className="text-2xl font-bold text-orange-600">
+                  {pkg.price}
+                </div>
+                <p className="text-sm text-muted-foreground">{pkg.description}</p>
+              </CardHeader>
 
-                <CardContent>
-                  <ul className="space-y-3 mb-6">
-                    {plan.features.map((feature, featureIndex) => (
-                      <li key={featureIndex} className="flex items-center">
-                        <Check className="h-4 w-4 text-orange-600 mr-3 flex-shrink-0" />
-                        <span className="text-sm">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  <Button 
-                    className="w-full group" 
-                    variant={plan.popular ? "default" : "outline"}
-                    onClick={() => handleChoosePlan(plan)}
-                    disabled={items.length > 0 && isInCart(plan.id)}
-                  >
-                    {items.length > 0 && isInCart(plan.id) ? "Added to Cart" : "Choose Plan"}
-                  </Button>
-                </CardContent>
-              </Card>
-            ))
-          )}
+              <CardContent>
+                <ul className="space-y-3 mb-6">
+                  {pkg.features.map((feature, featureIndex) => (
+                    <li key={featureIndex} className="flex items-center">
+                      <Check className="h-4 w-4 text-orange-600 mr-3 flex-shrink-0" />
+                      <span className="text-sm">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          ))}
         </div>
 
         <div className="mt-12 text-center">
           <p className="text-muted-foreground mb-4">
-            * Prices are subject to revision. Current prices are rough estimates.
+            * All prices are starting rates and may vary based on specific requirements.
           </p>
           <p className="text-sm text-muted-foreground">
-            All plans include customer support and regular updates. Contact us for custom enterprise solutions.
+            Contact us for custom packages and detailed quotations. GST applicable on all services.
           </p>
         </div>
       </div>
