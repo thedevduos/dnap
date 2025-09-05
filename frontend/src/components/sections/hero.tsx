@@ -2,12 +2,53 @@
 
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { ArrowRight, BookOpen, Users, Award, Sparkles } from "lucide-react"
+import { ArrowRight, BookOpen, Users, Award, Sparkles, ChevronLeft, ChevronRight } from "lucide-react"
 import { Link } from "react-router-dom"
 import anime from "animejs"
+import { useHeroBanners } from "@/hooks/use-hero-banners"
 
 export function Hero() {
   const [_isLoaded, setIsLoaded] = useState(false)
+  const { heroBanners } = useHeroBanners()
+  const [currentBannerIndex, setCurrentBannerIndex] = useState(0)
+  const [showBanners, setShowBanners] = useState(false)
+
+  // Filter active banners and sort by order
+  const activeBanners = heroBanners
+    .filter(banner => banner.isActive)
+    .sort((a, b) => a.order - b.order)
+
+  // Auto-advance banners
+  useEffect(() => {
+    if (activeBanners.length > 1) {
+      const interval = setInterval(() => {
+        setCurrentBannerIndex((prev) => (prev + 1) % activeBanners.length)
+      }, 5000) // Change banner every 5 seconds
+
+      return () => clearInterval(interval)
+    }
+  }, [activeBanners.length])
+
+  // Show banners if any are available
+  useEffect(() => {
+    setShowBanners(activeBanners.length > 0)
+  }, [activeBanners.length])
+
+  const nextBanner = () => {
+    setCurrentBannerIndex((prev) => (prev + 1) % activeBanners.length)
+  }
+
+  const prevBanner = () => {
+    setCurrentBannerIndex((prev) => (prev - 1 + activeBanners.length) % activeBanners.length)
+  }
+
+  const handleBannerClick = (banner: any) => {
+    if (banner.redirectType === 'page') {
+      window.location.href = banner.redirectValue
+    } else {
+      window.open(banner.redirectValue, '_blank')
+    }
+  }
 
   useEffect(() => {
     const tl = anime.timeline({
@@ -67,16 +108,82 @@ export function Hero() {
       id="home"
       className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-background via-background to-orange-50"
     >
-      {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="floating-element absolute top-20 left-10 w-20 h-20 bg-orange-200 rounded-full blur-xl" />
-        <div className="floating-element absolute top-40 right-20 w-32 h-32 bg-amber-200 rounded-full blur-xl" />
-        <div className="floating-element absolute bottom-20 left-1/4 w-24 h-24 bg-orange-300 rounded-full blur-xl" />
-        <div className="floating-element absolute bottom-40 right-1/3 w-16 h-16 bg-amber-300 rounded-full blur-xl" />
-      </div>
+      {/* Banner Display */}
+      {showBanners && activeBanners.length > 0 ? (
+        <div className="absolute inset-0 w-full h-full">
+          {/* Banner Image */}
+          <div 
+            className="w-full h-full bg-cover bg-center bg-no-repeat transition-all duration-1000 ease-in-out"
+            style={{
+              backgroundImage: `url(${activeBanners[currentBannerIndex]?.imageUrl})`,
+            }}
+          />
+          
+          {/* Banner Overlay */}
+          <div className="absolute inset-0 bg-black/40" />
+          
+          {/* Banner Content */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="text-center text-white max-w-4xl mx-auto px-4">
+              <h1 className="text-4xl md:text-6xl font-bold mb-6 drop-shadow-lg">
+                {activeBanners[currentBannerIndex]?.title}
+              </h1>
+              <Button
+                size="lg"
+                className="bg-orange-600 hover:bg-orange-700 text-white px-8 py-3 text-lg"
+                onClick={() => handleBannerClick(activeBanners[currentBannerIndex])}
+              >
+                Learn More <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </div>
+          </div>
 
-      <div className="container mx-auto px-4 py-20 relative z-10">
-        <div className="max-w-4xl mx-auto text-center">
+          {/* Banner Navigation */}
+          {activeBanners.length > 1 && (
+            <>
+              {/* Previous Button */}
+              <button
+                onClick={prevBanner}
+                className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-all duration-200"
+              >
+                <ChevronLeft className="h-6 w-6" />
+              </button>
+
+              {/* Next Button */}
+              <button
+                onClick={nextBanner}
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-all duration-200"
+              >
+                <ChevronRight className="h-6 w-6" />
+              </button>
+
+              {/* Banner Indicators */}
+              <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex space-x-2">
+                {activeBanners.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentBannerIndex(index)}
+                    className={`w-3 h-3 rounded-full transition-all duration-200 ${
+                      index === currentBannerIndex ? 'bg-white' : 'bg-white/50'
+                    }`}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      ) : (
+        <>
+          {/* Animated background elements */}
+          <div className="absolute inset-0 overflow-hidden">
+            <div className="floating-element absolute top-20 left-10 w-20 h-20 bg-orange-200 rounded-full blur-xl" />
+            <div className="floating-element absolute top-40 right-20 w-32 h-32 bg-amber-200 rounded-full blur-xl" />
+            <div className="floating-element absolute bottom-20 left-1/4 w-24 h-24 bg-orange-300 rounded-full blur-xl" />
+            <div className="floating-element absolute bottom-40 right-1/3 w-16 h-16 bg-amber-300 rounded-full blur-xl" />
+          </div>
+
+          <div className="container mx-auto px-4 py-20 relative z-10">
+            <div className="max-w-4xl mx-auto text-center">
           <div className="hero-title mb-6">
             <h1 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 bg-clip-text text-transparent leading-tight">
               DNA Publications
@@ -132,18 +239,20 @@ export function Hero() {
               </div>
               <p className="text-muted-foreground">Award Winners</p>
             </div>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Scroll indicator */}
-      <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2">
-        <div className="animate-bounce">
-          <div className="w-6 h-10 border-2 border-orange-600 rounded-full flex justify-center">
-            <div className="w-1 h-3 bg-orange-600 rounded-full mt-2 animate-pulse" />
+        {/* Scroll indicator */}
+        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2">
+          <div className="animate-bounce">
+            <div className="w-6 h-10 border-2 border-orange-600 rounded-full flex justify-center">
+              <div className="w-1 h-3 bg-orange-600 rounded-full mt-2 animate-pulse" />
+            </div>
           </div>
         </div>
-      </div>
+        </>
+      )}
     </section>
   )
 }

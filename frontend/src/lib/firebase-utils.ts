@@ -56,6 +56,46 @@ export const deleteShippingMethod = async (id: string) => {
   return await deleteDoc(doc(db, "shippingMethods", id))
 }
 
+// Shipping Rates
+export const addShippingRate = async (rateData: any) => {
+  return await addDoc(collection(db, "shippingRates"), {
+    ...rateData,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  })
+}
+
+export const updateShippingRate = async (id: string, rateData: any) => {
+  return await updateDoc(doc(db, "shippingRates", id), {
+    ...rateData,
+    updatedAt: serverTimestamp(),
+  })
+}
+
+export const deleteShippingRate = async (id: string) => {
+  return await deleteDoc(doc(db, "shippingRates", id))
+}
+
+// Hero Banners
+export const addHeroBanner = async (bannerData: any) => {
+  return await addDoc(collection(db, "heroBanners"), {
+    ...bannerData,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  })
+}
+
+export const updateHeroBanner = async (id: string, bannerData: any) => {
+  return await updateDoc(doc(db, "heroBanners", id), {
+    ...bannerData,
+    updatedAt: serverTimestamp(),
+  })
+}
+
+export const deleteHeroBanner = async (id: string) => {
+  return await deleteDoc(doc(db, "heroBanners", id))
+}
+
 // Coupons
 export const addCoupon = async (couponData: any) => {
   return await addDoc(collection(db, "coupons"), {

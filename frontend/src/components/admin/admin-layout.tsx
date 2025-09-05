@@ -27,6 +27,7 @@ import {
   Link as LinkIcon,
   ChevronDown,
   ChevronRight,
+  Image,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/auth-context"
@@ -66,6 +67,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     { name: "Profile", href: "/admin/profile", icon: User, section: "overview" },
     
     // Site Management
+    { name: "Hero Banners", href: "/admin/hero-banners", icon: Image, section: "site-management" },
     { name: "Updates", href: "/admin/updates", icon: Calendar, section: "site-management" },
     { name: "Emails", href: "/admin/emails", icon: Mail, section: "site-management" },
     { name: "Testimonials", href: "/admin/testimonials", icon: Star, section: "site-management" },
@@ -87,6 +89,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     { name: "Customers", href: "/admin/customers", icon: CustomersIcon, section: "ecommerce" },
     { name: "Users", href: "/admin/users", icon: Users, section: "ecommerce" },
     { name: "Shipping", href: "/admin/shipping", icon: Truck, section: "ecommerce" },
+    { name: "Shipping Rates", href: "/admin/shipping-rates", icon: Truck, section: "ecommerce" },
     { name: "Coupons", href: "/admin/coupons", icon: Ticket, section: "ecommerce" },
     { name: "Payments", href: "/admin/payments", icon: CreditCard, section: "ecommerce" },
     { name: "Analytics", href: "/admin/analytics", icon: BarChart3, section: "ecommerce" },

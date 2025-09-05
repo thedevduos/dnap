@@ -24,7 +24,6 @@ import { collection, addDoc } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Checkbox } from "@/components/ui/checkbox"
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
 import { storage } from "@/lib/firebase"
 
@@ -49,6 +48,7 @@ export default function AdminAuthorBooks() {
     rating: "4.5",
     pdfUrl: "",
     pdfSize: 0,
+    weight: "",
   })
   const [_pdfFile, setPdfFile] = useState<File | null>(null)
   const [isPdfUploading, setIsPdfUploading] = useState(false)
@@ -174,6 +174,7 @@ export default function AdminAuthorBooks() {
       rating: "4.5",
       pdfUrl: book.pdfUrl || "",
       pdfSize: book.pdfSize || 0,
+      weight: "",
     })
     setCurrentStep(1)
     setShowBookCreationModal(true)
@@ -288,6 +289,7 @@ export default function AdminAuthorBooks() {
         pdfSize: bookCreationData.pdfSize,
         status: bookCreationData.status,
         rating: parseFloat(bookCreationData.rating),
+        weight: parseFloat(bookCreationData.weight) || 0,
         createdAt: new Date(),
       }
 
@@ -891,6 +893,18 @@ export default function AdminAuthorBooks() {
                           value={bookCreationData.price}
                           onChange={(e) => setBookCreationData({...bookCreationData, price: e.target.value})}
                           placeholder="Enter price"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="bookWeight">Weight (KG) *</Label>
+                        <Input
+                          id="bookWeight"
+                          type="number"
+                          step="0.01"
+                          value={bookCreationData.weight}
+                          onChange={(e) => setBookCreationData({...bookCreationData, weight: e.target.value})}
+                          placeholder="Enter weight in KG"
                         />
                       </div>
                       

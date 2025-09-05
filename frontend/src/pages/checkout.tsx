@@ -15,8 +15,6 @@ import { useUser } from "@/contexts/user-context"
 import { useAuth } from "@/contexts/auth-context"
 import { useToast } from "@/hooks/use-toast"
 import { useNavigate } from "react-router-dom"
-import { collection, query, where, getDocs } from "firebase/firestore"
-import { db } from "@/lib/firebase"
 import { validateCoupon } from "@/lib/firebase-utils"
 import { Badge } from "@/components/ui/badge"
 import { AddressModal } from "@/components/profile/address-modal"
@@ -28,6 +26,9 @@ import {
   storeOrderData,
   clearOrderData
 } from "@/lib/payment-utils"
+import { getPincodeData, isValidPincode } from "@/lib/pincode-utils"
+import { useShippingRates } from "@/hooks/use-shipping-rates"
+import { calculateShippingRate, calculateCartWeight, DEFAULT_SHIPPING_RATES } from "@/lib/shipping-rates-utils"
 
 
 interface CheckoutForm {
@@ -74,12 +75,12 @@ export default function CheckoutPage() {
   const [couponCode, setCouponCode] = useState("")
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null)
   const [discount, setDiscount] = useState(0)
-  const [shippingMethods, setShippingMethods] = useState<any[]>([])
-  const [loadingShipping, setLoadingShipping] = useState(true)
+  const { shippingRates } = useShippingRates()
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null)
   const [addressModalOpen, setAddressModalOpen] = useState(false)
   const [editingAddress, setEditingAddress] = useState<any>(null)
   const [showAddressForm, setShowAddressForm] = useState(false)
+  const [pincodeLoading, setPincodeLoading] = useState(false)
 
   // Separate useEffect for restoring cart items from failed payment
   useEffect(() => {
@@ -146,7 +147,6 @@ export default function CheckoutPage() {
       return
     }
 
-    loadShippingMethods()
     
     // Cleanup function to clear stored order data when component unmounts
     return () => {
@@ -186,34 +186,72 @@ export default function CheckoutPage() {
     }
   }, [userProfile])
 
-  const loadShippingMethods = async () => {
-    try {
-      const q = query(collection(db, "shippingMethods"), where("status", "==", "active"))
-      const querySnapshot = await getDocs(q)
-      const methods = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }))
-      setShippingMethods(methods)
-      
-      // Set default shipping method if available
-      if (methods.length > 0) {
-        setFormData(prev => ({ ...prev, shippingMethod: methods[0].id }))
-      }
-    } catch (error) {
-      console.error("Error loading shipping methods:", error)
-    } finally {
-      setLoadingShipping(false)
-    }
-  }
 
-  // Calculate shipping based on selected method
-  const selectedShippingMethod = shippingMethods.find(m => m.id === formData.shippingMethod)
-  const shipping = selectedShippingMethod ? selectedShippingMethod.price : 0
+  // Calculate shipping based on dynamic rates
+  const cartWeight = calculateCartWeight(items)
+  
+  // Use default rates if no rates are configured in database
+  const ratesToUse = shippingRates.length > 0 ? shippingRates : DEFAULT_SHIPPING_RATES
+  
+  const shippingCalculation = calculateShippingRate(
+    cartWeight,
+    formData.state,
+    formData.country,
+    ratesToUse
+  )
+  const shipping = shippingCalculation ? shippingCalculation.rate : 0
   const finalTotal = getTotalPrice() + shipping - discount
+  
+  // Debug logging
+  console.log('Shipping Debug:', {
+    cartWeight,
+    state: formData.state,
+    country: formData.country,
+    shippingRatesCount: shippingRates.length,
+    ratesToUseCount: ratesToUse.length,
+    shippingCalculation
+  })
 
   const handleInputChange = (field: keyof CheckoutForm, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }))
+  }
+
+  const handlePincodeChange = async (pincode: string) => {
+    setFormData(prev => ({ ...prev, postalCode: pincode }))
+    
+    if (isValidPincode(pincode)) {
+      setPincodeLoading(true)
+      try {
+        const pincodeData = await getPincodeData(pincode)
+        if (pincodeData) {
+          setFormData(prev => ({
+            ...prev,
+            city: pincodeData.city,
+            state: pincodeData.state,
+            country: pincodeData.country
+          }))
+          toast({
+            title: "Location Updated",
+            description: `City: ${pincodeData.city}, State: ${pincodeData.state}`,
+          })
+        } else {
+          toast({
+            title: "Invalid Pincode",
+            description: "Could not find location for this pincode",
+            variant: "destructive",
+          })
+        }
+      } catch (error) {
+        console.error('Error fetching pincode data:', error)
+        toast({
+          title: "Error",
+          description: "Failed to fetch location data",
+          variant: "destructive",
+        })
+      } finally {
+        setPincodeLoading(false)
+      }
+    }
   }
 
   const handleAddressSelect = (address: any) => {
@@ -319,14 +357,6 @@ export default function CheckoutPage() {
       }
     }
     
-    if (shippingMethods.length === 0) {
-      toast({
-        title: "Shipping Not Available",
-        description: "Shipping methods are not configured yet. Please contact admin.",
-        variant: "destructive"
-      })
-      return false
-    }
     
     return true
   }
@@ -352,10 +382,10 @@ export default function CheckoutPage() {
     
     if (!validateForm()) return
     
-    if (shippingMethods.length === 0) {
+    if (!shippingCalculation) {
       toast({
         title: "Cannot Place Order",
-        description: "Shipping methods are not configured. Please contact support.",
+        description: "Please enter a valid pincode and address to calculate shipping charges.",
         variant: "destructive"
       })
       return
@@ -406,7 +436,7 @@ export default function CheckoutPage() {
 
       // Calculate totals
       const subtotal = getTotalPrice()
-      const shipping = selectedShippingMethod.price
+      const shipping = shippingCalculation ? shippingCalculation.rate : 0
       const finalTotal = subtotal + shipping - discount
 
       // Create temporary order ID
@@ -438,11 +468,14 @@ export default function CheckoutPage() {
         shipping: shipping,
         total: finalTotal,
         paymentMethod: formData.paymentMethod,
-        shippingMethod: formData.shippingMethod,
-        shippingMethodDetails: selectedShippingMethod ? {
-          name: selectedShippingMethod.name,
-          price: selectedShippingMethod.price,
-          deliveryTime: selectedShippingMethod.deliveryTime
+        shippingMethod: 'dynamic',
+        shippingMethodDetails: shippingCalculation ? {
+          name: 'Dynamic Shipping',
+          price: shippingCalculation.rate,
+          deliveryTime: '3-7 business days',
+          weight: cartWeight,
+          region: shippingCalculation.region,
+          weightSlab: shippingCalculation.weightSlab
         } : null,
         appliedCoupon: appliedCoupon ? {
           code: appliedCoupon.code,
@@ -728,6 +761,26 @@ export default function CheckoutPage() {
                         />
                       </div>
 
+                      <div>
+                        <Label htmlFor="postalCode">Pincode *</Label>
+                        <div className="relative">
+                          <Input
+                            id="postalCode"
+                            value={formData.postalCode}
+                            onChange={(e) => handlePincodeChange(e.target.value)}
+                            placeholder="Enter 6-digit pincode"
+                            maxLength={6}
+                            required
+                          />
+                          {pincodeLoading && (
+                            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-600"></div>
+                            </div>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">We'll automatically fetch your city and state</p>
+                      </div>
+
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <Label htmlFor="city">City *</Label>
@@ -736,6 +789,8 @@ export default function CheckoutPage() {
                             value={formData.city}
                             onChange={(e) => handleInputChange('city', e.target.value)}
                             required
+                            readOnly
+                            className="bg-gray-50"
                           />
                         </div>
                         <div>
@@ -745,31 +800,22 @@ export default function CheckoutPage() {
                             value={formData.state}
                             onChange={(e) => handleInputChange('state', e.target.value)}
                             required
+                            readOnly
+                            className="bg-gray-50"
                           />
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="postalCode">Postal Code *</Label>
-                          <Input
-                            id="postalCode"
-                            value={formData.postalCode}
-                            onChange={(e) => handleInputChange('postalCode', e.target.value)}
-                            required
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="country">Country</Label>
-                          <Select value={formData.country} onValueChange={(value) => handleInputChange('country', value)}>
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="India">India</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
+                      <div>
+                        <Label htmlFor="country">Country</Label>
+                        <Select value={formData.country} onValueChange={(value) => handleInputChange('country', value)}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="India">India</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
 
                       {user && (
@@ -787,56 +833,51 @@ export default function CheckoutPage() {
                 </CardContent>
               </Card>
 
-              {/* Shipping Method */}
+              {/* Shipping Information */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center">
                     <Truck className="h-5 w-5 mr-2" />
-                    Shipping Method
+                    Shipping Information
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {loadingShipping ? (
-                    <div className="text-center py-4">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
-                      <p className="text-sm text-muted-foreground mt-2">Loading shipping methods...</p>
+                  {!formData.state || !formData.postalCode ? (
+                    <div className="text-center py-8 border-2 border-dashed border-orange-200 rounded-lg bg-orange-50">
+                      <Truck className="h-12 w-12 text-orange-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-orange-800 mb-2">Enter Delivery Address</h3>
+                      <p className="text-orange-600 mb-4">
+                        Please enter your pincode and address details to calculate shipping charges.
+                      </p>
                     </div>
-                  ) : shippingMethods.length === 0 ? (
+                  ) : !shippingCalculation ? (
                     <div className="text-center py-8 border-2 border-dashed border-red-200 rounded-lg bg-red-50">
                       <Truck className="h-12 w-12 text-red-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold text-red-800 mb-2">No Shipping Methods Available</h3>
+                      <h3 className="text-lg font-semibold text-red-800 mb-2">Shipping Not Available</h3>
                       <p className="text-red-600 mb-4">
-                        Shipping methods have not been configured yet. Please contact the administrator to set up delivery options.
-                      </p>
-                      <p className="text-sm text-red-500">
-                        You cannot place an order until shipping methods are available.
+                        We don't deliver to this location or the weight exceeds our shipping limits.
                       </p>
                     </div>
                   ) : (
-                    <RadioGroup
-                      value={formData.shippingMethod}
-                      onValueChange={(value) => handleInputChange('shippingMethod', value)}
-                    >
-                      {shippingMethods.map((method) => (
-                        <div key={method.id} className="flex items-center space-x-2 p-4 border rounded-lg">
-                          <RadioGroupItem value={method.id} id={method.id} />
-                          <Label htmlFor={method.id} className="flex-1">
-                            <div className="flex justify-between">
-                              <div>
-                                <p className="font-medium">{method.name}</p>
-                                <p className="text-sm text-muted-foreground">{method.deliveryTime}</p>
-                                {method.description && (
-                                  <p className="text-xs text-muted-foreground mt-1">{method.description}</p>
-                                )}
-                              </div>
-                              <p className="font-medium">
-                                {method.price === 0 ? 'Free' : `₹${method.price}`}
-                              </p>
-                            </div>
-                          </Label>
+                    <div className="p-4 border rounded-lg bg-green-50 border-green-200">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <p className="font-medium text-green-800">Dynamic Shipping</p>
+                          <p className="text-sm text-green-600">3-7 business days</p>
                         </div>
-                      ))}
-                    </RadioGroup>
+                        <p className="font-bold text-green-800">
+                          {shipping === 0 ? 'Free' : `₹${shipping}`}
+                        </p>
+                      </div>
+                      <div className="text-xs text-green-700 space-y-1">
+                        <div>📍 {formData.city}, {formData.state}, {formData.country}</div>
+                        <div>⚖️ Weight: {cartWeight.toFixed(1)} KG</div>
+                        <div>🌍 Region: {shippingCalculation.region === 'tamilnadu' ? 'Tamil Nadu' : 
+                                     shippingCalculation.region === 'india' ? 'Other Indian States' : 
+                                     'International'}</div>
+                        <div>📦 Weight Slab: {shippingCalculation.weightSlab}</div>
+                      </div>
+                    </div>
                   )}
                 </CardContent>
               </Card>
@@ -961,6 +1002,16 @@ export default function CheckoutPage() {
                       <span>Shipping</span>
                       <span>{shipping === 0 ? 'Free' : `₹${shipping}`}</span>
                     </div>
+                    
+                    {shippingCalculation && (
+                      <div className="text-xs text-gray-500 space-y-1">
+                        <div>Weight: {cartWeight.toFixed(1)} KG</div>
+                        <div>Region: {shippingCalculation.region === 'tamilnadu' ? 'Tamil Nadu' : 
+                                     shippingCalculation.region === 'india' ? 'Other Indian States' : 
+                                     'International'}</div>
+                        <div>Slab: {shippingCalculation.weightSlab}</div>
+                      </div>
+                    )}
 
                     {discount > 0 && (
                       <div className="flex justify-between text-sm text-green-600">
@@ -979,7 +1030,7 @@ export default function CheckoutPage() {
                     type="submit" 
                     size="lg" 
                     className="w-full" 
-                    disabled={processing || paymentProcessing || isAdmin}
+                    disabled={processing || paymentProcessing || isAdmin || !shippingCalculation}
                   >
                     {processing || paymentProcessing ? (
                       <div className="flex items-center gap-2">
@@ -988,8 +1039,6 @@ export default function CheckoutPage() {
                       </div>
                     ) : isAdmin ? (
                       "Admin Cannot Purchase"
-                    ) : shippingMethods.length === 0 ? (
-                      "Shipping Not Available"
                     ) : (
                       `Pay ₹${finalTotal}`
                     )}

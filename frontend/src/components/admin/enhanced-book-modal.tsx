@@ -29,6 +29,7 @@ export function EnhancedBookModal({ isOpen, onClose, book }: EnhancedBookModalPr
     imageUrl: "",
     status: "published",
     rating: "4.5",
+    weight: "",
   })
   const [_imageFile, setImageFile] = useState<File | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -48,6 +49,7 @@ export function EnhancedBookModal({ isOpen, onClose, book }: EnhancedBookModalPr
         imageUrl: book.imageUrl || "",
         status: book.status || "published",
         rating: book.rating?.toString() || "4.5",
+        weight: book.weight?.toString() || "",
       })
     } else {
       setFormData({
@@ -60,6 +62,7 @@ export function EnhancedBookModal({ isOpen, onClose, book }: EnhancedBookModalPr
         imageUrl: "",
         status: "published",
         rating: "4.5",
+        weight: "",
       })
     }
     setImageFile(null)
@@ -105,6 +108,7 @@ export function EnhancedBookModal({ isOpen, onClose, book }: EnhancedBookModalPr
         imageUrl: formData.imageUrl,
         status: formData.status,
         rating: parseFloat(formData.rating),
+        weight: parseFloat(formData.weight) || 0,
       }
 
       if (book) {
@@ -216,6 +220,24 @@ export function EnhancedBookModal({ isOpen, onClose, book }: EnhancedBookModalPr
                       placeholder="0.00"
                       required
                     />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="weight">Weight (KG) *</Label>
+                    <Input
+                      id="weight"
+                      type="number"
+                      step="0.01"
+                      value={formData.weight}
+                      onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
+                      placeholder="0.00"
+                      required
+                    />
+                  </div>
+                  <div>
+                    {/* Empty div for grid layout */}
                   </div>
                 </div>
 

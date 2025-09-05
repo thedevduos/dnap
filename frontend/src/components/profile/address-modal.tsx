@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import { useUser } from "@/contexts/user-context"
 import { useToast } from "@/hooks/use-toast"
+import { getPincodeData, isValidPincode } from "@/lib/pincode-utils"
 
 interface AddressModalProps {
   open: boolean
@@ -20,6 +21,7 @@ export function AddressModal({ open, onOpenChange, address }: AddressModalProps)
   const { addAddress, updateAddress } = useUser()
   const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [pincodeLoading, setPincodeLoading] = useState(false)
   const [formData, setFormData] = useState({
     type: "home" as "home" | "work" | "other",
     firstName: "",
@@ -71,6 +73,44 @@ export function AddressModal({ open, onOpenChange, address }: AddressModalProps)
 
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }))
+  }
+
+  const handlePincodeChange = async (pincode: string) => {
+    setFormData(prev => ({ ...prev, postalCode: pincode }))
+    
+    if (isValidPincode(pincode)) {
+      setPincodeLoading(true)
+      try {
+        const pincodeData = await getPincodeData(pincode)
+        if (pincodeData) {
+          setFormData(prev => ({
+            ...prev,
+            city: pincodeData.city,
+            state: pincodeData.state,
+            country: pincodeData.country
+          }))
+          toast({
+            title: "Location Updated",
+            description: `City: ${pincodeData.city}, State: ${pincodeData.state}`,
+          })
+        } else {
+          toast({
+            title: "Invalid Pincode",
+            description: "Could not find location for this pincode",
+            variant: "destructive",
+          })
+        }
+      } catch (error) {
+        console.error('Error fetching pincode data:', error)
+        toast({
+          title: "Error",
+          description: "Failed to fetch location data",
+          variant: "destructive",
+        })
+      } finally {
+        setPincodeLoading(false)
+      }
+    }
   }
 
   const validateForm = () => {
@@ -231,27 +271,61 @@ export function AddressModal({ open, onOpenChange, address }: AddressModalProps)
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="postalCode">Postal Code *</Label>
+          <div>
+            <Label htmlFor="postalCode">Pincode *</Label>
+            <div className="relative">
               <Input
                 id="postalCode"
                 value={formData.postalCode}
-                onChange={(e) => handleInputChange("postalCode", e.target.value)}
+                onChange={(e) => handlePincodeChange(e.target.value)}
+                placeholder="Enter 6-digit pincode"
+                maxLength={6}
                 required
+              />
+              {pincodeLoading && (
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-600"></div>
+                </div>
+              )}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">We'll automatically fetch your city and state</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="city">City *</Label>
+              <Input
+                id="city"
+                value={formData.city}
+                onChange={(e) => handleInputChange("city", e.target.value)}
+                required
+                readOnly
+                className="bg-gray-50"
               />
             </div>
             <div>
-              <Label htmlFor="country">Country</Label>
-              <Select value={formData.country} onValueChange={(value) => handleInputChange("country", value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="India">India</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label htmlFor="state">State *</Label>
+              <Input
+                id="state"
+                value={formData.state}
+                onChange={(e) => handleInputChange("state", e.target.value)}
+                required
+                readOnly
+                className="bg-gray-50"
+              />
             </div>
+          </div>
+
+          <div>
+            <Label htmlFor="country">Country</Label>
+            <Select value={formData.country} onValueChange={(value) => handleInputChange("country", value)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="India">India</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div>

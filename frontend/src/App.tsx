@@ -42,12 +42,14 @@ import AdminBooks from "@/pages/admin/books"
 import AdminTestimonials from "@/pages/admin/testimonials"
 import AdminUpdates from "@/pages/admin/updates"
 import AdminMessages from "@/pages/admin/messages"
+import AdminHeroBanners from "@/pages/admin/hero-banners"
 import AdminEmails from "@/pages/admin/emails"
 import AdminUsers from "@/pages/admin/users"
 import AdminTeam from "@/pages/admin/team"
 import AdminCareers from "@/pages/admin/careers"
 import AdminOrders from "@/pages/admin/orders"
 import AdminShipping from "@/pages/admin/shipping"
+import AdminShippingRates from "@/pages/admin/shipping-rates"
 import AdminCoupons from "@/pages/admin/coupons"
 import AdminPayments from "@/pages/admin/payments"
 import AdminCustomers from "@/pages/admin/customers"
@@ -91,6 +93,7 @@ export default function App() {
                               <Route path="/careers" element={<AdminCareers />} />
                               <Route path="/orders" element={<AdminOrders />} />
                               <Route path="/shipping" element={<AdminShipping />} />
+                              <Route path="/shipping-rates" element={<AdminShippingRates />} />
                               <Route path="/coupons" element={<AdminCoupons />} />
                               <Route path="/payments" element={<AdminPayments />} />
                               <Route path="/customers" element={<AdminCustomers />} />
@@ -99,6 +102,7 @@ export default function App() {
                               <Route path="/testimonials" element={<AdminTestimonials />} />
                               <Route path="/updates" element={<AdminUpdates />} />
                               <Route path="/messages" element={<AdminMessages />} />
+                              <Route path="/hero-banners" element={<AdminHeroBanners />} />
                               <Route path="/emails" element={<AdminEmails />} />
                               <Route path="/profile" element={<AdminProfile />} />
                               <Route path="/zoho-connection" element={<AdminZohoConnection />} />
