@@ -3,7 +3,7 @@
 import React, { useEffect, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Check, BookOpen, PenTool, GraduationCap, Heart } from "lucide-react"
+import { Check, BookOpen, PenTool, GraduationCap, Heart, FileText } from "lucide-react"
 import anime from "animejs"
 
 export function Pricing() {
@@ -50,7 +50,7 @@ export function Pricing() {
   const bookPublishingPlans: Plan[] = [
     {
       title: "Poem/Quote Book",
-      price: "₹1,499",
+      price: "Starts from ₹1,499",
       period: " + GST",
       description: "Perfect for poetry collections and inspirational quotes",
       icon: PenTool,
@@ -63,8 +63,22 @@ export function Pricing() {
       ],
     },
     {
+      title: "Essays / Short Stories Book",
+      price: "Starts from ₹1,499",
+      period: " + GST",
+      description: "Ideal for essay collections and short story compilations",
+      icon: FileText,
+      features: [
+        "Professional formatting",
+        "ISBN registration", 
+        "Print-ready files",
+        "Basic cover design",
+        "Distribution setup"
+      ],
+    },
+    {
       title: "Novel / Story Book",
-      price: "₹1,999",
+      price: "Starts from ₹1,999",
       period: " + GST",
       description: "Complete novel and story book publishing package",
       icon: BookOpen,
@@ -80,7 +94,7 @@ export function Pricing() {
     },
     {
       title: "Academic / Research Book",
-      price: "₹2,999",
+      price: "Starts from ₹2,999",
       period: " + GST",
       description: "Specialized publishing for academic and research works",
       icon: GraduationCap,
@@ -92,22 +106,6 @@ export function Pricing() {
         "Distribution setup",
         "Citation formatting",
         "Index creation"
-      ],
-    },
-    {
-      title: "Self-Help / Spiritual Book",
-      price: "₹3,999",
-      period: " + GST",
-      description: "Comprehensive package for self-help and spiritual books",
-      icon: Heart,
-      features: [
-        "Professional formatting",
-        "ISBN registration",
-        "Print-ready files",
-        "Premium cover design",
-        "Distribution setup",
-        "Marketing support",
-        "Author consultation"
       ],
     },
   ]
