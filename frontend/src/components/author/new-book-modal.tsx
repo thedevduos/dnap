@@ -134,7 +134,12 @@ export function NewBookModal({ open, onOpenChange }: NewBookModalProps) {
         category: "",
         pages: "",
         language: "",
-        description: ""
+        description: "",
+        edition: "",
+        year: "",
+        isbn: "",
+        format: "",
+        publisher: ""
       })
       setFiles({
         pdf: null,

@@ -182,6 +182,13 @@ export default function AdminAuthorBooks() {
       pdfUrl: book.pdfUrl || "",
       pdfSize: book.pdfSize || 0,
       weight: "",
+      edition: "",
+      year: "",
+      isbn: "",
+      pages: "",
+      format: "",
+      language: "",
+      publisher: "",
     })
     setCurrentStep(1)
     setShowBookCreationModal(true)

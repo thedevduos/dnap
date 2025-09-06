@@ -186,12 +186,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Check if user exists in database
       const user = result.user
       
-      // Check if user exists in users collection by email
+      // Check if user exists in userProfiles collection (for regular customers)
+      const userProfileDoc = await getDoc(doc(db, "userProfiles", user.uid))
+      
+      // Also check if user exists in users collection (for authors/admins)
       const usersQuery = query(collection(db, "users"), where("email", "==", user.email))
       const usersSnapshot = await getDocs(usersQuery)
       
-      if (usersSnapshot.empty) {
-        // User doesn't exist, delete the user from Firebase Auth and throw error
+      // User must exist in either userProfiles or users collection
+      if (!userProfileDoc.exists() && usersSnapshot.empty) {
+        // User doesn't exist in either collection, delete the user from Firebase Auth and throw error
         try {
           await deleteUser(user)
           console.log('User deleted from Firebase Authentication')
@@ -206,8 +210,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw error
       }
       
-      // Check if user is suspended in userProfiles collection
-      const userProfileDoc = await getDoc(doc(db, "userProfiles", user.uid))
+      // Check if user is suspended in userProfiles collection (if they exist there)
       if (userProfileDoc.exists()) {
         const userData = userProfileDoc.data()
         if (userData.suspended) {
@@ -220,7 +223,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
       
-      console.log('User found in users collection and not suspended, allowing login')
+      console.log('User found in database and not suspended, allowing login')
       // Let the user context handle profile creation/loading
       // This avoids race conditions and ensures consistent logic
     } catch (error) {
