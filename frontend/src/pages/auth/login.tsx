@@ -7,10 +7,13 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useAuth } from "@/contexts/auth-context"
 import { useToast } from "@/hooks/use-toast"
-import { BookOpen, Lock, Eye, EyeOff } from "lucide-react"
+import { BookOpen, Lock, Eye, EyeOff, Mail, CheckCircle } from "lucide-react"
 import { FcGoogle } from "react-icons/fc"
+import { sendPasswordResetEmail } from "firebase/auth"
+import { auth } from "@/lib/firebase"
 
 export default function LoginPage() {
   const [credentials, setCredentials] = useState({
@@ -19,6 +22,12 @@ export default function LoginPage() {
   })
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [showForgotPassword, setShowForgotPassword] = useState(false)
+  const [forgotPasswordStep, setForgotPasswordStep] = useState<'email' | 'success'>('email')
+  const [forgotPasswordData, setForgotPasswordData] = useState({
+    email: ""
+  })
+  const [isForgotPasswordLoading, setIsForgotPasswordLoading] = useState(false)
   const { login, loginWithGoogle } = useAuth()
   const { toast } = useToast()
   const navigate = useNavigate()
@@ -89,6 +98,56 @@ export default function LoginPage() {
     }
   }
 
+  const handleSendOTP = async () => {
+    if (!forgotPasswordData.email) {
+      toast({
+        title: "Email Required",
+        description: "Please enter your email address.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsForgotPasswordLoading(true)
+    try {
+      // Use Firebase's built-in password reset email
+      await sendPasswordResetEmail(auth, forgotPasswordData.email)
+      
+      toast({
+        title: "Reset Email Sent",
+        description: "Please check your email for the password reset link.",
+      })
+      setForgotPasswordStep('success')
+    } catch (error: any) {
+      let errorMessage = "Please try again later."
+      
+      if (error.code === 'auth/user-not-found') {
+        errorMessage = "No account found with this email address."
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = "Invalid email address."
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = "Too many requests. Please try again later."
+      }
+      
+      toast({
+        title: "Failed to Send Reset Email",
+        description: errorMessage,
+        variant: "destructive",
+      })
+    } finally {
+      setIsForgotPasswordLoading(false)
+    }
+  }
+
+
+  const resetForgotPasswordModal = () => {
+    setShowForgotPassword(false)
+    setForgotPasswordStep('email')
+    setForgotPasswordData({
+      email: ""
+    })
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
@@ -137,6 +196,16 @@ export default function LoginPage() {
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </Button>
               </div>
+              <div className="text-right mt-2">
+                <Button
+                  type="button"
+                  variant="link"
+                  className="text-sm text-muted-foreground hover:text-primary p-0 h-auto"
+                  onClick={() => setShowForgotPassword(true)}
+                >
+                  Forgot Password?
+                </Button>
+              </div>
             </div>
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? (
@@ -177,6 +246,83 @@ export default function LoginPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Forgot Password Modal */}
+      <Dialog open={showForgotPassword} onOpenChange={setShowForgotPassword}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center">
+              {forgotPasswordStep === 'email' && 'Reset Password'}
+              {forgotPasswordStep === 'success' && 'Reset Email Sent'}
+            </DialogTitle>
+          </DialogHeader>
+
+          {forgotPasswordStep === 'email' && (
+            <div className="space-y-4">
+              <div className="text-center text-muted-foreground">
+                Enter your email address and we'll send you a password reset link.
+              </div>
+              <div>
+                <Label htmlFor="forgot-email">Email Address</Label>
+                <Input
+                  id="forgot-email"
+                  type="email"
+                  value={forgotPasswordData.email}
+                  onChange={(e) => setForgotPasswordData({ ...forgotPasswordData, email: e.target.value })}
+                  placeholder="your@email.com"
+                  required
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={resetForgotPasswordModal}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  className="flex-1"
+                  onClick={handleSendOTP}
+                  disabled={isForgotPasswordLoading}
+                >
+                  {isForgotPasswordLoading ? "Sending..." : (
+                    <>
+                      <Mail className="h-4 w-4 mr-2" />
+                      Send Reset Link
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+
+
+          {forgotPasswordStep === 'success' && (
+            <div className="space-y-4 text-center">
+              <div className="flex justify-center">
+                <CheckCircle className="h-16 w-16 text-green-500" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold">Reset Email Sent!</h3>
+                <p className="text-muted-foreground">
+                  We've sent a password reset link to <strong>{forgotPasswordData.email}</strong>. 
+                  Please check your email and follow the instructions to reset your password.
+                </p>
+              </div>
+              <Button
+                type="button"
+                className="w-full"
+                onClick={resetForgotPasswordModal}
+              >
+                Close
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

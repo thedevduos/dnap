@@ -20,6 +20,9 @@ const PORT = process.env.PORT || 5000;
 // Import email service
 const emailService = require('./services/emailService');
 
+// Note: Using Firebase's built-in password reset functionality
+// No need for custom OTP implementation
+
 // Import route handlers
 const paymentRoutes = require('./routes/payment');
 const whatsappRoutes = require('./routes/whatsapp');
@@ -273,6 +276,7 @@ app.post('/api/test-email', async (req, res) => {
     });
   }
 });
+
 
 // Payment routes
 app.use('/api/payment', paymentRoutes);
