@@ -6,13 +6,14 @@ import {
   signOut, 
   onAuthStateChanged, 
   User, 
+  UserCredential,
   signInWithPopup, 
   GoogleAuthProvider,
   createUserWithEmailAndPassword,
   updateProfile,
   deleteUser
 } from "firebase/auth"
-import { doc, setDoc, serverTimestamp, query, collection, where, getDocs } from "firebase/firestore"
+import { doc, setDoc, serverTimestamp, query, collection, where, getDocs, getDoc } from "firebase/firestore"
 import { auth } from "@/lib/firebase"
 import { db } from "@/lib/firebase"
 import { subscribeToNewsletter } from "@/lib/firebase-utils"
@@ -20,7 +21,7 @@ import { sendCustomerWelcomeEmail } from "@/lib/email-utils"
 
 interface AuthContextType {
   user: User | null
-  login: (email: string, password: string) => Promise<void>
+  login: (email: string, password: string) => Promise<UserCredential>
   register: (userData: RegisterData) => Promise<void>
   loginWithGoogle: () => Promise<void>
   logout: () => Promise<void>
@@ -49,7 +50,7 @@ export function useAuth() {
   if (!context.initialized) {
     return {
       user: null,
-      login: async () => {},
+      login: async () => ({} as UserCredential),
       register: async () => {},
       loginWithGoogle: async () => {},
       logout: async () => {},
@@ -67,7 +68,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [initialized, setInitialized] = useState(false)
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        // Check if user is suspended
+        try {
+          const userProfileDoc = await getDoc(doc(db, "userProfiles", user.uid))
+          if (userProfileDoc.exists()) {
+            const userData = userProfileDoc.data()
+            if (userData.suspended) {
+              // Sign out suspended users immediately
+              await signOut(auth)
+              setUser(null)
+              setLoading(false)
+              setInitialized(true)
+              return
+            }
+          }
+        } catch (error) {
+          console.error('Error checking suspension status:', error)
+        }
+      }
+      
       setUser(user)
       setLoading(false)
       setInitialized(true)
@@ -77,7 +98,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const login = async (email: string, password: string) => {
-    await signInWithEmailAndPassword(auth, email, password)
+    const userCredential = await signInWithEmailAndPassword(auth, email, password)
+    const user = userCredential.user
+    
+    // Check if user is suspended
+    const userProfileDoc = await getDoc(doc(db, "userProfiles", user.uid))
+    if (userProfileDoc.exists()) {
+      const userData = userProfileDoc.data()
+      if (userData.suspended) {
+        // Sign out the user immediately
+        await signOut(auth)
+        // Throw a custom error for suspended accounts
+        const error = new Error('ACCOUNT_SUSPENDED')
+        ;(error as any).code = 'auth/account-suspended'
+        throw error
+      }
+    }
+    
+    return userCredential
   }
 
   const register = async (userData: RegisterData) => {
@@ -168,7 +206,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw error
       }
       
-      console.log('User found in users collection, allowing login')
+      // Check if user is suspended in userProfiles collection
+      const userProfileDoc = await getDoc(doc(db, "userProfiles", user.uid))
+      if (userProfileDoc.exists()) {
+        const userData = userProfileDoc.data()
+        if (userData.suspended) {
+          // Sign out the user immediately
+          await signOut(auth)
+          // Throw a custom error for suspended accounts
+          const error = new Error('ACCOUNT_SUSPENDED')
+          ;(error as any).code = 'auth/account-suspended'
+          throw error
+        }
+      }
+      
+      console.log('User found in users collection and not suspended, allowing login')
       // Let the user context handle profile creation/loading
       // This avoids race conditions and ensures consistent logic
     } catch (error) {

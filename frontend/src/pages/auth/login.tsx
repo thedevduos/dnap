@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useAuth } from "@/contexts/auth-context"
 import { useToast } from "@/hooks/use-toast"
-import { BookOpen, Lock, Eye, EyeOff, Mail, CheckCircle } from "lucide-react"
+import { BookOpen, Lock, Eye, EyeOff, Mail, CheckCircle, Ban } from "lucide-react"
 import { FcGoogle } from "react-icons/fc"
 import { sendPasswordResetEmail } from "firebase/auth"
 import { auth } from "@/lib/firebase"
@@ -28,6 +28,7 @@ export default function LoginPage() {
     email: ""
   })
   const [isForgotPasswordLoading, setIsForgotPasswordLoading] = useState(false)
+  const [showSuspendedModal, setShowSuspendedModal] = useState(false)
   const { login, loginWithGoogle } = useAuth()
   const { toast } = useToast()
   const navigate = useNavigate()
@@ -50,11 +51,15 @@ export default function LoginPage() {
       // Simple redirect to intended destination
       navigate(from, { replace: true })
     } catch (error: any) {
-      toast({
-        title: "Login Failed",
-        description: error.message || "Invalid credentials. Please try again.",
-        variant: "destructive",
-      })
+      if (error.code === 'auth/account-suspended') {
+        setShowSuspendedModal(true)
+      } else {
+        toast({
+          title: "Login Failed",
+          description: error.message || "Invalid credentials. Please try again.",
+          variant: "destructive",
+        })
+      }
     } finally {
       setIsLoading(false)
     }
@@ -73,7 +78,9 @@ export default function LoginPage() {
       // Simple redirect to intended destination
       navigate(from, { replace: true })
     } catch (error: any) {
-      if (error.message === 'USER_NOT_FOUND') {
+      if (error.code === 'auth/account-suspended' || error.message === 'ACCOUNT_SUSPENDED') {
+        setShowSuspendedModal(true)
+      } else if (error.message === 'USER_NOT_FOUND') {
         toast({
           title: "Account Not Found",
           description: "Please register first before signing in with Google.",
@@ -86,6 +93,8 @@ export default function LoginPage() {
             googleEmail: error.email // Pass the Google email for pre-filling
           } 
         })
+      } else if (error.code === 'auth/popup-closed-by-user') {
+        // Don't show error toast for popup closed by user - this is expected behavior
       } else {
         toast({
           title: "Google Login Failed",
@@ -321,6 +330,40 @@ export default function LoginPage() {
               </Button>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Suspended Account Modal */}
+      <Dialog open={showSuspendedModal} onOpenChange={setShowSuspendedModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center text-red-600">Account Suspended</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 text-center">
+            <div className="flex justify-center">
+              <Ban className="h-16 w-16 text-red-500" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-red-600">Your Account Has Been Suspended</h3>
+              <p className="text-muted-foreground mt-2">
+                Your account has been temporarily suspended. Please contact our management team for more details and assistance.
+              </p>
+            </div>
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <p className="text-sm text-red-700">
+                <strong>Contact Information:</strong><br />
+                Email: info@dnap.in<br />
+                Phone: 7598691689
+              </p>
+            </div>
+            <Button
+              type="button"
+              className="w-full"
+              onClick={() => setShowSuspendedModal(false)}
+            >
+              Close
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

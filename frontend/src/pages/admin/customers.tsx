@@ -19,12 +19,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Users, Search, MoreHorizontal, Eye, Mail, Ban, RefreshCw } from "lucide-react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Users, Search, MoreHorizontal, Eye, Mail, Ban, RefreshCw, UserCheck, UserX } from "lucide-react"
 import { useCustomers } from "@/hooks/use-customers"
 import { useToast } from "@/hooks/use-toast"
 import { AdminLayout } from "@/components/admin/admin-layout"
 import { CustomerModal } from "@/components/admin/customer-modal"
 import { recalculateCustomerStats } from "@/lib/firebase-utils"
+import { doc, updateDoc, serverTimestamp } from "firebase/firestore"
+import { db } from "@/lib/firebase"
 
 export default function AdminCustomers() {
   const { customers, loading, analytics } = useCustomers()
@@ -33,6 +36,7 @@ export default function AdminCustomers() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null)
   const [isRecalculating, setIsRecalculating] = useState(false)
+  const [activeTab, setActiveTab] = useState("active")
 
   const handleRecalculateStats = async () => {
     setIsRecalculating(true)
@@ -58,11 +62,61 @@ export default function AdminCustomers() {
     setIsModalOpen(true)
   }
 
-  const filteredCustomers = customers.filter(customer => 
-    customer.displayName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.phone?.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const handleSuspendCustomer = async (customer: any) => {
+    try {
+      await updateDoc(doc(db, "userProfiles", customer.id), {
+        suspended: true,
+        suspendedAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      })
+      toast({
+        title: "Account Suspended",
+        description: `${customer.displayName || customer.email}'s account has been suspended.`,
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to suspend account.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleUnsuspendCustomer = async (customer: any) => {
+    try {
+      await updateDoc(doc(db, "userProfiles", customer.id), {
+        suspended: false,
+        suspendedAt: null,
+        updatedAt: serverTimestamp()
+      })
+      toast({
+        title: "Account Restored",
+        description: `${customer.displayName || customer.email}'s account has been restored.`,
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to restore account.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const filteredCustomers = customers.filter(customer => {
+    const matchesSearch = customer.displayName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      customer.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      customer.phone?.toLowerCase().includes(searchTerm.toLowerCase())
+    
+    if (activeTab === "active") {
+      return matchesSearch && !customer.suspended
+    } else if (activeTab === "suspended") {
+      return matchesSearch && customer.suspended
+    }
+    return matchesSearch
+  })
+
+  const activeCustomers = customers.filter(customer => !customer.suspended)
+  const suspendedCustomers = customers.filter(customer => customer.suspended)
 
   return (
     <AdminLayout>
@@ -101,12 +155,22 @@ export default function AdminCustomers() {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center">
-                <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
-                  <span className="text-green-600 font-bold">✓</span>
-                </div>
+                <UserCheck className="h-8 w-8 text-green-600" />
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Active</p>
-                  <p className="text-2xl font-bold text-green-600">{analytics.active}</p>
+                  <p className="text-2xl font-bold text-green-600">{activeCustomers.length}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center">
+                <UserX className="h-8 w-8 text-red-600" />
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Suspended</p>
+                  <p className="text-2xl font-bold text-red-600">{suspendedCustomers.length}</p>
                 </div>
               </div>
             </CardContent>
@@ -157,10 +221,23 @@ export default function AdminCustomers() {
         </Card>
 
         {/* Customers Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>All Customers ({filteredCustomers.length})</CardTitle>
-          </CardHeader>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="active" className="flex items-center gap-2">
+              <UserCheck className="h-4 w-4" />
+              Active Customers ({activeCustomers.length})
+            </TabsTrigger>
+            <TabsTrigger value="suspended" className="flex items-center gap-2">
+              <UserX className="h-4 w-4" />
+              Suspended Accounts ({suspendedCustomers.length})
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="active">
+            <Card>
+              <CardHeader>
+                <CardTitle>Active Customers ({filteredCustomers.length})</CardTitle>
+              </CardHeader>
           <CardContent>
             {loading ? (
               <div className="text-center py-8">
@@ -240,7 +317,10 @@ export default function AdminCustomers() {
                               <Mail className="h-4 w-4 mr-2" />
                               Send Email
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="text-red-600">
+                            <DropdownMenuItem 
+                              className="text-red-600"
+                              onClick={() => handleSuspendCustomer(customer)}
+                            >
                               <Ban className="h-4 w-4 mr-2" />
                               Suspend Account
                             </DropdownMenuItem>
@@ -254,6 +334,109 @@ export default function AdminCustomers() {
             )}
           </CardContent>
         </Card>
+          </TabsContent>
+          
+          <TabsContent value="suspended">
+            <Card>
+              <CardHeader>
+                <CardTitle>Suspended Accounts ({filteredCustomers.length})</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600 mx-auto"></div>
+                    <p className="mt-2 text-gray-600">Loading customers...</p>
+                  </div>
+                ) : filteredCustomers.length === 0 ? (
+                  <div className="text-center py-8">
+                    <UserX className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600">No suspended accounts found</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Customer</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Phone</TableHead>
+                        <TableHead>Orders</TableHead>
+                        <TableHead>Total Spent</TableHead>
+                        <TableHead>Suspended Date</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredCustomers.map((customer) => (
+                        <TableRow key={customer.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              {customer.photoURL ? (
+                                <img
+                                  src={customer.photoURL}
+                                  alt={customer.displayName}
+                                  className="w-8 h-8 rounded-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
+                                  <span className="text-xs font-medium text-red-600">
+                                    {customer.displayName?.charAt(0) || customer.email?.charAt(0)}
+                                  </span>
+                                </div>
+                              )}
+                              <div>
+                                <p className="font-medium">{customer.displayName || "N/A"}</p>
+                                <Badge variant="destructive" className="text-xs">Suspended</Badge>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>{customer.email}</TableCell>
+                          <TableCell>{customer.phone || "N/A"}</TableCell>
+                          <TableCell>
+                            <Badge variant="secondary">
+                              {customer.orderCount || 0} orders
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            ₹{customer.totalSpent || 0}
+                          </TableCell>
+                          <TableCell>
+                            {customer.suspendedAt?.toDate().toLocaleDateString() || "N/A"}
+                          </TableCell>
+                          <TableCell>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleViewCustomer(customer)}>
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  View Profile
+                                </DropdownMenuItem>
+                                <DropdownMenuItem>
+                                  <Mail className="h-4 w-4 mr-2" />
+                                  Send Email
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  className="text-green-600"
+                                  onClick={() => handleUnsuspendCustomer(customer)}
+                                >
+                                  <UserCheck className="h-4 w-4 mr-2" />
+                                  Restore Account
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
 
       <CustomerModal
