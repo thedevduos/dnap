@@ -29,8 +29,7 @@ import { CustomerModal } from "@/components/admin/customer-modal"
 import { recalculateCustomerStats } from "@/lib/firebase-utils"
 import { doc, updateDoc, serverTimestamp, collection, query, where, getDocs, writeBatch } from "firebase/firestore"
 import { db } from "@/lib/firebase"
-// Note: Firebase Auth user deletion requires the user's password
-// import { deleteUser, signInWithEmailAndPassword, signOut } from "firebase/auth"
+import { deleteFirebaseAuthUser } from "@/lib/user-utils"
 
 export default function AdminCustomers() {
   const { customers, loading, analytics } = useCustomers()
@@ -201,12 +200,23 @@ export default function AdminCustomers() {
       // Commit the batch
       await batch.commit()
 
-      // 12. Firebase Auth user handling
-      // Note: Firebase client SDK only allows users to delete their own accounts
-      // Since we don't have the customer's password, the Firebase Auth user will become orphaned
-      // This is acceptable as the customer cannot access the app without their Firestore data
-      console.log('Firebase Auth user will become orphaned - Firestore data deleted successfully')
-      console.log('The customer will not be able to access the app anymore')
+      // 12. Delete Firebase Auth user
+      try {
+        // Use the customer's UID (which should be the same as the document ID in userProfiles)
+        const firebaseAuthUid = customerToDelete.uid || customerId
+        console.log(`🔥 Attempting to delete Firebase Auth user with UID: ${firebaseAuthUid}`)
+        const authResult = await deleteFirebaseAuthUser(firebaseAuthUid)
+        
+        if (authResult.userExisted) {
+          console.log('✅ Firebase Auth user deleted successfully')
+        } else {
+          console.log('ℹ️ Firebase Auth user not found (already deleted or never existed)')
+        }
+      } catch (authError) {
+        console.warn('⚠️ Failed to delete Firebase Auth user:', authError)
+        // Don't throw error here as Firestore data is already deleted
+        // The user won't be able to access the app anyway
+      }
 
       toast({
         title: "Customer Deleted",
@@ -614,10 +624,10 @@ export default function AdminCustomers() {
                 <li>• Author data (if applicable)</li>
                 <li>• Books and affiliate links (if author)</li>
               </ul>
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-3">
-                <p className="text-sm text-yellow-800">
-                  <strong>Note:</strong> The Firebase Authentication account will become orphaned but cannot access the app. 
-                  The customer will be unable to log in since all their data is removed.
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-3">
+                <p className="text-sm text-blue-800">
+                  <strong>Note:</strong> This will also delete the customer's Firebase Authentication account. 
+                  The customer will be completely removed from the system and unable to log in.
                 </p>
               </div>
               <p className="text-sm text-red-600 mt-2 font-semibold">

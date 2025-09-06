@@ -7,6 +7,9 @@ require('dotenv').config({ path: './.env' });
 const http = require('http');
 const axios = require('axios');
 
+// Initialize Firebase Admin SDK
+require('./firebase-admin');
+
 // Enhanced activity tracking
 let lastActivity = Date.now();
 const INACTIVITY_THRESHOLD = 5 * 60 * 1000; // 5 minutes in milliseconds
@@ -29,6 +32,7 @@ const whatsappRoutes = require('./routes/whatsapp');
 const zohoRoutes = require('./routes/zoho');
 const jiraRoutes = require('./routes/jira');
 const authorsRoutes = require('./routes/authors');
+const usersRoutes = require('./routes/users');
 
 // Import Zoho service for automated token refresh
 const zohoService = require('./services/zohoService');
@@ -292,6 +296,9 @@ app.use('/api/jira', jiraRoutes);
 
 // Authors routes
 app.use('/api/authors', authorsRoutes);
+
+// Users routes
+app.use('/api/users', usersRoutes);
 
 // Zoho auto-refresh status endpoint
 app.get('/api/zoho/auto-refresh-status', async (req, res) => {

@@ -120,6 +120,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const register = async (userData: RegisterData) => {
     try {
+      // Check if user profile already exists with this email
+      const existingProfileQuery = query(
+        collection(db, "userProfiles"),
+        where("email", "==", userData.email)
+      )
+      const existingProfileSnapshot = await getDocs(existingProfileQuery)
+      
+      if (!existingProfileSnapshot.empty) {
+        throw new Error('A user profile with this email already exists. Please use a different email or try logging in.')
+      }
+
       // Create user account
       const userCredential = await createUserWithEmailAndPassword(auth, userData.email, userData.password)
       const user = userCredential.user
@@ -171,9 +182,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Don't throw error here as user was created successfully
       }
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Registration error:', error)
-      throw error
+      
+      // Handle specific Firebase Auth errors with better messages
+      if (error.code === 'auth/email-already-in-use') {
+        throw new Error('This email address is already registered. Please use a different email or try logging in.')
+      } else if (error.code === 'auth/invalid-email') {
+        throw new Error('Please enter a valid email address.')
+      } else if (error.code === 'auth/weak-password') {
+        throw new Error('Password must be at least 6 characters long.')
+      } else if (error.code === 'auth/operation-not-allowed') {
+        throw new Error('Email/password accounts are not enabled. Please contact support.')
+      } else if (error.code === 'auth/network-request-failed') {
+        throw new Error('Network error. Please check your internet connection and try again.')
+      } else {
+        throw new Error('Failed to create account. Please try again.')
+      }
     }
   }
 

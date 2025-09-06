@@ -225,6 +225,22 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             } else {
               // User is not an admin and no profile exists, create regular customer profile
               console.log('Creating new customer profile for:', authUser.email)
+              
+              // Double-check that no profile exists with this email (extra safety)
+              const emailCheckQuery = query(
+                collection(db, "userProfiles"),
+                where("email", "==", authUser.email)
+              )
+              const emailCheckSnapshot = await getDocs(emailCheckQuery)
+              
+              if (!emailCheckSnapshot.empty) {
+                console.log('Profile already exists for email, using existing profile')
+                const existingProfileDoc = emailCheckSnapshot.docs[0]
+                const existingProfile = { id: existingProfileDoc.id, ...existingProfileDoc.data() } as UserProfile
+                setUserProfile(existingProfile)
+                return
+              }
+              
               const newProfile: UserProfile = {
                 id: authUser.uid,
                 email: authUser.email || '',

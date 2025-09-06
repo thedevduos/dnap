@@ -951,6 +951,17 @@ export const uploadImage = async (file: File, folder: string): Promise<string> =
 // Users
 export const addUser = async (userData: any) => {
   try {
+    // Check if user profile already exists with this email
+    const existingProfileQuery = query(
+      collection(db, "userProfiles"),
+      where("email", "==", userData.email)
+    )
+    const existingProfileSnapshot = await getDocs(existingProfileQuery)
+    
+    if (!existingProfileSnapshot.empty) {
+      throw new Error('A user profile with this email already exists. Please use a different email.')
+    }
+
     // First, create user in Firebase Authentication
     const authUser = await createUserWithEmailAndPassword(
       auth,
@@ -1008,11 +1019,15 @@ export const addUser = async (userData: any) => {
     
     // Handle specific Firebase Auth errors
     if (error.code === 'auth/email-already-in-use') {
-      throw new Error('A user with this email already exists')
+      throw new Error('This email address is already registered. Please use a different email or try logging in.')
     } else if (error.code === 'auth/invalid-email') {
-      throw new Error('Invalid email address')
+      throw new Error('Please enter a valid email address.')
     } else if (error.code === 'auth/weak-password') {
       throw new Error('Password is too weak (mobile number should be at least 6 characters)')
+    } else if (error.code === 'auth/operation-not-allowed') {
+      throw new Error('Email/password accounts are not enabled. Please contact support.')
+    } else if (error.code === 'auth/network-request-failed') {
+      throw new Error('Network error. Please check your internet connection and try again.')
     } else {
       throw new Error('Failed to create user. Please try again.')
     }

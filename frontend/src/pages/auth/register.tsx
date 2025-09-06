@@ -126,11 +126,30 @@ export default function RegisterPage() {
       })
       navigate(from, { replace: true })
     } catch (error: any) {
-      toast({
-        title: "Registration Failed",
-        description: error.message || "Failed to create account. Please try again.",
-        variant: "destructive",
-      })
+      // Handle specific error cases with better UX
+      if (error.message?.includes('already registered')) {
+        toast({
+          title: "Email Already Registered",
+          description: error.message + " You can try logging in instead.",
+          variant: "destructive",
+          action: (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/auth/login')}
+              className="ml-2"
+            >
+              Go to Login
+            </Button>
+          ),
+        })
+      } else {
+        toast({
+          title: "Registration Failed",
+          description: error.message || "Failed to create account. Please try again.",
+          variant: "destructive",
+        })
+      }
     } finally {
       setIsLoading(false)
     }
