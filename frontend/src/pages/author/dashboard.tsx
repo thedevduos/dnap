@@ -73,7 +73,7 @@ export default function AuthorDashboard() {
     
     try {
       const salesData = await getAuthorSalesReport(user.uid)
-      const total = salesData.reduce((sum, item) => sum + (item.royaltyAmount || 0), 0)
+      const total = salesData.reduce((sum: number, item: any) => sum + (item.royaltyAmount || 0), 0)
       setTotalRevenue(total)
     } catch (error) {
       console.error("Error loading total revenue:", error)

@@ -15,7 +15,7 @@ import { Footer } from "@/components/layout/footer"
 // Pages
 import HomePage from "@/pages/home"
 import AboutPage from "@/pages/about"
-import PricingPage from "@/pages/pricing"
+import ServicesPage from "@/pages/services"
 import BooksPage from "@/pages/books"
 import BookDetailPage from "@/pages/book/[id]"
 import CartPage from "@/pages/cart"
@@ -139,7 +139,7 @@ export default function App() {
                               <Routes>
                                 <Route path="/" element={<HomePage />} />
                                 <Route path="/about" element={<AboutPage />} />
-                                <Route path="/services" element={<PricingPage />} />
+                                <Route path="/services" element={<ServicesPage />} />
                                 <Route path="/books" element={<BooksPage />} />
                                 <Route path="/book/:id" element={<BookDetailPage />} />
                                 <Route path="/cart" element={<CartPage />} />

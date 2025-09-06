@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { BookOpen, Languages, Palette, Globe, Printer, Shield, Smartphone, School, User } from "lucide-react"
 import anime from "animejs"
 
-export function Pricing() {
+export function Services() {
   const sectionRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
@@ -101,7 +101,7 @@ export function Pricing() {
   ]
 
   return (
-    <section id="pricing" ref={sectionRef} className="py-20 bg-background">
+    <section id="services" ref={sectionRef} className="py-20 bg-background">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
@@ -141,4 +141,4 @@ export function Pricing() {
   )
 }
 
-export default Pricing
+export default Services

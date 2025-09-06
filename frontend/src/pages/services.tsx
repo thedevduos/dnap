@@ -246,7 +246,7 @@ const bookPublishingPackages: BookPublishingPackage[] = [
   }
 ]
 
-export default function PricingPage() {
+export default function ServicesPage() {
   const sectionRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
@@ -265,7 +265,7 @@ export default function PricingPage() {
             })
             
             anime({
-              targets: ".pricing-card",
+              targets: ".service-card",
               opacity: [0, 1],
               translateY: [50, 0],
               scale: [0.95, 1],
@@ -340,7 +340,7 @@ export default function PricingPage() {
           {bookPublishingPackages.map((pkg) => (
             <Card
               key={pkg.id}
-              className={`pricing-card relative group hover:shadow-xl transition-all duration-300 ${
+              className={`service-card relative group hover:shadow-xl transition-all duration-300 ${
                 pkg.popular ? "ring-2 ring-orange-500 scale-105" : ""
               }`}
             >
