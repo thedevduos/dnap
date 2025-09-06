@@ -35,6 +35,19 @@ export function useAllAuthorBooks() {
             }
           }
 
+          // If book is completed and has assignedBookId, fetch the cover image from main books collection
+          if (book.stage === 'completed' && book.assignedBookId) {
+            try {
+              const bookDoc = await getDoc(doc(db, "books", book.assignedBookId))
+              if (bookDoc.exists()) {
+                const mainBookData = bookDoc.data()
+                book.imageUrl = mainBookData.imageUrl || book.imageUrl
+              }
+            } catch (error) {
+              console.error('Error fetching book image:', error)
+            }
+          }
+
           return book
         })
       )

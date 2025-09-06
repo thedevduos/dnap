@@ -7,7 +7,7 @@ import { ErrorBoundary } from "@/components/ui/error-boundary"
 import { AuthProvider } from "@/contexts/auth-context"
 import { CartProvider } from "@/contexts/cart-context"
 import { UserProvider } from "@/contexts/user-context"
-import { ProtectedRoute } from "@/components/admin/protected-route"
+import { ProtectedRoute } from "@/components/auth/protected-route"
 import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
 
@@ -49,7 +49,6 @@ import AdminTeam from "@/pages/admin/team"
 import AdminCareers from "@/pages/admin/careers"
 import AdminOrders from "@/pages/admin/orders"
 import AdminShipping from "@/pages/admin/shipping"
-import AdminShippingRates from "@/pages/admin/shipping-rates"
 import AdminCoupons from "@/pages/admin/coupons"
 import AdminPayments from "@/pages/admin/payments"
 import AdminCustomers from "@/pages/admin/customers"
@@ -59,6 +58,7 @@ import AdminZohoConnection from "@/pages/admin/zoho-connection"
 import AdminAuthorBooks from "@/pages/admin/author-books"
 import AdminAffiliateLinks from "@/pages/admin/affiliate-links"
 import AdminSalesReports from "@/pages/admin/sales-reports"
+import AdminRoyalty from "@/pages/admin/royalty"
 
 // Author Pages
 import AuthorDashboard from "@/pages/author/dashboard"
@@ -93,7 +93,6 @@ export default function App() {
                               <Route path="/careers" element={<AdminCareers />} />
                               <Route path="/orders" element={<AdminOrders />} />
                               <Route path="/shipping" element={<AdminShipping />} />
-                              <Route path="/shipping-rates" element={<AdminShippingRates />} />
                               <Route path="/coupons" element={<AdminCoupons />} />
                               <Route path="/payments" element={<AdminPayments />} />
                               <Route path="/customers" element={<AdminCustomers />} />
@@ -109,6 +108,7 @@ export default function App() {
                               <Route path="/author-books" element={<AdminAuthorBooks />} />
                               <Route path="/affiliate-links" element={<AdminAffiliateLinks />} />
                               <Route path="/sales-reports" element={<AdminSalesReports />} />
+                              <Route path="/royalty" element={<AdminRoyalty />} />
                             </Routes>
                           </ProtectedRoute>
                         }
@@ -133,50 +133,48 @@ export default function App() {
                       <Route
                         path="/*"
                         element={
-                          <ErrorBoundary>
-                            <>
-                              <Header />
-                              <main>
-                                <Routes>
-                                  <Route path="/" element={<HomePage />} />
-                                  <Route path="/about" element={<AboutPage />} />
-                                  <Route path="/pricing" element={<PricingPage />} />
-                                  <Route path="/books" element={<BooksPage />} />
-                                  <Route path="/book/:id" element={<BookDetailPage />} />
-                                  <Route path="/cart" element={<CartPage />} />
-                                  <Route path="/checkout" element={
-                                    <ProtectedRoute>
-                                      <CheckoutPage />
-                                    </ProtectedRoute>
-                                  } />
-                                  <Route path="/auth/login" element={<LoginPage />} />
-                                  <Route path="/auth/register" element={<RegisterPage />} />
-                                  <Route path="/profile" element={
-                                    <ProtectedRoute>
-                                      <ProfilePage />
-                                    </ProtectedRoute>
-                                  } />
-                                  <Route path="/order/:id" element={
-                                    <ProtectedRoute>
-                                      <OrderDetailPage />
-                                    </ProtectedRoute>
-                                  } />
-                                  <Route path="/order-confirmation/:id" element={<OrderConfirmationPage />} />
-                                  <Route path="/payment/success" element={<PaymentSuccessPage />} />
-                                  <Route path="/payment/failure" element={<PaymentFailurePage />} />
-                                  <Route path="/team" element={<TeamPage />} />
-                                  <Route path="/careers" element={<CareersPage />} />
-                                  <Route path="/contact" element={<ContactPage />} />
-                                  <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-                                  <Route path="/refund-policy" element={<RefundPolicy />} />
-                                  <Route path="/shipping-policy" element={<ShippingPolicy />} />
-                                  <Route path="/terms-conditions" element={<TermsConditions />} />
-                                  <Route path="/new-author" element={<NewAuthorPage />} />
-                                </Routes>
-                              </main>
-                              <Footer />
-                            </>
-                          </ErrorBoundary>
+                          <>
+                            <Header />
+                            <main>
+                              <Routes>
+                                <Route path="/" element={<HomePage />} />
+                                <Route path="/about" element={<AboutPage />} />
+                                <Route path="/services" element={<PricingPage />} />
+                                <Route path="/books" element={<BooksPage />} />
+                                <Route path="/book/:id" element={<BookDetailPage />} />
+                                <Route path="/cart" element={<CartPage />} />
+                                <Route path="/checkout" element={
+                                  <ProtectedRoute>
+                                    <CheckoutPage />
+                                  </ProtectedRoute>
+                                } />
+                                <Route path="/auth/login" element={<LoginPage />} />
+                                <Route path="/auth/register" element={<RegisterPage />} />
+                                <Route path="/profile" element={
+                                  <ProtectedRoute>
+                                    <ProfilePage />
+                                  </ProtectedRoute>
+                                } />
+                                <Route path="/order/:id" element={
+                                  <ProtectedRoute>
+                                    <OrderDetailPage />
+                                  </ProtectedRoute>
+                                } />
+                                <Route path="/order-confirmation/:id" element={<OrderConfirmationPage />} />
+                                <Route path="/payment/success" element={<PaymentSuccessPage />} />
+                                <Route path="/payment/failure" element={<PaymentFailurePage />} />
+                                <Route path="/team" element={<TeamPage />} />
+                                <Route path="/careers" element={<CareersPage />} />
+                                <Route path="/contact" element={<ContactPage />} />
+                                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                                <Route path="/refund-policy" element={<RefundPolicy />} />
+                                <Route path="/shipping-policy" element={<ShippingPolicy />} />
+                                <Route path="/terms-conditions" element={<TermsConditions />} />
+                                <Route path="/new-author" element={<NewAuthorPage />} />
+                              </Routes>
+                            </main>
+                            <Footer />
+                          </>
                         }
                       />
                     </Routes>

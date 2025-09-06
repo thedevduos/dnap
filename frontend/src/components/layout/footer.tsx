@@ -45,8 +45,7 @@ export function Footer() {
       { name: "Careers", path: "/careers" },
     ],
     services: [
-      { name: "Publishing", path: "/pricing" },
-      { name: "E-books", path: "/e-books" },
+      { name: "Publishing", path: "/services" },
     ],
     support: [
       { name: "Contact Us", path: "/contact" },
@@ -71,7 +70,7 @@ export function Footer() {
           {/* Brand Section */}
           <div className="lg:col-span-2">
             <div className="flex items-center space-x-3 mb-2">
-              <img src="/dnap-cropped.png" alt="DNA Publications" className="h-14 w-auto" />
+              <img src="/dnap-full.png" alt="DNA Publications" className="h-16 w-auto -mt-6" />
               <div>
                 <span className="text-3xl font-bold" style={{ color: '#381874' }}>DNA Publications</span>
                 <p className="text-lg font-medium text-muted-foreground mb-4">

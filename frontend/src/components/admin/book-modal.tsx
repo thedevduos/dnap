@@ -311,7 +311,7 @@ export function BookModal({ isOpen, onClose, book }: BookModalProps) {
                 />
               </div>
               <div>
-                <Label htmlFor="pages">Number of Pages</Label>
+                <Label htmlFor="pages">Number of Pages *</Label>
                 <Input
                   id="pages"
                   type="number"
@@ -319,6 +319,7 @@ export function BookModal({ isOpen, onClose, book }: BookModalProps) {
                   onChange={(e) => setFormData({ ...formData, pages: e.target.value })}
                   placeholder="e.g., 250"
                   min="1"
+                  required
                 />
               </div>
             </div>

@@ -57,6 +57,7 @@ interface UserContextType {
   addToWishlist: (bookId: string) => Promise<void>
   removeFromWishlist: (bookId: string) => Promise<void>
   isInWishlist: (bookId: string) => boolean
+  refreshUserProfile: () => Promise<void>
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined)
@@ -432,6 +433,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     return userProfile?.wishlist.includes(bookId) || false
   }
 
+  const refreshUserProfile = async () => {
+    if (user) {
+      await loadUserProfile(user)
+    }
+  }
+
   const isAdmin = userProfile?.role === 'admin' || false
   const isAuthor = userProfile?.role === 'author' || false
   
@@ -451,6 +458,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     addToWishlist,
     removeFromWishlist,
     isInWishlist,
+    refreshUserProfile,
   }
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>

@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast"
 import { useNavigate } from "react-router-dom"
 import { createAuthorAccount, upgradeCustomerToAuthor, uploadAuthorFile, submitAuthorBook } from "@/lib/author-utils"
 import { useAuth } from "@/contexts/auth-context"
+import { useUser } from "@/contexts/user-context"
 import { doc, getDoc } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 
@@ -23,6 +24,7 @@ export default function NewAuthorPage() {
   const { toast } = useToast()
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { refreshUserProfile } = useUser()
 
   // Check if user is already logged in and get their profile
   useEffect(() => {
@@ -200,6 +202,11 @@ export default function NewAuthorPage() {
           title: "Account Upgraded!",
           description: "Your customer account has been upgraded to author status.",
         })
+        
+        // Refresh user profile to reflect the new role
+        if (refreshUserProfile) {
+          await refreshUserProfile()
+        }
       } else {
         // Create new author account
         console.log('Creating new author account')
@@ -210,12 +217,17 @@ export default function NewAuthorPage() {
           title: "Account Created!",
           description: "Your author account has been created successfully.",
         })
+        
+        // Refresh user profile to reflect the new role
+        if (refreshUserProfile) {
+          await refreshUserProfile()
+        }
       }
 
       // Upload files
       const [pdfUrl, imageUrl, wordDocUrl] = await Promise.all([
-        uploadAuthorFile(files.pdf!, 'pdfs', authorId),
-        uploadAuthorFile(files.image!, 'images', authorId),
+        files.pdf ? uploadAuthorFile(files.pdf, 'pdfs', authorId) : Promise.resolve(''),
+        files.image ? uploadAuthorFile(files.image, 'images', authorId) : Promise.resolve(''),
         files.wordDoc ? uploadAuthorFile(files.wordDoc, 'docs', authorId) : Promise.resolve('')
       ])
 

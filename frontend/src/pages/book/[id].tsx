@@ -77,15 +77,20 @@ export default function BookDetailPage() {
       const refCode = searchParams.get('ref')
       const couponCode = searchParams.get('coupon')
       
+      console.log('Affiliate tracking - refCode:', refCode, 'couponCode:', couponCode)
+      
       if (refCode) {
         // Track affiliate link click
-        await trackAffiliateClick(refCode)
+        console.log('Tracking affiliate click for refCode:', refCode)
+        const result = await trackAffiliateClick(refCode)
+        console.log('Affiliate click tracking result:', result)
         
         // Store affiliate info in session storage for checkout
         sessionStorage.setItem('affiliateRef', refCode)
         if (couponCode) {
           sessionStorage.setItem('affiliateCoupon', couponCode)
         }
+        console.log('Affiliate info stored in session storage')
       }
     } catch (error) {
       console.error('Error tracking affiliate click:', error)

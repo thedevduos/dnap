@@ -29,62 +29,70 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Truck, MoreHorizontal, Edit, Trash2, Plus } from "lucide-react"
-import { useShippingMethods } from "@/hooks/use-shipping-methods"
-import { deleteShippingMethod } from "@/lib/firebase-utils"
+import { useShippingRates } from "@/hooks/use-shipping-rates"
+import { deleteShippingRate, addShippingRate } from "@/lib/firebase-utils"
+import { DEFAULT_SHIPPING_RATES } from "@/lib/shipping-rates-utils"
 import { useToast } from "@/hooks/use-toast"
 import { AdminLayout } from "@/components/admin/admin-layout"
-import { ShippingMethodModal } from "@/components/admin/shipping-method-modal"
+import { ShippingRateModal } from "@/components/admin/shipping-rate-modal"
 
 export default function AdminShipping() {
-  const { shippingMethods, loading } = useShippingMethods()
+  const { shippingRates, loading } = useShippingRates()
   const { toast } = useToast()
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [selectedMethod, setSelectedMethod] = useState<any>(null)
-  const [methodToDelete, setMethodToDelete] = useState<any>(null)
+  const [selectedRate, setSelectedRate] = useState<any>(null)
+  const [rateToDelete, setRateToDelete] = useState<any>(null)
 
-  const handleEdit = (method: any) => {
-    setSelectedMethod(method)
+  const handleEdit = (rate: any) => {
+    setSelectedRate(rate)
     setIsModalOpen(true)
   }
 
   const handleDelete = async (id: string) => {
-    const method = shippingMethods.find(m => m.id === id)
-    setMethodToDelete(method)
+    const rate = shippingRates.find(r => r.id === id)
+    setRateToDelete(rate)
   }
 
-  const confirmDeleteMethod = async () => {
-    if (!methodToDelete) return
+  const confirmDeleteRate = async () => {
+    if (!rateToDelete) return
 
     try {
-      await deleteShippingMethod(methodToDelete.id)
+      await deleteShippingRate(rateToDelete.id)
       toast({
         title: "Success",
-        description: "Shipping method deleted successfully",
+        description: "Shipping rate deleted successfully",
       })
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to delete shipping method",
+        description: "Failed to delete shipping rate",
         variant: "destructive",
       })
     } finally {
-      setMethodToDelete(null)
+      setRateToDelete(null)
     }
   }
 
   const handleModalClose = () => {
     setIsModalOpen(false)
-    setSelectedMethod(null)
+    setSelectedRate(null)
   }
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "active":
-        return <Badge className="bg-green-600">Active</Badge>
-      case "inactive":
-        return <Badge variant="secondary">Inactive</Badge>
-      default:
-        return <Badge variant="secondary">Inactive</Badge>
+  const handleSeedDefaultRates = async () => {
+    try {
+      for (const rate of DEFAULT_SHIPPING_RATES) {
+        await addShippingRate(rate)
+      }
+      toast({
+        title: "Success",
+        description: "Default shipping rates have been added!",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add default shipping rates",
+        variant: "destructive",
+      })
     }
   }
 
@@ -93,109 +101,134 @@ export default function AdminShipping() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Shipping Methods</h1>
-            <p className="text-gray-600">Manage delivery options and rates</p>
+            <h1 className="text-2xl font-bold text-gray-900">Shipping</h1>
+            <p className="text-gray-600">Manage weight-based shipping rates by region</p>
           </div>
-          <Button onClick={() => setIsModalOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Shipping Method
-          </Button>
+          <div className="flex gap-2">
+            {shippingRates.length === 0 && (
+              <Button onClick={handleSeedDefaultRates} variant="outline">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Default Rates
+              </Button>
+            )}
+            <Button onClick={() => setIsModalOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Shipping Rate
+            </Button>
+          </div>
         </div>
 
-        {/* Shipping Methods Table */}
+        {/* Shipping Rates Table */}
         <Card>
           <CardHeader>
-            <CardTitle>All Shipping Methods</CardTitle>
+            <CardTitle>Weight-Based Shipping Rates</CardTitle>
           </CardHeader>
           <CardContent>
             {loading ? (
               <div className="text-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600 mx-auto"></div>
-                <p className="mt-2 text-gray-600">Loading shipping methods...</p>
+                <p className="mt-2 text-gray-600">Loading shipping rates...</p>
               </div>
-            ) : shippingMethods.length === 0 ? (
+            ) : shippingRates.length === 0 ? (
               <div className="text-center py-8">
                 <Truck className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600">No shipping methods found</p>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No shipping rates found</h3>
+                <p className="text-gray-600 mb-4">Get started by adding your first shipping rate.</p>
+                <Button onClick={() => setIsModalOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add First Rate
+                </Button>
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Price</TableHead>
-                    <TableHead>Delivery Time</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {shippingMethods.map((method) => (
-                    <TableRow key={method.id}>
-                      <TableCell className="font-medium">{method.name}</TableCell>
-                      <TableCell>{method.description}</TableCell>
-                      <TableCell>
-                        {method.price === 0 ? "Free" : `₹${method.price}`}
-                      </TableCell>
-                      <TableCell>{method.deliveryTime}</TableCell>
-                      <TableCell>{getStatusBadge(method.status)}</TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleEdit(method)}>
-                              <Edit className="h-4 w-4 mr-2" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={() => handleDelete(method.id)}
-                              className="text-red-600"
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Weight Range</TableHead>
+                      <TableHead>Tamil Nadu</TableHead>
+                      <TableHead>Other Indian States</TableHead>
+                      <TableHead>International</TableHead>
+                      <TableHead className="w-[100px]">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {shippingRates.map((rate) => (
+                      <TableRow key={rate.id}>
+                        <TableCell className="font-medium">
+                          {rate.minWeight} - {rate.maxWeight} KG
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="bg-green-50 text-green-700">
+                            ₹{rate.tamilnadu}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                            ₹{rate.india}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="bg-purple-50 text-purple-700">
+                            ₹{rate.international}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleEdit(rate)}>
+                                <Edit className="h-4 w-4 mr-2" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => handleDelete(rate.id)}
+                                className="text-red-600"
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </CardContent>
         </Card>
+
+        {/* Shipping Rate Modal */}
+        <ShippingRateModal
+          isOpen={isModalOpen}
+          onClose={handleModalClose}
+          rate={selectedRate}
+        />
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={!!rateToDelete} onOpenChange={() => setRateToDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Shipping Rate</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete the shipping rate for {rateToDelete?.minWeight} - {rateToDelete?.maxWeight} KG? 
+                This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDeleteRate} className="bg-red-600 hover:bg-red-700">
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
-
-      <ShippingMethodModal
-        isOpen={isModalOpen}
-        onClose={handleModalClose}
-        method={selectedMethod}
-      />
-
-      <AlertDialog open={!!methodToDelete} onOpenChange={() => setMethodToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Shipping Method</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete "{methodToDelete?.name}"? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDeleteMethod}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Delete Method
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </AdminLayout>
   )
 }

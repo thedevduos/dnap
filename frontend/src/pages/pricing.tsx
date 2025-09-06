@@ -3,8 +3,84 @@
 import { useEffect, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Check, BookOpen, PenTool, GraduationCap, Heart, Users, FileText, Languages, Palette } from "lucide-react"
+import { Check, BookOpen, PenTool, GraduationCap, Heart, Users, FileText, Languages, Palette, Globe, Award, Edit3, Printer, Shield, Smartphone, School, User } from "lucide-react"
 import anime from "animejs"
+
+type Service = {
+  id: string
+  title: string
+  description: string
+  icon: typeof BookOpen
+}
+
+const services: Service[] = [
+  {
+    id: "book-publishing",
+    title: "Book Publishing",
+    description: "Complete end-to-end book publishing services from manuscript to market",
+    icon: BookOpen
+  },
+  {
+    id: "author-mentorship",
+    title: "Author Mentorship & Guidance",
+    description: "Professional guidance and mentorship for aspiring and established authors",
+    icon: User
+  },
+  {
+    id: "translation-transcription",
+    title: "Translation & Transcription",
+    description: "Professional translation services and audio transcription for your content",
+    icon: Languages
+  },
+  {
+    id: "design-works",
+    title: "Book overall internal & external Design works",
+    description: "Comprehensive design services for book covers, layouts, and visual elements",
+    icon: Palette
+  },
+  {
+    id: "print-formatting",
+    title: "Print-Ready Formatting & Printing",
+    description: "Professional formatting and high-quality printing services for your book",
+    icon: Printer
+  },
+  {
+    id: "copyright-registration",
+    title: "Copyrights Registration",
+    description: "Complete copyright registration and intellectual property protection",
+    icon: Shield
+  },
+  {
+    id: "ebook-conversion",
+    title: "eBook Conversion (PDF, ePub, Mobile)",
+    description: "Digital conversion services for various eBook formats and platforms",
+    icon: Smartphone
+  },
+  {
+    id: "global-distribution",
+    title: "Global & E-commerce Distribution (Amazon, Flipkart, etc.)",
+    description: "Worldwide distribution across major online and offline platforms",
+    icon: Globe
+  },
+  {
+    id: "outreach-programs",
+    title: "Outreach Programs (Schools, Colleges, Cultural Bodies)",
+    description: "Educational and cultural outreach programs to promote your book",
+    icon: School
+  },
+  {
+    id: "author-branding",
+    title: "Author Branding & Visual Identity Kits",
+    description: "Complete author branding solutions including logos, business cards, and marketing materials",
+    icon: Award
+  },
+  {
+    id: "writing-workshops",
+    title: "Writing Workshops",
+    description: "Professional writing workshops and training programs for authors",
+    icon: Edit3
+  }
+]
 
 type BookPublishingPackage = {
   id: string
@@ -58,8 +134,7 @@ const bookPublishingPackages: BookPublishingPackage[] = [
       "Enhanced cover design",
       "Distribution setup",
       "Marketing support"
-    ],
-    popular: true
+    ]
   },
   {
     id: "academic-research",
@@ -180,11 +255,21 @@ export default function PricingPage() {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             anime({
+              targets: ".service-card",
+              opacity: [0, 1],
+              translateY: [30, 0],
+              scale: [0.95, 1],
+              delay: anime.stagger(100),
+              duration: 600,
+              easing: "easeOutQuart",
+            })
+            
+            anime({
               targets: ".pricing-card",
               opacity: [0, 1],
               translateY: [50, 0],
               scale: [0.95, 1],
-              delay: anime.stagger(150),
+              delay: anime.stagger(150, { start: 800 }),
               duration: 700,
               easing: "easeOutQuart",
             })
@@ -206,10 +291,48 @@ export default function PricingPage() {
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
           <h1 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-orange-500 to-amber-500 bg-clip-text text-transparent">
-            Book Publishing Rates
+            Our Services
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Professional book publishing services tailored to your needs
+            Comprehensive publishing and author services to bring your vision to life
+          </p>
+        </div>
+
+        {/* Services Section */}
+        <div className="mb-20">
+          <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+            {services.map((service) => (
+              <Card
+                key={service.id}
+                className="service-card group hover:shadow-lg transition-all duration-300 border-l-4 border-l-orange-500"
+              >
+                <CardContent className="p-6">
+                  <div className="flex items-start space-x-4">
+                    <div className="p-3 rounded-full bg-orange-100 group-hover:bg-orange-200 transition-colors duration-300 flex-shrink-0">
+                      <service.icon className="h-6 w-6 text-orange-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold mb-2 text-gray-900 group-hover:text-orange-600 transition-colors duration-300">
+                        {service.title}
+                      </h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        {service.description}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+
+        {/* Publishing Packages Section */}
+        <div className="text-center mb-16">
+          <h2 className="text-3xl md:text-4xl font-bold mb-6 bg-gradient-to-r from-orange-500 to-amber-500 bg-clip-text text-transparent">
+            Book Publishing Packages
+          </h2>
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            Choose the perfect publishing package for your book type and requirements
           </p>
         </div>
 

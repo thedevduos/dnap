@@ -28,12 +28,7 @@ export function NewBookModal({ open, onOpenChange }: NewBookModalProps) {
     category: "",
     pages: "",
     language: "",
-    description: "",
-    edition: "",
-    year: "",
-    isbn: "",
-    format: "",
-    publisher: ""
+    description: ""
   })
 
   const [files, setFiles] = useState({
@@ -106,8 +101,8 @@ export function NewBookModal({ open, onOpenChange }: NewBookModalProps) {
 
       // Upload files
       const [pdfUrl, imageUrl, wordDocUrl] = await Promise.all([
-        uploadAuthorFile(files.pdf!, 'pdfs', authorId),
-        uploadAuthorFile(files.image!, 'images', authorId),
+        files.pdf ? uploadAuthorFile(files.pdf, 'pdfs', authorId) : Promise.resolve(''),
+        files.image ? uploadAuthorFile(files.image, 'images', authorId) : Promise.resolve(''),
         files.wordDoc ? uploadAuthorFile(files.wordDoc, 'docs', authorId) : Promise.resolve('')
       ])
 
@@ -134,12 +129,7 @@ export function NewBookModal({ open, onOpenChange }: NewBookModalProps) {
         category: "",
         pages: "",
         language: "",
-        description: "",
-        edition: "",
-        year: "",
-        isbn: "",
-        format: "",
-        publisher: ""
+        description: ""
       })
       setFiles({
         pdf: null,
@@ -263,76 +253,6 @@ export function NewBookModal({ open, onOpenChange }: NewBookModalProps) {
                   rows={4}
                   required
                 />
-              </div>
-
-              {/* Additional Book Details */}
-              <div className="border-t pt-4">
-                <h3 className="text-lg font-semibold mb-4">Additional Book Details</h3>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="edition">Edition</Label>
-                    <Input
-                      id="edition"
-                      value={bookData.edition}
-                      onChange={(e) => handleBookDataChange('edition', e.target.value)}
-                      placeholder="e.g., 1st Edition, 2nd Edition"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="year">Publication Year</Label>
-                    <Input
-                      id="year"
-                      type="number"
-                      value={bookData.year}
-                      onChange={(e) => handleBookDataChange('year', e.target.value)}
-                      placeholder="e.g., 2024"
-                      min="1900"
-                      max="2030"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 mt-4">
-                  <div>
-                    <Label htmlFor="isbn">ISBN</Label>
-                    <Input
-                      id="isbn"
-                      value={bookData.isbn}
-                      onChange={(e) => handleBookDataChange('isbn', e.target.value)}
-                      placeholder="e.g., 978-0-123456-78-9"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="format">Format</Label>
-                    <Select
-                      value={bookData.format}
-                      onValueChange={(value) => handleBookDataChange('format', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select format" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Paperback">Paperback</SelectItem>
-                        <SelectItem value="Hardcover">Hardcover</SelectItem>
-                        <SelectItem value="E-book">E-book</SelectItem>
-                        <SelectItem value="Audiobook">Audiobook</SelectItem>
-                        <SelectItem value="PDF">PDF</SelectItem>
-                        <SelectItem value="Other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="mt-4">
-                  <Label htmlFor="publisher">Publisher</Label>
-                  <Input
-                    id="publisher"
-                    value={bookData.publisher}
-                    onChange={(e) => handleBookDataChange('publisher', e.target.value)}
-                    placeholder="Publisher name"
-                  />
-                </div>
               </div>
             </div>
           )}

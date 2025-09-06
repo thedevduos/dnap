@@ -37,6 +37,7 @@ export function EnhancedBookModal({ isOpen, onClose, book }: EnhancedBookModalPr
     format: "",
     language: "",
     publisher: "",
+    royaltyPercentage: "",
   })
   const [_imageFile, setImageFile] = useState<File | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -64,6 +65,7 @@ export function EnhancedBookModal({ isOpen, onClose, book }: EnhancedBookModalPr
         format: book.format || "",
         language: book.language || "",
         publisher: book.publisher || "",
+        royaltyPercentage: book.royaltyPercentage?.toString() || "",
       })
     } else {
       setFormData({
@@ -84,6 +86,7 @@ export function EnhancedBookModal({ isOpen, onClose, book }: EnhancedBookModalPr
         format: "",
         language: "",
         publisher: "",
+        royaltyPercentage: "",
       })
     }
     setImageFile(null)
@@ -130,6 +133,15 @@ export function EnhancedBookModal({ isOpen, onClose, book }: EnhancedBookModalPr
         status: formData.status,
         rating: parseFloat(formData.rating),
         weight: parseFloat(formData.weight) || 0,
+        // Include all additional book details
+        edition: formData.edition,
+        year: formData.year,
+        isbn: formData.isbn,
+        pages: formData.pages,
+        format: formData.format,
+        language: formData.language,
+        publisher: formData.publisher,
+        royaltyPercentage: Math.round((parseFloat(formData.royaltyPercentage) || 0) * 100) / 100,
       }
 
       if (book) {
@@ -354,7 +366,7 @@ export function EnhancedBookModal({ isOpen, onClose, book }: EnhancedBookModalPr
                       />
                     </div>
                     <div>
-                      <Label htmlFor="pages">Number of Pages</Label>
+                      <Label htmlFor="pages">Number of Pages *</Label>
                       <Input
                         id="pages"
                         type="number"
@@ -362,6 +374,7 @@ export function EnhancedBookModal({ isOpen, onClose, book }: EnhancedBookModalPr
                         onChange={(e) => setFormData({ ...formData, pages: e.target.value })}
                         placeholder="e.g., 250"
                         min="1"
+                        required
                       />
                     </div>
                   </div>
@@ -419,6 +432,20 @@ export function EnhancedBookModal({ isOpen, onClose, book }: EnhancedBookModalPr
                       value={formData.publisher}
                       onChange={(e) => setFormData({ ...formData, publisher: e.target.value })}
                       placeholder="Publisher name"
+                    />
+                  </div>
+
+                  <div className="mt-4">
+                    <Label htmlFor="royaltyPercentage">Royalty Percentage</Label>
+                    <Input
+                      id="royaltyPercentage"
+                      type="number"
+                      value={formData.royaltyPercentage}
+                      onChange={(e) => setFormData({ ...formData, royaltyPercentage: e.target.value })}
+                      placeholder="e.g., 15"
+                      min="0"
+                      max="100"
+                      step="0.1"
                     />
                   </div>
                 </div>

@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { 
   BarChart, 
   TrendingUp, 
-  DollarSign, 
+  IndianRupee, 
   Users, 
   Package, 
   ShoppingCart,
@@ -25,7 +25,7 @@ export default function AdminAnalytics() {
       title: "Total Revenue",
       value: `₹${analytics.totalRevenue || 0}`,
       change: "+12.5%",
-      icon: DollarSign,
+      icon: IndianRupee,
       color: "text-green-600",
       bgColor: "bg-green-100",
     },

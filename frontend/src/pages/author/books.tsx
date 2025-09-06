@@ -69,11 +69,26 @@ export default function AuthorBooksPage() {
                 {books.map((book) => (
                   <Card key={book.id} className="overflow-hidden">
                     <div className="aspect-[3/4] relative">
-                      <img
-                        src={book.imageUrl}
-                        alt={book.title}
-                        className="w-full h-full object-cover"
-                      />
+                      {book.imageUrl ? (
+                        <img
+                          src={book.imageUrl}
+                          alt={book.title}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            const fallback = target.nextElementSibling as HTMLElement;
+                            if (fallback) fallback.style.display = 'flex';
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-muted">
+                          <div className="text-center p-4">
+                            <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+                            <p className="text-sm text-muted-foreground">No image uploaded</p>
+                          </div>
+                        </div>
+                      )}
                       <div className="absolute top-2 right-2">
                         <Badge className={getStageColor(book.stage)}>
                           {getStageLabel(book.stage)}

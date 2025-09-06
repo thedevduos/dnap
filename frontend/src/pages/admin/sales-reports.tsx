@@ -16,7 +16,7 @@ import {
 import { 
   BarChart, 
   TrendingUp, 
-  DollarSign, 
+  IndianRupee, 
   ShoppingCart,
   Users,
   Calendar,
@@ -130,10 +130,11 @@ export default function AdminSalesReports() {
         // Filter by selected book
         if (selectedBook !== "all" && book.id !== selectedBook) return
 
-        const key = `${year}-${month}-${item.bookId}`
+        const key = `${orderDate.toISOString().split('T')[0]}-${item.bookId}`
         
         if (!salesMap.has(key)) {
           salesMap.set(key, {
+            date: orderDate.toISOString().split('T')[0],
             year,
             month,
             bookId: item.bookId,
@@ -163,7 +164,7 @@ export default function AdminSalesReports() {
       })
     })
 
-    return Array.from(salesMap.values())
+    return Array.from(salesMap.values()).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
   }
 
 
@@ -198,10 +199,9 @@ export default function AdminSalesReports() {
   }
 
   const generateCSV = () => {
-    const headers = ['Year', 'Month', 'Book', 'Author', 'Total Sales', 'Total Revenue', 'Affiliate Sales', 'Affiliate Revenue', 'Regular Sales', 'Regular Revenue']
+    const headers = ['Date', 'Book', 'Author', 'Total Sales', 'Total Revenue', 'Affiliate Sales', 'Affiliate Revenue', 'Regular Sales', 'Regular Revenue']
     const rows = salesData.map(item => [
-      item.year,
-      months.find(m => m.value === item.month.toString())?.label || item.month,
+      item.date,
       item.bookTitle,
       item.authorName,
       item.totalSales,
@@ -318,7 +318,7 @@ export default function AdminSalesReports() {
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center">
-                <DollarSign className="h-8 w-8 text-green-600" />
+                <IndianRupee className="h-8 w-8 text-green-600" />
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Total Revenue</p>
                   <p className="text-2xl font-bold">₹{totalRevenue.toLocaleString()}</p>
@@ -397,7 +397,7 @@ export default function AdminSalesReports() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Period</TableHead>
+                      <TableHead>Date</TableHead>
                       <TableHead>Book</TableHead>
                       <TableHead>Author</TableHead>
                       <TableHead className="text-right">Total Sales</TableHead>
@@ -412,7 +412,7 @@ export default function AdminSalesReports() {
                     {salesData.map((item, index) => (
                       <TableRow key={index}>
                         <TableCell>
-                          {months.find(m => m.value === item.month.toString())?.label} {item.year}
+                          {new Date(item.date).toLocaleDateString()}
                         </TableCell>
                         <TableCell className="font-medium">{item.bookTitle}</TableCell>
                         <TableCell>

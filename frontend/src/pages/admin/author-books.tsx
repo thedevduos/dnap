@@ -15,7 +15,7 @@ import {
   TableRow 
 } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { BookOpen, Eye, DollarSign, Check, X, LinkIcon, Trash2, ArrowLeft, ArrowRight, Upload, FileText } from "lucide-react"
+import { BookOpen, Eye, IndianRupee, Check, X, LinkIcon, Trash2, Upload, Image } from "lucide-react"
 import { useAllAuthorBooks } from "@/hooks/use-all-author-books"
 import { updateAuthorBookStage, sendAuthorNotification, revokeAuthorAccess, deleteAuthorBook } from "@/lib/author-utils"
 import { useToast } from "@/hooks/use-toast"
@@ -24,8 +24,7 @@ import { collection, addDoc } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
-import { storage } from "@/lib/firebase"
+import { uploadImage } from "@/lib/firebase-utils"
 
 export default function AdminAuthorBooks() {
   const { books, loading } = useAllAuthorBooks()
@@ -37,7 +36,6 @@ export default function AdminAuthorBooks() {
   const [showAffiliateModal, setShowAffiliateModal] = useState(false)
   const [showBookCreationModal, setShowBookCreationModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
-  const [currentStep, setCurrentStep] = useState(1)
   const [paymentAmount, setPaymentAmount] = useState("")
   const [bookCreationData, setBookCreationData] = useState({
     title: "",
@@ -46,8 +44,7 @@ export default function AdminAuthorBooks() {
     category: "",
     status: "published",
     rating: "4.5",
-    pdfUrl: "",
-    pdfSize: 0,
+    imageUrl: "",
     weight: "",
     edition: "",
     year: "",
@@ -56,9 +53,10 @@ export default function AdminAuthorBooks() {
     format: "",
     language: "",
     publisher: "",
+    royaltyPercentage: "",
   })
-  const [_pdfFile, setPdfFile] = useState<File | null>(null)
-  const [isPdfUploading, setIsPdfUploading] = useState(false)
+  const [_imageFile] = useState<File | null>(null)
+  const [isImageUploading, setIsImageUploading] = useState(false)
 
   const handleViewDetails = (book: any) => {
     setSelectedBook(book)
@@ -179,93 +177,48 @@ export default function AdminAuthorBooks() {
       category: book.category,
       status: "published",
       rating: "4.5",
-      pdfUrl: book.pdfUrl || "",
-      pdfSize: book.pdfSize || 0,
+      imageUrl: book.imageUrl || "",
       weight: "",
-      edition: "",
-      year: "",
-      isbn: "",
-      pages: "",
-      format: "",
-      language: "",
-      publisher: "",
+      // Pre-populate additional fields from the selected book if available
+      edition: book.edition || "",
+      year: book.year || "",
+      isbn: book.isbn || "",
+      pages: book.pages || "",
+      format: book.format || "",
+      language: book.language || "",
+      publisher: book.publisher || "",
+      royaltyPercentage: book.royaltyPercentage || "",
     })
-    setCurrentStep(1)
     setShowBookCreationModal(true)
   }
 
 
-  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
-    if (file.size > 10 * 1024 * 1024) {
-      toast({
-        title: "File Too Large",
-        description: "PDF file must be less than 10MB",
-        variant: "destructive",
-      })
-      return
-    }
-
-    setPdfFile(file)
-    setIsPdfUploading(true)
-
+    setIsImageUploading(true)
     try {
-      // Upload PDF file to storage
-      const timestamp = Date.now()
-      const fileName = `${timestamp}_${file.name}`
-      const storageRef = ref(storage, `book-pdfs/${fileName}`)
-      const snapshot = await uploadBytes(storageRef, file)
-      const pdfUrl = await getDownloadURL(snapshot.ref)
-      setBookCreationData({ 
-        ...bookCreationData, 
-        pdfUrl,
-        pdfSize: file.size
-      })
+      const imageUrl = await uploadImage(file, "book-covers")
+      setBookCreationData({ ...bookCreationData, imageUrl })
       toast({
         title: "Success",
-        description: "PDF uploaded successfully!",
+        description: "Cover image uploaded successfully!",
       })
-    } catch (error: any) {
+    } catch (error) {
+      console.error("Error uploading image:", error)
       toast({
         title: "Error",
-        description: error.message || "Failed to upload PDF. Please try again.",
+        description: "Failed to upload image. Please try again.",
         variant: "destructive",
       })
     } finally {
-      setIsPdfUploading(false)
-    }
-  }
-
-  const nextStep = () => {
-    if (currentStep < 2) {
-      // Validate book details
-      if (currentStep === 1) {
-        if (!bookCreationData.title || !bookCreationData.price || !bookCreationData.description || !bookCreationData.category) {
-          toast({
-            title: "Required Fields Missing",
-            description: "Please fill in all required fields before proceeding.",
-            variant: "destructive",
-          })
-          return
-        }
-      }
-      
-      
-      setCurrentStep(currentStep + 1)
-    }
-  }
-
-  const prevStep = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1)
+      setIsImageUploading(false)
     }
   }
 
   const handleCloseBookCreationModal = () => {
     setShowBookCreationModal(false)
-    setCurrentStep(1)
   }
 
   const handleCreateBook = async () => {
@@ -278,11 +231,11 @@ export default function AdminAuthorBooks() {
       return
     }
 
-    // Validate that PDF is uploaded
-    if (!bookCreationData.pdfUrl) {
+    // Validate that cover image is uploaded
+    if (!bookCreationData.imageUrl) {
       toast({
-        title: "PDF Required",
-        description: "Please upload a PDF file before saving the book.",
+        title: "Cover Image Required",
+        description: "Please upload a cover image before saving the book.",
         variant: "destructive",
       })
       return
@@ -298,21 +251,29 @@ export default function AdminAuthorBooks() {
         category: bookCreationData.category,
         price: parseFloat(bookCreationData.price),
         description: bookCreationData.description,
-        imageUrl: selectedBook.imageUrl,
-        pdfUrl: bookCreationData.pdfUrl,
-        pdfSize: bookCreationData.pdfSize,
+        imageUrl: bookCreationData.imageUrl,
         status: bookCreationData.status,
         rating: parseFloat(bookCreationData.rating),
         weight: parseFloat(bookCreationData.weight) || 0,
+        // Include all additional book details
+        edition: bookCreationData.edition,
+        year: bookCreationData.year,
+        isbn: bookCreationData.isbn,
+        pages: bookCreationData.pages,
+        format: bookCreationData.format,
+        language: bookCreationData.language,
+        publisher: bookCreationData.publisher,
+        royaltyPercentage: Math.round((parseFloat(bookCreationData.royaltyPercentage) || 0) * 100) / 100,
         createdAt: new Date(),
       }
 
       // Add book to books collection
       const bookRef = await addDoc(collection(db, "books"), bookData)
 
-      // Update author book with the assigned book ID
+      // Update author book with the assigned book ID and imageUrl
       await updateAuthorBookStage(selectedBook.id, 'completed', {
-        assignedBookId: bookRef.id
+        assignedBookId: bookRef.id,
+        imageUrl: bookCreationData.imageUrl
       })
 
       // Send completion notification
@@ -498,11 +459,25 @@ export default function AdminAuthorBooks() {
                   {books.map((book) => (
                     <TableRow key={book.id}>
                       <TableCell>
-                        <img
-                          src={book.imageUrl}
-                          alt={book.title}
-                          className="w-12 h-16 object-cover rounded"
-                        />
+                        {book.imageUrl ? (
+                          <img
+                            src={book.imageUrl}
+                            alt={book.title}
+                            className="w-12 h-16 object-cover rounded"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                              const fallback = target.nextElementSibling as HTMLElement;
+                              if (fallback) fallback.style.display = 'flex';
+                            }}
+                          />
+                        ) : null}
+                        <div 
+                          className={`w-12 h-16 bg-muted rounded flex items-center justify-center ${book.imageUrl ? 'hidden' : 'flex'}`}
+                          style={{ display: book.imageUrl ? 'none' : 'flex' }}
+                        >
+                          <BookOpen className="h-6 w-6 text-muted-foreground" />
+                        </div>
                       </TableCell>
                       <TableCell className="font-medium">{book.title}</TableCell>
                       <TableCell>{book.authorName}</TableCell>
@@ -538,7 +513,7 @@ export default function AdminAuthorBooks() {
                                 variant="outline"
                                 onClick={() => handleCollectPayment(book)}
                               >
-                                <DollarSign className="h-3 w-3 mr-1" />
+                                <IndianRupee className="h-3 w-3 mr-1" />
                                 Collect Payment
                               </Button>
                               <Button 
@@ -629,11 +604,17 @@ export default function AdminAuthorBooks() {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <img
-                      src={selectedBook.imageUrl}
-                      alt={selectedBook.title}
-                      className="w-full h-64 object-cover rounded"
-                    />
+                    {selectedBook.imageUrl ? (
+                      <img
+                        src={selectedBook.imageUrl}
+                        alt={selectedBook.title}
+                        className="w-full h-64 object-cover rounded"
+                      />
+                    ) : (
+                      <div className="w-full h-64 bg-muted rounded flex items-center justify-center">
+                        <p className="text-muted-foreground">No image uploaded</p>
+                      </div>
+                    )}
                   </div>
                   <div className="space-y-4">
                     <div>
@@ -655,11 +636,17 @@ export default function AdminAuthorBooks() {
                 </div>
                 
                 <div className="flex gap-2">
-                  <Button variant="outline" asChild>
-                    <a href={selectedBook.pdfUrl} target="_blank" rel="noopener noreferrer">
+                  {selectedBook.pdfUrl ? (
+                    <Button variant="outline" asChild>
+                      <a href={selectedBook.pdfUrl} target="_blank" rel="noopener noreferrer">
+                        View PDF
+                      </a>
+                    </Button>
+                  ) : (
+                    <Button variant="outline" disabled>
                       View PDF
-                    </a>
-                  </Button>
+                    </Button>
+                  )}
                   {selectedBook.wordDocUrl && (
                     <Button variant="outline" asChild>
                       <a href={selectedBook.wordDocUrl} target="_blank" rel="noopener noreferrer">
@@ -832,39 +819,11 @@ export default function AdminAuthorBooks() {
             <DialogHeader>
               <DialogTitle>Mark as Complete - {selectedBook?.title}</DialogTitle>
               <p className="text-sm text-muted-foreground">
-                Complete all steps to publish the book. The book will be automatically assigned to the author.
+                Complete the book details and upload a cover image to publish the book. The book will be automatically assigned to the author.
               </p>
             </DialogHeader>
 
             <div className="space-y-6">
-              {/* Step Indicator */}
-              <div className="flex items-center justify-center space-x-4">
-                {[
-                  { step: 1, label: "Book Details" },
-                  { step: 2, label: "PDF Upload*" }
-                ].map(({ step, label }) => (
-                  <div key={step} className="flex items-center">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                      currentStep >= step ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-                    }`}>
-                      {step}
-                    </div>
-                    {step < 2 && (
-                      <div className={`w-12 h-0.5 mx-2 ${
-                        currentStep > step ? 'bg-primary' : 'bg-muted'
-                      }`} />
-                    )}
-                    <span className={`ml-2 text-xs ${
-                      currentStep >= step ? 'text-primary' : 'text-muted-foreground'
-                    }`}>
-                      {label}
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Step 1: Book Details */}
-              {currentStep === 1 && (
                 <Card>
                   <CardHeader>
                     <CardTitle>Book Details</CardTitle>
@@ -1014,7 +973,7 @@ export default function AdminAuthorBooks() {
                             />
                           </div>
                           <div>
-                            <Label htmlFor="bookPages">Number of Pages</Label>
+                            <Label htmlFor="bookPages">Number of Pages *</Label>
                             <Input
                               id="bookPages"
                               type="number"
@@ -1022,6 +981,7 @@ export default function AdminAuthorBooks() {
                               onChange={(e) => setBookCreationData({...bookCreationData, pages: e.target.value})}
                               placeholder="e.g., 250"
                               min="1"
+                              required
                             />
                           </div>
                         </div>
@@ -1081,112 +1041,83 @@ export default function AdminAuthorBooks() {
                             placeholder="Publisher name"
                           />
                         </div>
+
+                        <div className="mt-4">
+                          <Label htmlFor="bookRoyaltyPercentage">Royalty Percentage</Label>
+                          <Input
+                            id="bookRoyaltyPercentage"
+                            type="number"
+                            value={bookCreationData.royaltyPercentage}
+                            onChange={(e) => setBookCreationData({...bookCreationData, royaltyPercentage: e.target.value})}
+                            placeholder="e.g., 15"
+                            min="0"
+                            max="100"
+                            step="0.1"
+                          />
+                        </div>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
-              )}
 
-
-                          {/* Step 2: PDF Upload */}
-            {currentStep === 2 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <FileText className="h-5 w-5 mr-2" />
-                      Book PDF Upload
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div>
-                      <Label htmlFor="pdf">Book PDF (Max 10MB) *</Label>
-                      <div className="mt-2">
-                        <input
-                          type="file"
-                          id="pdf"
-                          accept=".pdf"
-                          onChange={handlePdfUpload}
-                          className="hidden"
-                          required
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => document.getElementById("pdf")?.click()}
-                          disabled={isPdfUploading}
-                          className="w-full"
-                        >
-                          <Upload className="h-4 w-4 mr-2" />
-                          {isPdfUploading ? "Uploading PDF..." : "Upload Book PDF"}
-                        </Button>
-                        
-                        {bookCreationData.pdfUrl && (
-                          <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-                            <div className="flex items-center space-x-2">
-                              <FileText className="h-5 w-5 text-green-600" />
-                              <div>
-                                <p className="text-sm font-medium text-green-800">PDF Uploaded Successfully</p>
-                                <p className="text-xs text-green-600">
-                                  Size: {(bookCreationData.pdfSize / (1024 * 1024)).toFixed(2)} MB
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                        
-                        {!bookCreationData.pdfUrl && (
-                          <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                            <div className="flex items-center space-x-2">
-                              <FileText className="h-5 w-5 text-yellow-600" />
-                              <div>
-                                <p className="text-sm font-medium text-yellow-800">PDF Upload Required</p>
-                                <p className="text-xs text-yellow-600">
-                                  You must upload a PDF file to save this book
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                        
-                        <p className="text-xs text-muted-foreground mt-2">
-                          Upload the PDF version of your book. Maximum file size: 10MB. <strong>PDF upload is required.</strong>
-                        </p>
-                      </div>
+              {/* Cover Image Upload */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Image className="h-5 w-5 mr-2" />
+                    Book Cover Image
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label htmlFor="image">Cover Image *</Label>
+                    <div className="mt-2">
+                      <input
+                        type="file"
+                        id="image"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="hidden"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => document.getElementById('image')?.click()}
+                        disabled={isImageUploading}
+                        className="w-full"
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        {isImageUploading ? "Uploading..." : "Upload Cover Image"}
+                      </Button>
                     </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Navigation Buttons */}
-              <div className="flex justify-between pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={prevStep}
-                  disabled={currentStep === 1}
-                >
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Previous
-                </Button>
-                
-                {currentStep < 2 ? (
-                  <Button type="button" onClick={nextStep}>
-                    Next
-                    <ArrowRight className="h-4 w-4 ml-2" />
-                  </Button>
-                ) : (
-                  <div className="flex gap-2">
-                    <Button variant="outline" onClick={handleCloseBookCreationModal}>
-                      Cancel
-                    </Button>
-                    <Button 
-                      onClick={handleCreateBook}
-                      disabled={isPdfUploading || !bookCreationData.pdfUrl}
-                    >
-                      Create & Publish Book
-                    </Button>
+                    
+                    {bookCreationData.imageUrl && (
+                      <div className="mt-4">
+                        <p className="text-sm text-muted-foreground mb-2">Current cover:</p>
+                        <div className="flex justify-center">
+                          <img
+                            src={bookCreationData.imageUrl}
+                            alt="Cover preview"
+                            className="w-32 h-40 object-cover rounded"
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
+                </CardContent>
+              </Card>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-2 pt-4">
+                <Button variant="outline" onClick={handleCloseBookCreationModal}>
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleCreateBook}
+                  disabled={isImageUploading || !bookCreationData.imageUrl}
+                >
+                  Create & Publish Book
+                </Button>
               </div>
             </div>
           </DialogContent>

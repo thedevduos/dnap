@@ -214,17 +214,26 @@ export default function PaymentSuccessPage() {
                 ...orderData,
                 transactionId: paymentMethod === 'razorpay' ? paymentData.razorpay_payment_id : 
                               paymentMethod === 'zoho' ? paymentData.paymentId : null,
+                status: 'confirmed', // Update status to confirmed for successful payments
                 createdAt: serverTimestamp()
               })
 
               // Track affiliate sale if applicable
               if (orderData.affiliateRef) {
                 try {
-                  await trackAffiliateSale(orderData.affiliateRef, orderRef.id, orderData.total)
+                  console.log('Tracking affiliate sale:', {
+                    affiliateRef: orderData.affiliateRef,
+                    orderId: orderRef.id,
+                    total: orderData.total
+                  })
+                  const result = await trackAffiliateSale(orderData.affiliateRef, orderRef.id, orderData.total)
+                  console.log('Affiliate sale tracking result:', result)
                 } catch (affiliateError) {
                   console.warn('Failed to track affiliate sale:', affiliateError)
                   // Don't throw error as the order was successful
                 }
+              } else {
+                console.log('No affiliate ref found in order data:', orderData)
               }
 
               // Update customer's order count and total spent

@@ -962,6 +962,17 @@ export const addUser = async (userData: any) => {
       throw new Error('A user profile with this email already exists. Please use a different email.')
     }
 
+    // Additional validation: Check if user already exists in users collection
+    const existingUserQuery = query(
+      collection(db, "users"),
+      where("email", "==", userData.email)
+    )
+    const existingUserSnapshot = await getDocs(existingUserQuery)
+    
+    if (!existingUserSnapshot.empty) {
+      throw new Error('A user with this email already exists. Please use a different email.')
+    }
+
     // First, create user in Firebase Authentication
     const authUser = await createUserWithEmailAndPassword(
       auth,

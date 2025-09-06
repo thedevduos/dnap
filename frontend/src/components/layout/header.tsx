@@ -47,7 +47,7 @@ export function Header() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <img src="/dnap-cropped.png" alt="DNA Publications" className="h-14 w-auto" />
+              <img src="/dnap-full.png" alt="DNA Publications" className="h-14 w-auto" />
             </div>
             <div className="flex items-center space-x-4">
               <div className="animate-pulse bg-muted h-8 w-20 rounded"></div>
@@ -93,7 +93,7 @@ export function Header() {
     { name: "Home", path: "/" },
     { name: "About", path: "/about" },
     { name: "Books", path: "/books" },
-    { name: "Pricing", path: "/pricing" },
+    { name: "Services", path: "/services" },
     { name: "Team", path: "/team" },
     { name: "Contact", path: "/contact" },
   ]
@@ -105,7 +105,7 @@ export function Header() {
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           <Link to="/" className="header-item flex items-center space-x-3">
-            <img src="/dnap-cropped.png" alt="DNA Publications" className="h-14 w-auto" />
+            <img src="/dnap-full.png" alt="DNA Publications" className="h-14 w-auto" />
           </Link>
 
           {/* Desktop Navigation */}

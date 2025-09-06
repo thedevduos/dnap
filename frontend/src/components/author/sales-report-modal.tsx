@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { BarChart, TrendingUp, DollarSign, Users } from "lucide-react"
+import { BarChart, TrendingUp, IndianRupee, Users } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { getAuthorSalesReport } from "@/lib/author-utils"
 
@@ -69,7 +69,7 @@ export function SalesReportModal({ open, onOpenChange, book }: SalesReportModalP
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {[2024, 2023, 2022].map(year => (
+                {Array.from({ length: 5 }, (_, i) => (new Date().getFullYear() - i)).map(year => (
                   <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
                 ))}
               </SelectContent>
@@ -93,7 +93,7 @@ export function SalesReportModal({ open, onOpenChange, book }: SalesReportModalP
             <Card>
               <CardContent className="p-4">
                 <div className="flex items-center">
-                  <DollarSign className="h-8 w-8 text-green-600" />
+                  <IndianRupee className="h-8 w-8 text-green-600" />
                   <div className="ml-4">
                     <p className="text-sm font-medium text-gray-600">Total Revenue</p>
                     <p className="text-2xl font-bold">₹{totalRevenue}</p>

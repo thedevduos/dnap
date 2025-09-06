@@ -10,7 +10,8 @@ import {
   deleteDoc,
   where,
   setDoc,
-  increment
+  increment,
+  writeBatch
 } from "firebase/firestore"
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
 import { createUserWithEmailAndPassword } from "firebase/auth"
@@ -43,6 +44,17 @@ export const createAuthorAccount = async (authorData: any) => {
       throw new Error('A user profile with this email already exists. Please use a different email.')
     }
 
+    // Additional validation: Check if user already exists in users collection
+    const existingUserQuery = query(
+      collection(db, "users"),
+      where("email", "==", authorData.email)
+    )
+    const existingUserSnapshot = await getDocs(existingUserQuery)
+    
+    if (!existingUserSnapshot.empty) {
+      throw new Error('A user with this email already exists. Please use a different email or try logging in.')
+    }
+
     // Create user in Firebase Authentication
     const authUser = await createUserWithEmailAndPassword(
       auth,
@@ -50,8 +62,12 @@ export const createAuthorAccount = async (authorData: any) => {
       authorData.mobile // Using mobile as password
     )
 
+    // Use transaction to ensure atomicity of database operations
+    const batch = writeBatch(db)
+    
     // Create author profile in Firestore
-    const authorRef = await addDoc(collection(db, "authors"), {
+    const authorRef = doc(collection(db, "authors"))
+    batch.set(authorRef, {
       ...authorData,
       uid: authUser.user.uid,
       role: 'author',
@@ -61,7 +77,8 @@ export const createAuthorAccount = async (authorData: any) => {
     })
 
     // Create user profile for authentication
-    await addDoc(collection(db, "users"), {
+    const userRef = doc(collection(db, "users"))
+    batch.set(userRef, {
       name: authorData.name,
       email: authorData.email,
       mobile: authorData.mobile,
@@ -69,6 +86,9 @@ export const createAuthorAccount = async (authorData: any) => {
       uid: authUser.user.uid,
       createdAt: serverTimestamp(),
     })
+
+    // Commit the batch transaction
+    await batch.commit()
 
     // Send welcome email
     try {
@@ -106,10 +126,12 @@ export const createAuthorAccount = async (authorData: any) => {
 // Upgrade existing customer to author
 export const upgradeCustomerToAuthor = async (authorData: any, existingUserId: string) => {
   try {
-    console.log('Upgrading customer to author:', { existingUserId, email: authorData.email })
+    // Use transaction to ensure atomicity of database operations
+    const batch = writeBatch(db)
     
-    // Update author profile in Firestore
-    const authorRef = await addDoc(collection(db, "authors"), {
+    // Create author profile in Firestore
+    const authorRef = doc(collection(db, "authors"))
+    batch.set(authorRef, {
       ...authorData,
       uid: existingUserId,
       role: 'author',
@@ -124,7 +146,7 @@ export const upgradeCustomerToAuthor = async (authorData: any, existingUserId: s
     
     if (!usersSnapshot.empty) {
       const userDoc = usersSnapshot.docs[0]
-      await updateDoc(doc(db, "users", userDoc.id), {
+      batch.update(doc(db, "users", userDoc.id), {
         role: 'author',
         updatedAt: serverTimestamp()
       })
@@ -133,13 +155,13 @@ export const upgradeCustomerToAuthor = async (authorData: any, existingUserId: s
     // Update user profile in userProfiles collection
     const userProfileDoc = await getDoc(doc(db, "userProfiles", existingUserId))
     if (userProfileDoc.exists()) {
-      await updateDoc(doc(db, "userProfiles", existingUserId), {
+      batch.update(doc(db, "userProfiles", existingUserId), {
         role: 'author',
         updatedAt: serverTimestamp()
       })
     } else {
       // Create user profile if it doesn't exist
-      await setDoc(doc(db, "userProfiles", existingUserId), {
+      batch.set(doc(db, "userProfiles", existingUserId), {
         id: existingUserId,
         email: authorData.email,
         displayName: authorData.name,
@@ -159,6 +181,9 @@ export const upgradeCustomerToAuthor = async (authorData: any, existingUserId: s
         updatedAt: serverTimestamp()
       })
     }
+
+    // Commit the batch transaction
+    await batch.commit()
 
     // Send author welcome email
     try {
@@ -203,7 +228,6 @@ export const updateAuthorBookStage = async (bookId: string, stage: string, addit
 // Get author sales report
 export const getAuthorSalesReport = async (authorId: string, bookId?: string) => {
   try {
-    console.log('Getting sales report for author:', authorId, 'bookId:', bookId)
     
     // First, get all the author's books (both from authorBooks and books collections)
     const authorBooksQuery = query(
@@ -217,22 +241,18 @@ export const getAuthorSalesReport = async (authorId: string, bookId?: string) =>
       ...doc.data()
     })) as any[]
 
-    console.log('Author books found:', authorBooks.length, authorBooks)
 
     // Get the assigned book IDs from completed author books
     const assignedBookIds = authorBooks
       .filter((book: any) => book.assignedBookId)
       .map((book: any) => book.assignedBookId)
 
-    console.log('Assigned book IDs:', assignedBookIds)
 
     // If a specific bookId is provided, filter to only that book
     const targetBookIds = bookId ? [bookId] : assignedBookIds
 
-    console.log('Target book IDs:', targetBookIds)
 
     if (targetBookIds.length === 0) {
-      console.log('No target book IDs found, returning empty array')
       return []
     }
 
@@ -240,25 +260,30 @@ export const getAuthorSalesReport = async (authorId: string, bookId?: string) =>
     const ordersQuery = query(collection(db, "orders"))
     const ordersSnapshot = await getDocs(ordersQuery)
     
-    console.log('Total orders found:', ordersSnapshot.docs.length)
+    // Get books data to access royalty percentage
+    const booksQuery = query(collection(db, "books"))
+    const booksSnapshot = await getDocs(booksQuery)
+    const booksData = booksSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }))
     
     const salesData: any = {}
     
     for (const orderDoc of ordersSnapshot.docs) {
       const order = orderDoc.data()
       
-      // Include orders with status 'confirmed' and 'delivered'
-      if (order.items && (order.status === 'delivered' || order.status === 'confirmed')) {
-        console.log('Processing order:', orderDoc.id, 'status:', order.status, 'items:', order.items.length)
+      // Include orders with status 'confirmed', 'delivered', and 'pending' (for recent orders)
+      if (order.items && (order.status === 'delivered' || order.status === 'confirmed' || order.status === 'pending')) {
         
         for (const item of order.items) {
           // Check if this item belongs to the author's books
           if (!targetBookIds.includes(item.bookId)) {
-            console.log('Skipping item - bookId not in target:', item.bookId)
             continue
           }
           
-          console.log('Found matching book in order:', item.bookId, item.title)
+          const book = booksData.find(b => b.id === item.bookId)
+          const royaltyPercentage = (book as any)?.royaltyPercentage || 0
           
           const orderDate = order.createdAt?.toDate()
           if (orderDate) {
@@ -272,10 +297,12 @@ export const getAuthorSalesReport = async (authorId: string, bookId?: string) =>
                 bookTitle: item.title,
                 month,
                 year,
+                royaltyPercentage,
                 totalSales: 0,
                 totalRevenue: 0,
                 affiliateSales: 0,
-                affiliateRevenue: 0
+                affiliateRevenue: 0,
+                royaltyAmount: 0
               }
             }
             
@@ -287,13 +314,15 @@ export const getAuthorSalesReport = async (authorId: string, bookId?: string) =>
               salesData[key].affiliateSales += item.quantity
               salesData[key].affiliateRevenue += item.price * item.quantity
             }
+            
+            // Calculate royalty amount
+            salesData[key].royaltyAmount = (salesData[key].totalRevenue * royaltyPercentage) / 100
           }
         }
       }
     }
     
     const result = Object.values(salesData)
-    console.log('Final sales data:', result)
     return result
   } catch (error) {
     console.error('Error getting author sales report:', error)
@@ -562,23 +591,19 @@ export const deleteAuthorBook = async (bookId: string) => {
     const assignedBookId = bookData.assignedBookId // This is set when book is published
     const authorId = bookData.authorId
     
-    console.log('Deleting author book:', { bookId, assignedBookId, stage: bookData.stage, authorId })
     
     // Delete the book document from authorBooks collection
     await deleteDoc(doc(db, "authorBooks", bookId))
-    console.log('✓ Author book deleted from authorBooks collection')
     
     // If the book has been published (has assignedBookId), also delete from main books collection
     if (assignedBookId && bookData.stage === 'completed') {
-      console.log('✓ Book was published, deleting from main books collection')
       
       // Import the comprehensive delete function
       const { deleteBookAndAuthorData } = await import('./firebase-utils')
       
       try {
         // Use the comprehensive delete function to handle all related data
-        const result = await deleteBookAndAuthorData(assignedBookId)
-        console.log('✓ Main book and related data deleted:', result)
+        await deleteBookAndAuthorData(assignedBookId)
       } catch (mainBookError) {
         console.error('Failed to delete main book, but author book was deleted:', mainBookError)
         // Don't throw error as the author book deletion was successful
@@ -604,7 +629,6 @@ export const deleteAuthorBook = async (bookId: string) => {
     
     authorHasOtherBooks = !otherAuthorBooksSnapshot.empty || !otherMainBooksSnapshot.empty
     
-    console.log(`✓ Author has other books: ${authorHasOtherBooks}`)
     
     // Send appropriate notification to author
     if (bookData.authorEmail && bookData.title) {
@@ -617,7 +641,6 @@ export const deleteAuthorBook = async (bookId: string) => {
             bookData.title,
             { reason: 'Book removed from catalog' }
           )
-          console.log('✓ Sent book deletion notification to author (author has other books)')
         } else {
           // This was the author's only book, notify about rejection
           await sendAuthorNotification(
@@ -625,7 +648,6 @@ export const deleteAuthorBook = async (bookId: string) => {
             'rejected',
             bookData.title
           )
-          console.log('✓ Sent rejection notification to author (author has no other books)')
         }
       } catch (emailError) {
         console.error('Failed to send book deletion notification:', emailError)

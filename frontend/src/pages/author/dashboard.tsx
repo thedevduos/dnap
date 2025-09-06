@@ -14,7 +14,7 @@ import { AffiliateLinksModal } from "@/components/author/affiliate-links-modal"
 import { collection, query, where, getDocs } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { Label } from "@/components/ui/label"
-import { uploadAuthorFile, updateAuthorBookStage, sendAuthorNotification } from "@/lib/author-utils"
+import { uploadAuthorFile, updateAuthorBookStage, sendAuthorNotification, getAuthorSalesReport } from "@/lib/author-utils"
 import { useToast } from "@/hooks/use-toast"
 
 export default function AuthorDashboard() {
@@ -28,14 +28,9 @@ export default function AuthorDashboard() {
   const [paymentRequired, setPaymentRequired] = useState<any>(null)
   const [paymentScreenshotFile, setPaymentScreenshotFile] = useState<File | null>(null)
   const [submittingPayment, setSubmittingPayment] = useState(false)
+  const [affiliateLinksCount, setAffiliateLinksCount] = useState(0)
+  const [totalRevenue, setTotalRevenue] = useState(0)
   const { toast } = useToast()
-
-  useEffect(() => {
-    if (user) {
-      checkAuthorStatus()
-      checkPaymentStatus()
-    }
-  }, [user, books])
 
   const checkAuthorStatus = async () => {
     if (!user) return
@@ -57,6 +52,42 @@ export default function AuthorDashboard() {
     const paymentRequiredBook = books.find(book => book.stage === 'payment')
     setPaymentRequired(paymentRequiredBook || null)
   }
+
+  const loadAffiliateLinksCount = async () => {
+    if (!user) return
+    
+    try {
+      const affiliateLinksQuery = query(
+        collection(db, "affiliateLinks"),
+        where("authorId", "==", user.uid)
+      )
+      const affiliateLinksSnapshot = await getDocs(affiliateLinksQuery)
+      setAffiliateLinksCount(affiliateLinksSnapshot.docs.length)
+    } catch (error) {
+      console.error("Error loading affiliate links count:", error)
+    }
+  }
+
+  const loadTotalRevenue = async () => {
+    if (!user) return
+    
+    try {
+      const salesData = await getAuthorSalesReport(user.uid)
+      const total = salesData.reduce((sum, item) => sum + (item.royaltyAmount || 0), 0)
+      setTotalRevenue(total)
+    } catch (error) {
+      console.error("Error loading total revenue:", error)
+    }
+  }
+
+  useEffect(() => {
+    if (user) {
+      checkAuthorStatus()
+      checkPaymentStatus()
+      loadAffiliateLinksCount()
+      loadTotalRevenue()
+    }
+  }, [user, books])
 
   const handlePaymentFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null
@@ -333,7 +364,7 @@ export default function AuthorDashboard() {
                 <LinkIcon className="h-8 w-8 text-purple-600" />
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Affiliate Links</p>
-                  <p className="text-2xl font-bold text-purple-600">0</p>
+                  <p className="text-2xl font-bold text-purple-600">{affiliateLinksCount}</p>
                 </div>
               </div>
             </CardContent>
@@ -345,7 +376,7 @@ export default function AuthorDashboard() {
                 <BarChart className="h-8 w-8 text-orange-600" />
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-                  <p className="text-2xl font-bold text-orange-600">₹0</p>
+                  <p className="text-2xl font-bold text-orange-600">₹{totalRevenue.toLocaleString()}</p>
                 </div>
               </div>
             </CardContent>
@@ -388,11 +419,28 @@ export default function AuthorDashboard() {
                 {books.map((book) => (
                   <Card key={book.id} className="group hover:shadow-lg transition-all duration-300">
                     <div className="aspect-[3/4] relative overflow-hidden rounded-t-lg">
-                      <img
-                        src={book.imageUrl}
-                        alt={book.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
+                      {book.imageUrl ? (
+                        <img
+                          src={book.imageUrl}
+                          alt={book.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            const fallback = target.nextElementSibling as HTMLElement;
+                            if (fallback) fallback.style.display = 'flex';
+                          }}
+                        />
+                      ) : null}
+                      <div
+                        className={`w-full h-full flex items-center justify-center bg-muted ${book.imageUrl ? 'hidden' : 'flex'}`}
+                        style={{ display: book.imageUrl ? 'none' : 'flex' }}
+                      >
+                        <div className="text-center p-4">
+                          <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+                          <p className="text-sm text-muted-foreground">No image uploaded</p>
+                        </div>
+                      </div>
                       <div className="absolute top-2 right-2">
                         <Badge className={getStageColor(book.stage)}>
                           {getStageLabel(book.stage)}

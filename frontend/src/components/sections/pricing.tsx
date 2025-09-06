@@ -1,9 +1,8 @@
 "use client"
 
 import React, { useEffect, useRef } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Check, BookOpen, PenTool, GraduationCap, FileText } from "lucide-react"
+import { Card, CardContent } from "@/components/ui/card"
+import { BookOpen, Languages, Palette, Globe, Printer, Shield, Smartphone, School, User } from "lucide-react"
 import anime from "animejs"
 
 export function Pricing() {
@@ -15,12 +14,12 @@ export function Pricing() {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             anime({
-              targets: ".pricing-card",
+              targets: ".service-card",
               opacity: [0, 1],
-              translateY: [50, 0],
+              translateY: [30, 0],
               scale: [0.95, 1],
-              delay: anime.stagger(150),
-              duration: 700,
+              delay: anime.stagger(100),
+              duration: 600,
               easing: "easeOutQuart",
             })
           }
@@ -37,154 +36,105 @@ export function Pricing() {
   }, [])
 
 
-  type Plan = {
+  type Service = {
+    id: string
     title: string
-    price: string
     description: string
     icon: typeof BookOpen
-    features: string[]
-    period?: string
-    popular?: boolean
   }
 
-  const bookPublishingPlans: Plan[] = [
+  const services: Service[] = [
     {
-      title: "Poem/Quote Book",
-      price: "Starts from ₹1,499",
-      period: " + GST",
-      description: "Perfect for poetry collections and inspirational quotes",
-      icon: PenTool,
-      features: [
-        "Professional formatting",
-        "ISBN registration", 
-        "Print-ready files",
-        "Basic cover design",
-        "Distribution setup"
-      ],
+      id: "book-publishing",
+      title: "Book Publishing",
+      description: "Complete end-to-end book publishing services from manuscript to market",
+      icon: BookOpen
     },
     {
-      title: "Essays / Short Stories Book",
-      price: "Starts from ₹1,499",
-      period: " + GST",
-      description: "Ideal for essay collections and short story compilations",
-      icon: FileText,
-      features: [
-        "Professional formatting",
-        "ISBN registration", 
-        "Print-ready files",
-        "Basic cover design",
-        "Distribution setup"
-      ],
+      id: "author-mentorship",
+      title: "Author Mentorship & Guidance",
+      description: "Professional guidance and mentorship for aspiring and established authors",
+      icon: User
     },
     {
-      title: "Novel / Story Book",
-      price: "Starts from ₹1,999",
-      period: " + GST",
-      description: "Complete novel and story book publishing package",
-      icon: BookOpen,
-      popular: true,
-      features: [
-        "Professional formatting",
-        "ISBN registration",
-        "Print-ready files", 
-        "Enhanced cover design",
-        "Distribution setup",
-        "Marketing support"
-      ],
+      id: "translation-transcription",
+      title: "Translation & Transcription",
+      description: "Professional translation services and audio transcription for your content",
+      icon: Languages
     },
     {
-      title: "Academic / Research Book",
-      price: "Starts from ₹2,999",
-      period: " + GST",
-      description: "Specialized publishing for academic and research works",
-      icon: GraduationCap,
-      features: [
-        "Academic formatting",
-        "ISBN registration",
-        "Print-ready files",
-        "Professional cover design",
-        "Distribution setup",
-        "Citation formatting",
-        "Index creation"
-      ],
+      id: "design-works",
+      title: "Book overall internal & external Design works",
+      description: "Comprehensive design services for book covers, layouts, and visual elements",
+      icon: Palette
+    },
+    {
+      id: "print-formatting",
+      title: "Print-Ready Formatting & Printing",
+      description: "Professional formatting and high-quality printing services for your book",
+      icon: Printer
+    },
+    {
+      id: "copyright-registration",
+      title: "Copyrights Registration",
+      description: "Complete copyright registration and intellectual property protection",
+      icon: Shield
+    },
+    {
+      id: "ebook-conversion",
+      title: "eBook Conversion (PDF, ePub, Mobile)",
+      description: "Digital conversion services for various eBook formats and platforms",
+      icon: Smartphone
+    },
+    {
+      id: "global-distribution",
+      title: "Global & E-commerce Distribution (Amazon, Flipkart, etc.)",
+      description: "Worldwide distribution across major online and offline platforms",
+      icon: Globe
+    },
+    {
+      id: "outreach-programs",
+      title: "Outreach Programs (Schools, Colleges, Cultural Bodies)",
+      description: "Educational and cultural outreach programs to promote your book",
+      icon: School
     },
   ]
-
-  const getCurrentPlans = () => {
-    return bookPublishingPlans
-  }
-
-  const currentPlans = getCurrentPlans()
 
   return (
     <section id="pricing" ref={sectionRef} className="py-20 bg-background">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
-            Book Publishing Rates
+            Our Services
           </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Professional book publishing services tailored to your needs
+          <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
+            From manuscript to market, we provide end-to-end publishing solutions and comprehensive author support services
           </p>
         </div>
 
-
-        {
-          <div className="grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
-            {currentPlans.map((plan, index) => {
-              const planId = `plan-${index}`
-              const planPrice = plan.price
-              const planPeriod = plan.period
-              const planIcon = (plan as any).icon
-              
-              return (
-                <Card
-                  key={planId}
-                  className={`pricing-card relative group hover:shadow-xl transition-all duration-300 ${
-                    plan.popular ? "ring-2 ring-primary scale-105" : ""
-                  }`}
-                >
-                  {plan.popular && (
-                    <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-primary">Most Popular</Badge>
-                  )}
-
-                  <CardHeader className="text-center pb-4">
-                    <div className="mb-4 flex justify-center">
-                      <div className="p-3 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors duration-300">
-                        {React.createElement(planIcon, { className: "h-8 w-8 text-primary" })}
-                      </div>
-                    </div>
-                    <CardTitle className="text-xl font-bold">{plan.title}</CardTitle>
-                    <div className="text-3xl font-bold text-primary">
-                      {planPrice}
-                      {planPeriod && <span className="text-sm text-muted-foreground">{planPeriod}</span>}
-                    </div>
-                    <p className="text-muted-foreground">{plan.description}</p>
-                  </CardHeader>
-
-                  <CardContent>
-                    <ul className="space-y-3">
-                      {plan.features.map((feature, featureIndex) => (
-                        <li key={featureIndex} className="flex items-center">
-                          <Check className="h-4 w-4 text-primary mr-3 flex-shrink-0" />
-                          <span className="text-sm">{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                </Card>
-              )
-            })}
-          </div>
-        }
-
-        <div className="mt-12 text-center">
-          <p className="text-muted-foreground mb-4">
-            * All prices are starting rates and may vary based on specific requirements.
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Contact us for custom packages and detailed quotations. GST applicable on all services.
-          </p>
+        <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+          {services.map((service) => (
+            <Card
+              key={service.id}
+              className="service-card group hover:shadow-lg transition-all duration-300 border-l-4 border-l-primary"
+            >
+              <CardContent className="p-6">
+                <div className="flex items-start space-x-4">
+                  <div className="p-3 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors duration-300 flex-shrink-0">
+                    <service.icon className="h-6 w-6 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold mb-2 text-gray-900 group-hover:text-primary transition-colors duration-300">
+                      {service.title}
+                    </h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {service.description}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       </div>
     </section>

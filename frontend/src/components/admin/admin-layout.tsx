@@ -28,6 +28,7 @@ import {
   ChevronDown,
   ChevronRight,
   Image,
+  IndianRupee,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/auth-context"
@@ -82,6 +83,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     { name: "Author Books", href: "/admin/author-books", icon: BookOpen, section: "authors" },
     { name: "Affiliate Links", href: "/admin/affiliate-links", icon: LinkIcon, section: "authors" },
     { name: "Sales Reports", href: "/admin/sales-reports", icon: BarChart, section: "authors" },
+    { name: "Royalty", href: "/admin/royalty", icon: IndianRupee, section: "authors" },
     
     // E-commerce Management
     { name: "Books", href: "/admin/books", icon: BookOpen, section: "ecommerce" },
@@ -89,7 +91,6 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     { name: "Customers", href: "/admin/customers", icon: CustomersIcon, section: "ecommerce" },
     { name: "Users", href: "/admin/users", icon: Users, section: "ecommerce" },
     { name: "Shipping", href: "/admin/shipping", icon: Truck, section: "ecommerce" },
-    { name: "Shipping Rates", href: "/admin/shipping-rates", icon: Truck, section: "ecommerce" },
     { name: "Coupons", href: "/admin/coupons", icon: Ticket, section: "ecommerce" },
     { name: "Payments", href: "/admin/payments", icon: CreditCard, section: "ecommerce" },
     { name: "Analytics", href: "/admin/analytics", icon: BarChart3, section: "ecommerce" },

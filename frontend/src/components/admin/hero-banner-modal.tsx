@@ -22,7 +22,7 @@ interface HeroBannerModalProps {
 
 const AVAILABLE_PAGES = [
   { value: '/about', label: 'About Page' },
-  { value: '/pricing', label: 'Pricing Page' },
+  { value: '/services', label: 'Services Page' },
   { value: '/contact', label: 'Contact Page' },
   { value: '/books', label: 'Books Page' },
   { value: '/team', label: 'Team Page' },

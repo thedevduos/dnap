@@ -131,6 +131,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error('A user profile with this email already exists. Please use a different email or try logging in.')
       }
 
+      // Additional validation: Check if user already exists in users collection
+      const existingUserQuery = query(
+        collection(db, "users"),
+        where("email", "==", userData.email)
+      )
+      const existingUserSnapshot = await getDocs(existingUserQuery)
+      
+      if (!existingUserSnapshot.empty) {
+        throw new Error('A user with this email already exists. Please use a different email or try logging in.')
+      }
+
       // Create user account
       const userCredential = await createUserWithEmailAndPassword(auth, userData.email, userData.password)
       const user = userCredential.user

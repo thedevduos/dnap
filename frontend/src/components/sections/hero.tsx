@@ -210,7 +210,7 @@ export function Hero() {
               </Link>
             </Button>
             <Button asChild variant="outline" size="lg" className="text-lg px-8 py-6 bg-transparent border-orange-600 text-orange-600 hover:bg-orange-50">
-              <Link to="/pricing">
+              <Link to="/services">
                 Publish With Us
               </Link>
             </Button>
