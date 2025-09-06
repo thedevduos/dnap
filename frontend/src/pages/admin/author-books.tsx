@@ -49,6 +49,13 @@ export default function AdminAuthorBooks() {
     pdfUrl: "",
     pdfSize: 0,
     weight: "",
+    edition: "",
+    year: "",
+    isbn: "",
+    pages: "",
+    format: "",
+    language: "",
+    publisher: "",
   })
   const [_pdfFile, setPdfFile] = useState<File | null>(null)
   const [isPdfUploading, setIsPdfUploading] = useState(false)
@@ -957,6 +964,114 @@ export default function AdminAuthorBooks() {
                             value={bookCreationData.rating}
                             onChange={(e) => setBookCreationData({...bookCreationData, rating: e.target.value})}
                             placeholder="4.5"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Additional Book Details */}
+                      <div className="border-t pt-6">
+                        <h3 className="text-lg font-semibold mb-4">Additional Book Details</h3>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="bookEdition">Edition</Label>
+                            <Input
+                              id="bookEdition"
+                              value={bookCreationData.edition}
+                              onChange={(e) => setBookCreationData({...bookCreationData, edition: e.target.value})}
+                              placeholder="e.g., 1st Edition, 2nd Edition"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="bookYear">Publication Year</Label>
+                            <Input
+                              id="bookYear"
+                              type="number"
+                              value={bookCreationData.year}
+                              onChange={(e) => setBookCreationData({...bookCreationData, year: e.target.value})}
+                              placeholder="e.g., 2024"
+                              min="1900"
+                              max="2030"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 mt-4">
+                          <div>
+                            <Label htmlFor="bookIsbn">ISBN</Label>
+                            <Input
+                              id="bookIsbn"
+                              value={bookCreationData.isbn}
+                              onChange={(e) => setBookCreationData({...bookCreationData, isbn: e.target.value})}
+                              placeholder="e.g., 978-0-123456-78-9"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="bookPages">Number of Pages</Label>
+                            <Input
+                              id="bookPages"
+                              type="number"
+                              value={bookCreationData.pages}
+                              onChange={(e) => setBookCreationData({...bookCreationData, pages: e.target.value})}
+                              placeholder="e.g., 250"
+                              min="1"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 mt-4">
+                          <div>
+                            <Label htmlFor="bookFormat">Format</Label>
+                            <Select
+                              value={bookCreationData.format}
+                              onValueChange={(value) => setBookCreationData({...bookCreationData, format: value})}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select format" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Paperback">Paperback</SelectItem>
+                                <SelectItem value="Hardcover">Hardcover</SelectItem>
+                                <SelectItem value="E-book">E-book</SelectItem>
+                                <SelectItem value="Audiobook">Audiobook</SelectItem>
+                                <SelectItem value="PDF">PDF</SelectItem>
+                                <SelectItem value="Other">Other</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label htmlFor="bookLanguage">Language</Label>
+                            <Select
+                              value={bookCreationData.language}
+                              onValueChange={(value) => setBookCreationData({...bookCreationData, language: value})}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select language" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="English">English</SelectItem>
+                                <SelectItem value="Hindi">Hindi</SelectItem>
+                                <SelectItem value="Tamil">Tamil</SelectItem>
+                                <SelectItem value="Telugu">Telugu</SelectItem>
+                                <SelectItem value="Kannada">Kannada</SelectItem>
+                                <SelectItem value="Malayalam">Malayalam</SelectItem>
+                                <SelectItem value="Bengali">Bengali</SelectItem>
+                                <SelectItem value="Marathi">Marathi</SelectItem>
+                                <SelectItem value="Gujarati">Gujarati</SelectItem>
+                                <SelectItem value="Punjabi">Punjabi</SelectItem>
+                                <SelectItem value="Other">Other</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+
+                        <div className="mt-4">
+                          <Label htmlFor="bookPublisher">Publisher</Label>
+                          <Input
+                            id="bookPublisher"
+                            value={bookCreationData.publisher}
+                            onChange={(e) => setBookCreationData({...bookCreationData, publisher: e.target.value})}
+                            placeholder="Publisher name"
                           />
                         </div>
                       </div>

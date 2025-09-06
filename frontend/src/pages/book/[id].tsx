@@ -39,6 +39,13 @@ interface Book {
   rating?: number
   status?: string
   createdAt?: any
+  edition?: string
+  year?: string
+  isbn?: string
+  pages?: string
+  format?: string
+  language?: string
+  publisher?: string
 }
 
 export default function BookDetailPage() {
@@ -352,6 +359,71 @@ export default function BookDetailPage() {
               <div className="text-3xl font-bold text-primary mb-6">
                 ₹{book.price}
               </div>
+
+              {/* Quick Book Details */}
+              <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                <h3 className="font-semibold mb-3">Book Details</h3>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Author:</span>
+                    <span className="font-medium">{book.author}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Category:</span>
+                    <span className="font-medium">{book.category}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Price:</span>
+                    <span className="font-medium">₹{book.price}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Status:</span>
+                    <span className="font-medium capitalize">{book.status}</span>
+                  </div>
+                  {book.edition && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Edition:</span>
+                      <span className="font-medium">{book.edition}</span>
+                    </div>
+                  )}
+                  {book.year && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Year:</span>
+                      <span className="font-medium">{book.year}</span>
+                    </div>
+                  )}
+                  {book.isbn && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">ISBN:</span>
+                      <span className="font-medium">{book.isbn}</span>
+                    </div>
+                  )}
+                  {book.pages && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Pages:</span>
+                      <span className="font-medium">{book.pages}</span>
+                    </div>
+                  )}
+                  {book.format && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Format:</span>
+                      <span className="font-medium">{book.format}</span>
+                    </div>
+                  )}
+                  {book.language && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Language:</span>
+                      <span className="font-medium">{book.language}</span>
+                    </div>
+                  )}
+                  {book.publisher && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Publisher:</span>
+                      <span className="font-medium">{book.publisher}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Actions */}
@@ -376,6 +448,18 @@ export default function BookDetailPage() {
                 <Button variant="outline" size="lg" onClick={handleShare}>
                   <Share2 className="h-5 w-5" />
                 </Button>
+              </div>
+
+              {/* Delivery Information */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center">
+                  <Truck className="h-5 w-5 text-blue-600 mr-3" />
+                  <div>
+                    <p className="text-sm font-medium text-blue-900">Delivery Information</p>
+                    <p className="text-xs text-blue-700">Book will be shipped in 3-7 days</p>
+                    <p className="text-xs text-blue-600 mt-1">+ ₹50 shipping fee* (Free shipping for orders above ₹1000 within India)</p>
+                  </div>
+                </div>
               </div>
 
               {/* Features */}
@@ -521,27 +605,67 @@ export default function BookDetailPage() {
           <TabsContent value="details" className="mt-6">
             <Card>
               <CardContent className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <h4 className="font-semibold mb-2">Book Details</h4>
-                    <dl className="space-y-2">
+                <div>
+                  <h4 className="text-lg font-semibold mb-4">Book Details</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex justify-between">
+                      <dt className="text-muted-foreground">Author:</dt>
+                      <dd className="font-medium">{book.author}</dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-muted-foreground">Category:</dt>
+                      <dd className="font-medium">{book.category}</dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-muted-foreground">Price:</dt>
+                      <dd className="font-medium">₹{book.price}</dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-muted-foreground">Status:</dt>
+                      <dd className="capitalize font-medium">{book.status}</dd>
+                    </div>
+                    {book.edition && (
                       <div className="flex justify-between">
-                        <dt className="text-muted-foreground">Author:</dt>
-                        <dd>{book.author}</dd>
+                        <dt className="text-muted-foreground">Edition:</dt>
+                        <dd className="font-medium">{book.edition}</dd>
                       </div>
+                    )}
+                    {book.year && (
                       <div className="flex justify-between">
-                        <dt className="text-muted-foreground">Category:</dt>
-                        <dd>{book.category}</dd>
+                        <dt className="text-muted-foreground">Year:</dt>
+                        <dd className="font-medium">{book.year}</dd>
                       </div>
+                    )}
+                    {book.isbn && (
                       <div className="flex justify-between">
-                        <dt className="text-muted-foreground">Price:</dt>
-                        <dd>₹{book.price}</dd>
+                        <dt className="text-muted-foreground">ISBN:</dt>
+                        <dd className="font-medium">{book.isbn}</dd>
                       </div>
+                    )}
+                    {book.pages && (
                       <div className="flex justify-between">
-                        <dt className="text-muted-foreground">Status:</dt>
-                        <dd className="capitalize">{book.status}</dd>
+                        <dt className="text-muted-foreground">Pages:</dt>
+                        <dd className="font-medium">{book.pages}</dd>
                       </div>
-                    </dl>
+                    )}
+                    {book.format && (
+                      <div className="flex justify-between">
+                        <dt className="text-muted-foreground">Format:</dt>
+                        <dd className="font-medium">{book.format}</dd>
+                      </div>
+                    )}
+                    {book.language && (
+                      <div className="flex justify-between">
+                        <dt className="text-muted-foreground">Language:</dt>
+                        <dd className="font-medium">{book.language}</dd>
+                      </div>
+                    )}
+                    {book.publisher && (
+                      <div className="flex justify-between">
+                        <dt className="text-muted-foreground">Publisher:</dt>
+                        <dd className="font-medium">{book.publisher}</dd>
+                      </div>
+                    )}
                   </div>
                 </div>
               </CardContent>

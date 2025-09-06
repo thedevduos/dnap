@@ -30,6 +30,13 @@ export function EnhancedBookModal({ isOpen, onClose, book }: EnhancedBookModalPr
     status: "published",
     rating: "4.5",
     weight: "",
+    edition: "",
+    year: "",
+    isbn: "",
+    pages: "",
+    format: "",
+    language: "",
+    publisher: "",
   })
   const [_imageFile, setImageFile] = useState<File | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -50,6 +57,13 @@ export function EnhancedBookModal({ isOpen, onClose, book }: EnhancedBookModalPr
         status: book.status || "published",
         rating: book.rating?.toString() || "4.5",
         weight: book.weight?.toString() || "",
+        edition: book.edition || "",
+        year: book.year || "",
+        isbn: book.isbn || "",
+        pages: book.pages || "",
+        format: book.format || "",
+        language: book.language || "",
+        publisher: book.publisher || "",
       })
     } else {
       setFormData({
@@ -63,6 +77,13 @@ export function EnhancedBookModal({ isOpen, onClose, book }: EnhancedBookModalPr
         status: "published",
         rating: "4.5",
         weight: "",
+        edition: "",
+        year: "",
+        isbn: "",
+        pages: "",
+        format: "",
+        language: "",
+        publisher: "",
       })
     }
     setImageFile(null)
@@ -291,6 +312,114 @@ export function EnhancedBookModal({ isOpen, onClose, book }: EnhancedBookModalPr
                         <SelectItem value="5.0">5.0</SelectItem>
                       </SelectContent>
                     </Select>
+                  </div>
+                </div>
+
+                {/* New Book Details Section */}
+                <div className="border-t pt-6">
+                  <h3 className="text-lg font-semibold mb-4">Additional Book Details</h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="edition">Edition</Label>
+                      <Input
+                        id="edition"
+                        value={formData.edition}
+                        onChange={(e) => setFormData({ ...formData, edition: e.target.value })}
+                        placeholder="e.g., 1st Edition, 2nd Edition"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="year">Publication Year</Label>
+                      <Input
+                        id="year"
+                        type="number"
+                        value={formData.year}
+                        onChange={(e) => setFormData({ ...formData, year: e.target.value })}
+                        placeholder="e.g., 2024"
+                        min="1900"
+                        max="2030"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    <div>
+                      <Label htmlFor="isbn">ISBN</Label>
+                      <Input
+                        id="isbn"
+                        value={formData.isbn}
+                        onChange={(e) => setFormData({ ...formData, isbn: e.target.value })}
+                        placeholder="e.g., 978-0-123456-78-9"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="pages">Number of Pages</Label>
+                      <Input
+                        id="pages"
+                        type="number"
+                        value={formData.pages}
+                        onChange={(e) => setFormData({ ...formData, pages: e.target.value })}
+                        placeholder="e.g., 250"
+                        min="1"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    <div>
+                      <Label htmlFor="format">Format</Label>
+                      <Select
+                        value={formData.format}
+                        onValueChange={(value) => setFormData({ ...formData, format: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select format" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Paperback">Paperback</SelectItem>
+                          <SelectItem value="Hardcover">Hardcover</SelectItem>
+                          <SelectItem value="E-book">E-book</SelectItem>
+                          <SelectItem value="Audiobook">Audiobook</SelectItem>
+                          <SelectItem value="PDF">PDF</SelectItem>
+                          <SelectItem value="Other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="language">Language</Label>
+                      <Select
+                        value={formData.language}
+                        onValueChange={(value) => setFormData({ ...formData, language: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select language" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="English">English</SelectItem>
+                          <SelectItem value="Hindi">Hindi</SelectItem>
+                          <SelectItem value="Tamil">Tamil</SelectItem>
+                          <SelectItem value="Telugu">Telugu</SelectItem>
+                          <SelectItem value="Kannada">Kannada</SelectItem>
+                          <SelectItem value="Malayalam">Malayalam</SelectItem>
+                          <SelectItem value="Bengali">Bengali</SelectItem>
+                          <SelectItem value="Marathi">Marathi</SelectItem>
+                          <SelectItem value="Gujarati">Gujarati</SelectItem>
+                          <SelectItem value="Punjabi">Punjabi</SelectItem>
+                          <SelectItem value="Other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="mt-4">
+                    <Label htmlFor="publisher">Publisher</Label>
+                    <Input
+                      id="publisher"
+                      value={formData.publisher}
+                      onChange={(e) => setFormData({ ...formData, publisher: e.target.value })}
+                      placeholder="Publisher name"
+                    />
                   </div>
                 </div>
 
