@@ -3,7 +3,7 @@
 import React, { useEffect, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Check, BookOpen, PenTool, GraduationCap, Heart, FileText } from "lucide-react"
+import { Check, BookOpen, PenTool, GraduationCap, FileText } from "lucide-react"
 import anime from "animejs"
 
 export function Pricing() {
