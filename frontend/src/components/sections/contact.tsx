@@ -17,15 +17,15 @@ const contactInfo = [
   {
     icon: Mail,
     title: "Email Us",
-    details: "info@dnapublications.com",
-    action: "mailto:info@dnapublications.com",
+    details: "info@dnap.in",
+    action: "mailto:info@dnap.in",
     description: "Send us an email anytime"
   },
   {
     icon: Phone,
     title: "Call Us",
-    details: "+91 98765 43210",
-    action: "tel:+919876543210",
+    details: "7598691689",
+    action: "tel:7598691689",
     description: "Mon-Sat from 9am to 6pm"
   },
   {
@@ -268,7 +268,7 @@ export function Contact() {
                       required
                       value={formData.mobile}
                       onChange={handleChange}
-                      placeholder="+91 98765 43210"
+                      placeholder="7598691689"
                       className="h-12 border-gray-200 focus:border-orange-500 focus:ring-orange-500 transition-all duration-200"
                     />
                   </div>
