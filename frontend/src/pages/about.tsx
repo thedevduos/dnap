@@ -1,8 +1,8 @@
 "use client"
 
 import { useEffect, useRef } from "react"
-import { Card, CardContent } from "@/components/ui/card"
-import { BookOpen, Users, Award, Heart, Zap, Globe } from "lucide-react"
+// import { Card, CardContent } from "@/components/ui/card"
+// import { BookOpen, Users, Award, Heart, Zap, Globe } from "lucide-react"
 import anime from "animejs"
 
 export default function AboutPage() {
@@ -35,41 +35,41 @@ export default function AboutPage() {
     return () => observer.disconnect()
   }, [])
 
-  const features = [
-    {
-      icon: BookOpen,
-      title: "Quality Publishing",
-      description: "We maintain the highest standards in publishing, ensuring every book meets our quality criteria.",
-    },
-    {
-      icon: Users,
-      title: "Author Support",
-      description: "Comprehensive support for authors throughout their publishing journey, from manuscript to market.",
-    },
-    {
-      icon: Award,
-      title: "Award-Winning",
-      description: "Our publications have won numerous literary awards and recognition in the industry.",
-    },
-    {
-      icon: Heart,
-      title: "Passionate Team",
-      description: "A dedicated team of literary enthusiasts committed to bringing great stories to readers.",
-    },
-    {
-      icon: Zap,
-      title: "Fast Publishing",
-      description: "Streamlined publishing process that gets your work to readers quickly without compromising quality.",
-    },
-    {
-      icon: Globe,
-      title: "Global Reach",
-      description: "Distribution network that spans across multiple countries and digital platforms.",
-    },
-  ]
+  // const features = [
+  //   {
+  //     icon: BookOpen,
+  //     title: "Quality Publishing",
+  //     description: "We maintain the highest standards in publishing, ensuring every book meets our quality criteria.",
+  //   },
+  //   {
+  //     icon: Users,
+  //     title: "Author Support",
+  //     description: "Comprehensive support for authors throughout their publishing journey, from manuscript to market.",
+  //   },
+  //   {
+  //     icon: Award,
+  //     title: "Award-Winning",
+  //     description: "Our publications have won numerous literary awards and recognition in the industry.",
+  //   },
+  //   {
+  //     icon: Heart,
+  //     title: "Passionate Team",
+  //     description: "A dedicated team of literary enthusiasts committed to bringing great stories to readers.",
+  //   },
+  //   {
+  //     icon: Zap,
+  //     title: "Fast Publishing",
+  //     description: "Streamlined publishing process that gets your work to readers quickly without compromising quality.",
+  //   },
+  //   {
+  //     icon: Globe,
+  //     title: "Global Reach",
+  //     description: "Distribution network that spans across multiple countries and digital platforms.",
+  //   },
+  // ]
 
   return (
-    <section ref={sectionRef} className="py-20 bg-background min-h-screen">
+    <section ref={sectionRef} className="py-20 bg-background">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
           <h1 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-orange-500 to-amber-500 bg-clip-text text-transparent">
@@ -82,7 +82,8 @@ export default function AboutPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
+        {/* Temporarily commented out features section */}
+        {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
           {features.map((feature, index) => (
             <Card
               key={index}
@@ -99,7 +100,7 @@ export default function AboutPage() {
               </CardContent>
             </Card>
           ))}
-        </div>
+        </div> */}
 
         <div className="text-center">
           <div className="max-w-4xl mx-auto">
