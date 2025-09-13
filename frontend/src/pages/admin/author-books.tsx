@@ -46,6 +46,9 @@ export default function AdminAuthorBooks() {
     rating: "4.5",
     imageUrl: "",
     weight: "",
+    length: "",
+    width: "",
+    height: "",
     edition: "",
     year: "",
     isbn: "",
@@ -179,6 +182,9 @@ export default function AdminAuthorBooks() {
       rating: "4.5",
       imageUrl: book.imageUrl || "",
       weight: "",
+      length: "",
+      width: "",
+      height: "",
       // Pre-populate additional fields from the selected book if available
       edition: book.edition || "",
       year: book.year || "",
@@ -255,6 +261,9 @@ export default function AdminAuthorBooks() {
         status: bookCreationData.status,
         rating: parseFloat(bookCreationData.rating),
         weight: parseFloat(bookCreationData.weight) || 0,
+        length: parseFloat(bookCreationData.length) || 0,
+        width: parseFloat(bookCreationData.width) || 0,
+        height: parseFloat(bookCreationData.height) || 0,
         // Include all additional book details
         edition: bookCreationData.edition,
         year: bookCreationData.year,
@@ -705,7 +714,7 @@ export default function AdminAuthorBooks() {
                   <div>
                     <span className="font-medium">Amount:</span> ₹{selectedBook?.paymentAmount}
                   </div>
-                  <div>
+                  <div className="flex items-center">
                     <span className="font-medium">Status:</span> 
                     <Badge className="ml-2 bg-blue-600">Payment Submitted</Badge>
                   </div>
@@ -768,7 +777,7 @@ export default function AdminAuthorBooks() {
                   <div>
                     <span className="font-medium">Author:</span> {selectedBook?.authorName}
                   </div>
-                  <div>
+                  <div className="flex items-center">
                     <span className="font-medium">Status:</span> 
                     <Badge className="ml-2 bg-green-600">Published</Badge>
                   </div>
@@ -879,6 +888,47 @@ export default function AdminAuthorBooks() {
                           onChange={(e) => setBookCreationData({...bookCreationData, weight: e.target.value})}
                           placeholder="Enter weight in KG"
                         />
+                      </div>
+
+                      {/* Shipping Dimensions */}
+                      <div className="border-t pt-4">
+                        <h3 className="text-lg font-semibold mb-4">Shipping Dimensions</h3>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div>
+                            <Label htmlFor="bookLength">Length (CM) *</Label>
+                            <Input
+                              id="bookLength"
+                              type="number"
+                              step="0.1"
+                              value={bookCreationData.length}
+                              onChange={(e) => setBookCreationData({...bookCreationData, length: e.target.value})}
+                              placeholder="0.0"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="bookWidth">Width (CM) *</Label>
+                            <Input
+                              id="bookWidth"
+                              type="number"
+                              step="0.1"
+                              value={bookCreationData.width}
+                              onChange={(e) => setBookCreationData({...bookCreationData, width: e.target.value})}
+                              placeholder="0.0"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="bookHeight">Height (CM) *</Label>
+                            <Input
+                              id="bookHeight"
+                              type="number"
+                              step="0.1"
+                              value={bookCreationData.height}
+                              onChange={(e) => setBookCreationData({...bookCreationData, height: e.target.value})}
+                              placeholder="0.0"
+                            />
+                          </div>
+                        </div>
                       </div>
                       
                       <div>
@@ -1157,11 +1207,12 @@ export default function AdminAuthorBooks() {
                 <div className="text-sm space-y-1">
                   <p><span className="font-medium">Author:</span> {selectedBook?.authorName}</p>
                   <p><span className="font-medium">Category:</span> {selectedBook?.category}</p>
-                  <p><span className="font-medium">Stage:</span> 
+                  <div className="flex items-center">
+                    <span className="font-medium">Stage:</span> 
                     <Badge className={`ml-2 ${getStageColor(selectedBook?.stage)}`}>
                       {getStageLabel(selectedBook?.stage)}
                     </Badge>
-                  </p>
+                  </div>
                 </div>
               </div>
               

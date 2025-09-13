@@ -35,6 +35,7 @@ import { Trash2 } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useOrdersAdmin } from "@/hooks/use-orders-admin"
 import { updateOrderStatus, deleteOrder, processRefund } from "@/lib/firebase-utils"
+import { cancelShipment } from "@/lib/shiprocket-utils"
 import { useToast } from "@/hooks/use-toast"
 import { AdminLayout } from "@/components/admin/admin-layout"
 import { OrderModal } from "@/components/admin/order-modal"
@@ -117,8 +118,24 @@ export default function AdminOrders() {
 
     const paymentMethodName = getPaymentMethodName(order.paymentMethod)
     
-    if (window.confirm(`Are you sure you want to cancel this order? This will automatically trigger a refund via ${paymentMethodName}.`)) {
+    if (window.confirm(`Are you sure you want to cancel this order? This will automatically trigger a refund via ${paymentMethodName} and cancel the Shiprocket pickup.`)) {
       try {
+        // Cancel Shiprocket pickup if it exists
+        if (order.shiprocketOrderId) {
+          try {
+            await cancelShipment(order.shiprocketOrderId)
+            console.log('Shiprocket pickup cancelled successfully')
+          } catch (shiprocketError: any) {
+            console.error('Error cancelling Shiprocket pickup:', shiprocketError)
+            // Continue with order cancellation even if Shiprocket cancellation fails
+            toast({
+              title: "Warning",
+              description: "Order cancelled but Shiprocket pickup cancellation failed. Please cancel manually in Shiprocket dashboard.",
+              variant: "destructive",
+            })
+          }
+        }
+
         // Update order status to cancelled
         await updateOrderStatus(order.id, "cancelled")
         
@@ -128,12 +145,12 @@ export default function AdminOrders() {
           
           toast({
             title: "Order Cancelled",
-            description: `Order has been cancelled and refund initiated via ${paymentMethodName}.`,
+            description: `Order has been cancelled, Shiprocket pickup cancelled, and refund initiated via ${paymentMethodName}.`,
           })
         } else {
           toast({
             title: "Order Cancelled",
-            description: "Order has been cancelled. No refund was processed as no payment was made.",
+            description: "Order has been cancelled and Shiprocket pickup cancelled. No refund was processed as no payment was made.",
           })
         }
       } catch (error: any) {
@@ -147,7 +164,8 @@ export default function AdminOrders() {
     }
   }
   const filteredOrders = orders.filter(order => {
-    const matchesSearch = order.id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = order.orderNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         order.id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          order.shippingAddress?.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          order.shippingAddress?.lastName?.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === "all" || order.status === statusFilter
@@ -336,7 +354,7 @@ export default function AdminOrders() {
                   {filteredOrders.map((order) => (
                     <TableRow key={order.id || ''}>
                       <TableCell className="font-medium">
-                        #{order.id?.slice(-8) || ''}
+                        {order.orderNumber || `#${order.id?.slice(-8) || ''}`}
                       </TableCell>
                       <TableCell>
                         <div>

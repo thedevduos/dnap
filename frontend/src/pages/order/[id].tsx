@@ -101,7 +101,7 @@ export default function OrderDetailPage() {
             </Link>
             <div className="flex justify-between items-start">
               <div>
-                <h1 className="text-3xl font-bold">Order #{order.id.slice(-8)}</h1>
+                <h1 className="text-3xl font-bold">Order {order.orderNumber || `#${order.id.slice(-8)}`}</h1>
                 <p className="text-muted-foreground">
                   Placed on {order.createdAt?.toDate().toLocaleDateString()}
                 </p>

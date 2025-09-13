@@ -78,7 +78,7 @@ export function OrderModal({ open, onOpenChange, order }: OrderModalProps) {
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex justify-between items-center">
-            <DialogTitle>Order #{order.id.slice(-8)}</DialogTitle>
+            <DialogTitle>Order {order.orderNumber || `#${order.id.slice(-8)}`}</DialogTitle>
             <Badge className={getStatusColor(order.status)}>
               {order.status}
             </Badge>

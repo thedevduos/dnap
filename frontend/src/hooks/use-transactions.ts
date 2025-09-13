@@ -9,7 +9,7 @@ interface Transaction {
   status?: "success" | "pending" | "failed" | "refunded"
   amount?: number
   paymentMethod?: string
-  orderId?: string
+  orderNumber?: string
   gatewayTransactionId?: string
   customerName?: string
   customerEmail?: string
@@ -30,7 +30,7 @@ interface PaymentGatewayTransaction {
   currency?: string
   method?: string
   refundStatus?: string
-  orderId?: string
+  orderNumber?: string
   refundAmount?: number
   gatewayTransactionId?: string
 }
@@ -72,7 +72,6 @@ export function useTransactions() {
                 amount: typeof data.amount === 'number' ? data.amount : parseFloat(data.amount || '0'),
                 status: data.status || 'pending',
                 paymentMethod: data.paymentMethod || 'razorpay',
-                orderId: data.orderId || '',
                 gatewayTransactionId: data.gatewayTransactionId || data.transactionId || '',
                 customerName: data.customerName || '',
                 customerEmail: data.customerEmail || '',
@@ -154,7 +153,6 @@ export function useTransactions() {
               currency: t.currency || 'INR',
               method: t.method || 'online',
               refundStatus: t.refundStatus || null,
-              orderId: t.orderId || '',
               refundAmount: typeof t.refundAmount === 'number' ? t.refundAmount : parseFloat(t.refundAmount || '0')
             }))
             allPgTransactions.push(...razorpayTransactions)
@@ -173,7 +171,6 @@ export function useTransactions() {
               currency: t.currency || 'INR',
               method: t.method || 'online',
               refundStatus: t.refundStatus || null,
-              orderId: t.orderId || '',
               refundAmount: typeof t.refundAmount === 'number' ? t.refundAmount : parseFloat(t.refundAmount || '0')
             }))
             allPgTransactions.push(...zohoTransactions)

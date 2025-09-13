@@ -57,7 +57,7 @@ const sendOrderConfirmation = async (orderData) => {
     const {
       customerPhone,
       customerName,
-      orderId,
+      orderNumber,
       items,
       total,
       shippingAddress
@@ -74,7 +74,7 @@ Hello ${customerName}!
 Your order has been confirmed successfully.
 
 📦 *Order Details:*
-Order ID: #${orderId.slice(-8)}
+Order Number: ${orderNumber || 'N/A'}
 Total Amount: ₹${total}
 
 📚 *Items Ordered:*
@@ -140,7 +140,7 @@ const sendShippingNotification = async (orderData) => {
     const {
       customerPhone,
       customerName,
-      orderId,
+      orderNumber,
       trackingNumber,
       estimatedDelivery
     } = orderData;
@@ -149,7 +149,7 @@ const sendShippingNotification = async (orderData) => {
 
 Hello ${customerName}!
 
-Great news! Your order #${orderId.slice(-8)} has been shipped.
+Great news! Your order ${orderNumber || 'N/A'} has been shipped.
 
 🚚 *Tracking Details:*
 Tracking Number: ${trackingNumber}
@@ -173,14 +173,14 @@ const sendDeliveryConfirmation = async (orderData) => {
     const {
       customerPhone,
       customerName,
-      orderId
+      orderNumber
     } = orderData;
 
     const message = `✅ *Order Delivered! - DNA Publications*
 
 Hello ${customerName}!
 
-Your order #${orderId.slice(-8)} has been successfully delivered!
+Your order ${orderNumber || 'N/A'} has been successfully delivered!
 
 We hope you enjoy your new books. 📚
 

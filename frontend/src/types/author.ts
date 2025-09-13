@@ -23,6 +23,10 @@ export interface AuthorBook {
   pages: number
   language: string
   description: string
+  weight?: number
+  length?: number
+  width?: number
+  height?: number
   pdfUrl: string
   imageUrl: string
   wordDocUrl?: string

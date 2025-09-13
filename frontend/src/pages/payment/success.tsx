@@ -14,6 +14,8 @@ import { useUser } from "@/contexts/user-context"
 import { applyCoupon } from "@/lib/firebase-utils"
 import { verifyPaymentResponse, getPaymentMethodDisplayName, getOrderData, clearOrderData } from "@/lib/payment-utils"
 import { trackAffiliateSale } from "@/lib/author-utils"
+import { processCompleteShiprocketOrder } from "@/lib/shiprocket-utils"
+import { generateNextOrderNumber } from "@/lib/order-number-utils"
 
 export default function PaymentSuccessPage() {
   const [searchParams] = useSearchParams()
@@ -34,6 +36,51 @@ export default function PaymentSuccessPage() {
   // Store refs to avoid dependency issues
   clearCartRef.current = clearCart
   toastRef.current = toast
+
+  // Function to send order confirmation email with tracking information
+  const sendOrderConfirmationEmailWithTracking = async (orderData: any, orderNumber: string, paymentMethod: string, paymentData: any, workflowResult: any) => {
+    try {
+      const emailData = {
+        orderNumber: orderNumber,
+        customerName: `${orderData.shippingAddress?.firstName} ${orderData.shippingAddress?.lastName}`,
+        customerEmail: orderData.userEmail,
+        items: orderData.items,
+        subtotal: orderData.subtotal,
+        shipping: orderData.shipping,
+        total: orderData.total,
+        shippingAddress: orderData.shippingAddress,
+        transactionId: paymentMethod === 'razorpay' ? paymentData.razorpay_payment_id : 
+                      paymentMethod === 'zoho' ? paymentData.paymentId : null,
+        paymentMethod: paymentMethod,
+        // Add tracking information if available
+        trackingInfo: workflowResult ? {
+          awbCode: workflowResult.courierResult?.awbCode,
+          courierName: workflowResult.courierResult?.courierName,
+          trackingUrl: workflowResult.courierResult?.trackingUrl,
+          shiprocketOrderId: workflowResult.shiprocketOrderId,
+          shipmentId: workflowResult.shipmentId,
+          pickupGenerated: workflowResult.pickupResult?.success
+        } : null
+      }
+
+      const emailResponse = await fetch(`${import.meta.env.VITE_BACKEND_API_URL || 'http://localhost:5000'}/api/orders/send-order-confirmation-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(emailData),
+      })
+
+      if (emailResponse.ok) {
+        console.log('✅ Order confirmation email sent successfully with tracking info')
+      } else {
+        console.warn('Failed to send order confirmation email:', await emailResponse.text())
+      }
+    } catch (emailError) {
+      console.warn('Error sending order confirmation email:', emailError)
+      // Don't throw error as the order was successful
+    }
+  }
   addAddressRef.current = addAddress
 
   useEffect(() => {
@@ -209,14 +256,92 @@ export default function PaymentSuccessPage() {
           } : null)
           
           if (orderData) {
+              // Generate the next order number
+              const orderNumber = await generateNextOrderNumber()
+              
               // Handle regular book order
               const orderRef = await addDoc(collection(db, "orders"), {
                 ...orderData,
+                orderNumber: orderNumber, // Add the new order number
                 transactionId: paymentMethod === 'razorpay' ? paymentData.razorpay_payment_id : 
                               paymentMethod === 'zoho' ? paymentData.paymentId : null,
                 status: 'confirmed', // Update status to confirmed for successful payments
                 createdAt: serverTimestamp()
               })
+
+              // Create Shiprocket order if using Shiprocket shipping
+              if (orderData.shippingMethod === 'shiprocket' && orderData.shippingMethodDetails?.courierId) {
+                try {
+                  console.log('Creating Shiprocket order for:', orderRef.id)
+                  
+                  console.log('Order data items for Shiprocket:', orderData.items);
+                  
+                  const shiprocketOrderData = {
+                    orderId: orderRef.id,
+                    items: orderData.items,
+                    shippingAddress: orderData.shippingAddress,
+                    userEmail: orderData.userEmail,
+                    subtotal: orderData.subtotal,
+                    shipping: orderData.shipping,
+                    total: orderData.total,
+                    discount: orderData.discount,
+                    paymentMethod: orderData.paymentMethod,
+                    courierId: orderData.shippingMethodDetails.courierId
+                  }
+
+                  const workflowResult = await processCompleteShiprocketOrder(shiprocketOrderData)
+                  
+                  if (workflowResult.success) {
+                    console.log('✅ Complete Shiprocket workflow successful:', {
+                      orderId: workflowResult.shiprocketOrderId,
+                      shipmentId: workflowResult.shipmentId,
+                      workflow: workflowResult.workflow
+                    })
+                    
+                    // Update order with Shiprocket details
+                    const updateData: any = {
+                      shiprocketOrderId: workflowResult.shiprocketOrderId,
+                      shipmentId: workflowResult.shipmentId,
+                      status: 'shipped'
+                    }
+                    
+                    // Add courier details if assignment was successful
+                    if (workflowResult.courierResult?.success) {
+                      updateData.shiprocketAWB = workflowResult.courierResult.awbCode
+                      updateData.courierName = workflowResult.courierResult.courierName
+                      updateData.trackingUrl = workflowResult.courierResult.trackingUrl
+                    }
+                    
+                    // Add pickup details if generation was successful
+                    if (workflowResult.pickupResult?.success) {
+                      updateData.pickupGenerated = true
+                      updateData.pickupData = workflowResult.pickupResult.pickupData
+                    }
+                    
+                    await updateDoc(orderRef, updateData)
+                    
+                    console.log('✅ Order updated with complete Shiprocket workflow results')
+                    
+                    // Send order confirmation email with tracking information
+                    await sendOrderConfirmationEmailWithTracking(orderData, orderNumber, paymentMethod, paymentData, workflowResult)
+                  } else {
+                    console.warn('⚠️ Complete Shiprocket workflow failed:', workflowResult.message)
+                    
+                    // Send basic order confirmation email without tracking
+                    await sendOrderConfirmationEmailWithTracking(orderData, orderNumber, paymentMethod, paymentData, null)
+                  }
+                } catch (shiprocketError) {
+                  console.error('Error creating Shiprocket order:', shiprocketError)
+                  // Don't throw error as the order was successful, just log the issue
+                  
+                  // Send basic order confirmation email without tracking
+                  await sendOrderConfirmationEmailWithTracking(orderData, orderNumber, paymentMethod, paymentData, null)
+                }
+              } else {
+                // For non-Shiprocket orders, send email immediately
+                console.log('Non-Shiprocket order, sending confirmation email immediately')
+                await sendOrderConfirmationEmailWithTracking(orderData, orderNumber, paymentMethod, paymentData, null)
+              }
 
               // Track affiliate sale if applicable
               if (orderData.affiliateRef) {
@@ -267,7 +392,7 @@ export default function PaymentSuccessPage() {
 
               // Add transaction record
               await addTransaction({
-                orderId: orderRef.id,
+                orderNumber: orderNumber, // Include the new order number
                 gatewayTransactionId: paymentMethod === 'razorpay' ? paymentData.razorpay_payment_id : 
                                      paymentMethod === 'zoho' ? paymentData.paymentId : null,
                 amount: parseFloat(paymentData.amount || '0'),
@@ -278,8 +403,11 @@ export default function PaymentSuccessPage() {
                 paymentMode: 'online'
               })
 
+              // Email will be sent after Shiprocket workflow completion (if applicable)
+
               setOrderDetails({
                 orderId: orderRef.id,
+                orderNumber: orderNumber, // Include the new order number
                 amount: orderData.total,
                 transactionId: paymentMethod === 'razorpay' ? paymentData.razorpay_payment_id : 
                               paymentMethod === 'zoho' ? paymentData.paymentId : null,
@@ -420,8 +548,8 @@ export default function PaymentSuccessPage() {
                 <div className="bg-muted/30 p-4 rounded-lg">
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span>Order ID:</span>
-                      <span className="font-mono">#{orderDetails.orderId.slice(-8)}</span>
+                      <span>Order Number:</span>
+                      <span className="font-mono">{orderDetails.orderNumber || 'N/A'}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Amount Paid:</span>

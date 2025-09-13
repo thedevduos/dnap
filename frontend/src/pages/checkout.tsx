@@ -27,8 +27,7 @@ import {
   clearOrderData
 } from "@/lib/payment-utils"
 import { getPincodeData, isValidPincode } from "@/lib/pincode-utils"
-import { useShippingRates } from "@/hooks/use-shipping-rates"
-import { calculateShippingRate, calculateCartWeight, DEFAULT_SHIPPING_RATES } from "@/lib/shipping-rates-utils"
+import { calculateShippingRates as calculateShiprocketRates, calculateCartShippingData, ShippingRate } from "@/lib/shiprocket-utils"
 
 
 interface CheckoutForm {
@@ -75,12 +74,16 @@ export default function CheckoutPage() {
   const [couponCode, setCouponCode] = useState("")
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null)
   const [discount, setDiscount] = useState(0)
-  const { shippingRates } = useShippingRates()
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null)
   const [addressModalOpen, setAddressModalOpen] = useState(false)
   const [editingAddress, setEditingAddress] = useState<any>(null)
   const [showAddressForm, setShowAddressForm] = useState(false)
   const [pincodeLoading, setPincodeLoading] = useState(false)
+  
+  // Shiprocket integration state
+  const [shiprocketRates, setShiprocketRates] = useState<ShippingRate[]>([])
+  const [selectedCourier, setSelectedCourier] = useState<ShippingRate | null>(null)
+  const [shippingLoading, setShippingLoading] = useState(false)
 
   // Separate useEffect for restoring cart items from failed payment
   useEffect(() => {
@@ -186,30 +189,69 @@ export default function CheckoutPage() {
     }
   }, [userProfile])
 
+  // Calculate Shiprocket shipping rates when postal code changes
+  const calculateShiprocketShipping = async () => {
+    if (!formData.postalCode || formData.postalCode.length !== 6 || items.length === 0) {
+      setShiprocketRates([])
+      setSelectedCourier(null)
+      return
+    }
 
-  // Calculate shipping based on dynamic rates
-  const cartWeight = calculateCartWeight(items)
-  
-  // Use default rates if no rates are configured in database
-  const ratesToUse = shippingRates.length > 0 ? shippingRates : DEFAULT_SHIPPING_RATES
-  
-  const shippingCalculation = calculateShippingRate(
-    cartWeight,
-    formData.state,
-    formData.country,
-    ratesToUse
-  )
-  const shipping = shippingCalculation ? shippingCalculation.rate : 0
+    setShippingLoading(true)
+    try {
+      const shippingData = calculateCartShippingData(items)
+      console.log('Calculating Shiprocket rates for:', {
+        postalCode: formData.postalCode,
+        ...shippingData
+      })
+
+      const response = await calculateShiprocketRates(
+        formData.postalCode,
+        shippingData.totalWeight,
+        shippingData.maxLength,
+        shippingData.maxWidth,
+        shippingData.maxHeight
+      )
+
+      if (response.success && response.rates && response.rates.length > 0) {
+        setShiprocketRates(response.rates)
+        // Auto-select the first (usually cheapest) courier
+        setSelectedCourier(response.rates[0])
+        console.log('Shiprocket rates loaded:', response.rates)
+      } else {
+        console.log('No Shiprocket rates available, using fallback')
+        setShiprocketRates([])
+        setSelectedCourier(null)
+      }
+    } catch (error) {
+      console.error('Error calculating Shiprocket rates:', error)
+      setShiprocketRates([])
+      setSelectedCourier(null)
+    } finally {
+      setShippingLoading(false)
+    }
+  }
+
+  // Calculate Shiprocket rates when postal code or items change
+  useEffect(() => {
+    if (formData.postalCode && items.length > 0) {
+      const timeoutId = setTimeout(() => {
+        calculateShiprocketShipping()
+      }, 500) // Debounce for 500ms
+
+      return () => clearTimeout(timeoutId)
+    }
+  }, [formData.postalCode, items])
+
+  // Calculate shipping using Shiprocket only
+  const shipping = selectedCourier ? selectedCourier.rate : 0
   const finalTotal = getTotalPrice() + shipping - discount
   
   // Debug logging
   console.log('Shipping Debug:', {
-    cartWeight,
-    state: formData.state,
-    country: formData.country,
-    shippingRatesCount: shippingRates.length,
-    ratesToUseCount: ratesToUse.length,
-    shippingCalculation
+    selectedCourier: selectedCourier?.courierName,
+    shippingRate: shipping,
+    shiprocketRatesCount: shiprocketRates.length
   })
 
   const handleInputChange = (field: keyof CheckoutForm, value: string | boolean) => {
@@ -382,10 +424,11 @@ export default function CheckoutPage() {
     
     if (!validateForm()) return
     
-    if (!shippingCalculation) {
+    // Check shipping availability
+    if (!selectedCourier) {
       toast({
-        title: "Cannot Place Order",
-        description: "Please enter a valid pincode and address to calculate shipping charges.",
+        title: "Select Shipping Option",
+        description: "Please select a courier for delivery.",
         variant: "destructive"
       })
       return
@@ -436,11 +479,10 @@ export default function CheckoutPage() {
 
       // Calculate totals
       const subtotal = getTotalPrice()
-      const shipping = shippingCalculation ? shippingCalculation.rate : 0
+      const shipping = selectedCourier ? selectedCourier.rate : 0
       const finalTotal = subtotal + shipping - discount
 
-      // Create temporary order ID
-      const tempOrderId = `ORDER_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      // Note: Order number will be generated after successful payment
 
       // Store order data in sessionStorage for payment success page
       const orderData = {
@@ -468,15 +510,15 @@ export default function CheckoutPage() {
         shipping: shipping,
         total: finalTotal,
         paymentMethod: formData.paymentMethod,
-        shippingMethod: 'dynamic',
-        shippingMethodDetails: shippingCalculation ? {
-          name: 'Dynamic Shipping',
-          price: shippingCalculation.rate,
-          deliveryTime: '3-7 business days',
-          weight: cartWeight,
-          region: shippingCalculation.region,
-          weightSlab: shippingCalculation.weightSlab
-        } : null,
+        shippingMethod: 'shiprocket',
+        shippingMethodDetails: {
+          name: selectedCourier.courierName,
+          price: selectedCourier.rate,
+          deliveryTime: selectedCourier.estimatedDeliveryTime,
+          courierId: selectedCourier.courierId,
+          serviceType: selectedCourier.serviceType,
+          codAvailable: selectedCourier.codAvailable
+        },
         appliedCoupon: appliedCoupon ? {
           code: appliedCoupon.code,
           discountAmount: discount
@@ -498,7 +540,7 @@ export default function CheckoutPage() {
       
       // Handle different payment methods
       const paymentData = {
-        orderId: tempOrderId,
+        orderId: `TEMP_${Date.now()}`, // Temporary ID for payment processing
         amount: finalTotal,
         customerName: `${formData.firstName} ${formData.lastName}`,
         customerEmail: formData.email,
@@ -850,33 +892,52 @@ export default function CheckoutPage() {
                         Please enter your pincode and address details to calculate shipping charges.
                       </p>
                     </div>
-                  ) : !shippingCalculation ? (
+                  ) : shippingLoading ? (
+                    <div className="text-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                      <p className="text-muted-foreground">Calculating shipping rates...</p>
+                    </div>
+                  ) : shiprocketRates.length > 0 ? (
+                    <div className="space-y-3">
+                      <div className="mb-4">
+                        <h4 className="font-medium">Available Couriers</h4>
+                        <p className="text-sm text-gray-600">Select your preferred delivery option</p>
+                      </div>
+                      
+                      {shiprocketRates.map((rate, index) => (
+                        <div
+                          key={index}
+                          className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                            selectedCourier?.courierId === rate.courierId
+                              ? 'border-primary bg-primary/5'
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                          onClick={() => setSelectedCourier(rate)}
+                        >
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <p className="font-medium">{rate.courierName}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {rate.estimatedDeliveryTime} • {rate.serviceType}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-bold">₹{rate.rate}</p>
+                              {rate.codAvailable && (
+                                <p className="text-xs text-green-600">COD Available</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
                     <div className="text-center py-8 border-2 border-dashed border-red-200 rounded-lg bg-red-50">
                       <Truck className="h-12 w-12 text-red-400 mx-auto mb-4" />
                       <h3 className="text-lg font-semibold text-red-800 mb-2">Shipping Not Available</h3>
                       <p className="text-red-600 mb-4">
-                        We don't deliver to this location or the weight exceeds our shipping limits.
+                        No couriers are available for this location. Please check your pincode or try a different address.
                       </p>
-                    </div>
-                  ) : (
-                    <div className="p-4 border rounded-lg bg-green-50 border-green-200">
-                      <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <p className="font-medium text-green-800">Dynamic Shipping</p>
-                          <p className="text-sm text-green-600">3-7 business days</p>
-                        </div>
-                        <p className="font-bold text-green-800">
-                          {shipping === 0 ? 'Free' : `₹${shipping}`}
-                        </p>
-                      </div>
-                      <div className="text-xs text-green-700 space-y-1">
-                        <div>📍 {formData.city}, {formData.state}, {formData.country}</div>
-                        <div>⚖️ Weight: {cartWeight.toFixed(1)} KG</div>
-                        <div>🌍 Region: {shippingCalculation.region === 'tamilnadu' ? 'Tamil Nadu' : 
-                                     shippingCalculation.region === 'india' ? 'Other Indian States' : 
-                                     'International'}</div>
-                        <div>📦 Weight Slab: {shippingCalculation.weightSlab}</div>
-                      </div>
                     </div>
                   )}
                 </CardContent>
@@ -1003,13 +1064,12 @@ export default function CheckoutPage() {
                       <span>{shipping === 0 ? 'Free' : `₹${shipping}`}</span>
                     </div>
                     
-                    {shippingCalculation && (
+                    {selectedCourier && (
                       <div className="text-xs text-gray-500 space-y-1">
-                        <div>Weight: {cartWeight.toFixed(1)} KG</div>
-                        <div>Region: {shippingCalculation.region === 'tamilnadu' ? 'Tamil Nadu' : 
-                                     shippingCalculation.region === 'india' ? 'Other Indian States' : 
-                                     'International'}</div>
-                        <div>Slab: {shippingCalculation.weightSlab}</div>
+                        <div>Courier: {selectedCourier.courierName}</div>
+                        <div>Delivery: {selectedCourier.estimatedDeliveryTime}</div>
+                        <div>Service: {selectedCourier.serviceType}</div>
+                        {selectedCourier.codAvailable && <div className="text-green-600">COD Available</div>}
                       </div>
                     )}
 
@@ -1030,7 +1090,7 @@ export default function CheckoutPage() {
                     type="submit" 
                     size="lg" 
                     className="w-full" 
-                    disabled={processing || paymentProcessing || isAdmin || !shippingCalculation}
+                    disabled={processing || paymentProcessing || isAdmin || !selectedCourier}
                   >
                     {processing || paymentProcessing ? (
                       <div className="flex items-center gap-2">

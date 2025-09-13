@@ -148,10 +148,10 @@ export function TransactionModal({ open, onOpenChange, transaction }: Transactio
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <Package className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium">Order ID</span>
+                <span className="text-sm font-medium">Order Number</span>
               </div>
               <p className="font-mono text-sm">
-                {transaction.orderId ? `#${transaction.orderId.toString().slice(-8)}` : 'N/A'}
+                {transaction.orderNumber || 'N/A'}
               </p>
             </div>
 

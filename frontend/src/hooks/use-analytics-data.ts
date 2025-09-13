@@ -63,7 +63,7 @@ export function useAnalyticsData(dateRange: string) {
         const recentActivity = [
           ...orders.slice(0, 3).map(order => ({
             type: 'order',
-            description: `New order #${order.id.slice(-8)}`,
+            description: `New order ${order.orderNumber || `#${order.id.slice(-8)}`}`,
             time: order.createdAt?.toDate().toLocaleString()
           })),
           ...customersSnapshot.docs.slice(0, 2).map(doc => {

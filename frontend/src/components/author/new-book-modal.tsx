@@ -254,6 +254,7 @@ export function NewBookModal({ open, onOpenChange }: NewBookModalProps) {
                   required
                 />
               </div>
+
             </div>
           )}
 

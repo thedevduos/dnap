@@ -17,7 +17,6 @@ import {
   User,
   Briefcase,
   ShoppingCart,
-  Truck,
   Ticket,
   CreditCard,
   Users as CustomersIcon,
@@ -25,10 +24,9 @@ import {
   BarChart,
   Settings,
   Link as LinkIcon,
-  ChevronDown,
-  ChevronRight,
   Image,
   IndianRupee,
+  Truck,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/auth-context"
@@ -49,7 +47,6 @@ interface AdminLayoutProps {
 
 export function AdminLayout({ children }: AdminLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [expandedSections, setExpandedSections] = useState<string[]>([])
   const location = useLocation()
   const navigate = useNavigate()
   const { logout, user } = useAuth()
@@ -90,10 +87,10 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     { name: "Orders", href: "/admin/orders", icon: ShoppingCart, section: "ecommerce" },
     { name: "Customers", href: "/admin/customers", icon: CustomersIcon, section: "ecommerce" },
     { name: "Users", href: "/admin/users", icon: Users, section: "ecommerce" },
-    { name: "Shipping", href: "/admin/shipping", icon: Truck, section: "ecommerce" },
     { name: "Coupons", href: "/admin/coupons", icon: Ticket, section: "ecommerce" },
     { name: "Payments", href: "/admin/payments", icon: CreditCard, section: "ecommerce" },
     { name: "Analytics", href: "/admin/analytics", icon: BarChart3, section: "ecommerce" },
+    { name: "Shiprocket", href: "/admin/shiprocket", icon: Truck, section: "ecommerce" },
   ]
 
   const sections = [
@@ -123,35 +120,6 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     }
   ]
 
-  // Initialize with the current section expanded on first load
-  useEffect(() => {
-    if (expandedSections.length === 0) {
-      const currentSection = sections.find(section => 
-        section.items.some(item => item.href === location.pathname)
-      )
-      
-      if (currentSection) {
-        setExpandedSections([currentSection.id])
-      }
-    }
-  }, [location.pathname, sections, expandedSections.length])
-
-  const toggleSection = (sectionId: string) => {
-    setExpandedSections(prev => 
-      prev.includes(sectionId) 
-        ? prev.filter(id => id !== sectionId)
-        : [...prev, sectionId]
-    )
-  }
-
-  const isSectionExpanded = (sectionId: string) => {
-    return expandedSections.includes(sectionId)
-  }
-
-  const isCurrentPathInSection = (sectionId: string) => {
-    const sectionItems = sections.find(s => s.id === sectionId)?.items || []
-    return sectionItems.some(item => location.pathname === item.href)
-  }
 
   const handleLogout = async () => {
     try {
@@ -191,36 +159,22 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   }
 
   const renderSection = (section: any, isMobile: boolean = false) => {
-    const isExpanded = isSectionExpanded(section.id)
-    const hasActiveItem = isCurrentPathInSection(section.id)
-
     return (
-      <div key={section.id} className="space-y-1">
-        <button
-          onClick={() => toggleSection(section.id)}
-          className={cn(
-            "group flex w-full items-center justify-between px-3 py-2 text-sm font-medium rounded-md transition-colors",
-            hasActiveItem
-              ? "bg-orange-50 text-orange-700 border border-orange-200"
-              : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
-          )}
-        >
+      <div key={section.id} className="space-y-1 mb-6 pb-4 border-b border-gray-100 last:border-b-0">
+        {/* Category Header */}
+        <div className="px-3 py-2">
           <div className="flex items-center">
-            <section.icon className="mr-3 h-5 w-5 flex-shrink-0" />
-            {section.name}
+            <section.icon className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+            <span className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+              {section.name}
+            </span>
           </div>
-          {isExpanded ? (
-            <ChevronDown className="h-4 w-4" />
-          ) : (
-            <ChevronRight className="h-4 w-4" />
-          )}
-        </button>
+        </div>
         
-        {isExpanded && (
-          <div className="ml-6 space-y-1">
-            {section.items.map((item: any) => renderNavigationItem(item, isMobile))}
-          </div>
-        )}
+        {/* Category Items */}
+        <div className="ml-6 space-y-1">
+          {section.items.map((item: any) => renderNavigationItem(item, isMobile))}
+        </div>
       </div>
     )
   }
@@ -230,7 +184,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       {/* Mobile sidebar */}
       <div className={cn("fixed inset-0 z-50 lg:hidden", sidebarOpen ? "block" : "hidden")}>
         <div className="fixed inset-0 bg-gray-600 bg-opacity-75" onClick={() => setSidebarOpen(false)} />
-        <div className="fixed inset-y-0 left-0 flex w-64 flex-col bg-white">
+        <div className="fixed inset-y-0 left-0 flex w-64 flex-col bg-white h-full">
           <div className="flex h-16 items-center justify-between px-4 border-b flex-shrink-0">
             <Link to="/" className="flex items-center space-x-2">
               <div>
@@ -242,15 +196,15 @@ export function AdminLayout({ children }: AdminLayoutProps) {
               <X className="h-5 w-5" />
             </Button>
           </div>
-          <nav className="flex-1 space-y-2 px-2 py-4 overflow-y-auto max-h-[calc(100vh-4rem)]">
-            {sections.map(section => renderSection(section, true))}
-          </nav>
+           <nav className="flex-1 space-y-2 px-2 py-4 overflow-y-auto h-0">
+             {sections.map(section => renderSection(section, true))}
+           </nav>
         </div>
       </div>
 
       {/* Desktop sidebar */}
       <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
-        <div className="flex flex-col flex-grow bg-white border-r border-gray-200">
+        <div className="flex flex-col h-full bg-white border-r border-gray-200">
           <div className="flex h-16 items-center px-4 border-b flex-shrink-0">
             <Link to="/" className="flex items-center space-x-2">
               <div>
@@ -259,9 +213,9 @@ export function AdminLayout({ children }: AdminLayoutProps) {
               </div>
             </Link>
           </div>
-          <nav className="flex-1 space-y-2 px-2 py-4 overflow-y-auto max-h-[calc(100vh-4rem)]">
-            {sections.map(section => renderSection(section, false))}
-          </nav>
+           <nav className="flex-1 space-y-2 px-2 py-4 overflow-y-auto h-0">
+             {sections.map(section => renderSection(section, false))}
+           </nav>
         </div>
       </div>
 

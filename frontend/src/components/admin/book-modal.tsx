@@ -27,6 +27,10 @@ export function BookModal({ isOpen, onClose, book }: BookModalProps) {
     imageUrl: "",
     status: "published",
     rating: "4.5",
+    weight: "",
+    length: "",
+    width: "",
+    height: "",
     edition: "",
     year: "",
     isbn: "",
@@ -51,6 +55,10 @@ export function BookModal({ isOpen, onClose, book }: BookModalProps) {
         imageUrl: book.imageUrl || "",
         status: book.status || "published",
         rating: book.rating?.toString(),
+        weight: book.weight?.toString() || "",
+        length: book.length?.toString() || "",
+        width: book.width?.toString() || "",
+        height: book.height?.toString() || "",
         edition: book.edition || "",
         year: book.year || "",
         isbn: book.isbn || "",
@@ -69,6 +77,10 @@ export function BookModal({ isOpen, onClose, book }: BookModalProps) {
         imageUrl: "",
         status: "published",
         rating: "4.5",
+        weight: "",
+        length: "",
+        width: "",
+        height: "",
         edition: "",
         year: "",
         isbn: "",
@@ -120,6 +132,17 @@ export function BookModal({ isOpen, onClose, book }: BookModalProps) {
         imageUrl: formData.imageUrl,
         status: formData.status,
         rating: parseFloat(formData.rating),
+        weight: parseFloat(formData.weight) || 0,
+        length: parseFloat(formData.length) || 0,
+        width: parseFloat(formData.width) || 0,
+        height: parseFloat(formData.height) || 0,
+        edition: formData.edition,
+        year: formData.year,
+        isbn: formData.isbn,
+        pages: formData.pages,
+        format: formData.format,
+        language: formData.language,
+        publisher: formData.publisher,
       }
 
       if (book) {
@@ -378,6 +401,68 @@ export function BookModal({ isOpen, onClose, book }: BookModalProps) {
                 onChange={(e) => setFormData({ ...formData, publisher: e.target.value })}
                 placeholder="Publisher name"
               />
+            </div>
+
+            {/* Shipping Details Section */}
+            <div className="border-t pt-6 mt-6">
+              <h3 className="text-lg font-semibold mb-4">Shipping Details</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="weight">Weight (KG) *</Label>
+                  <Input
+                    id="weight"
+                    type="number"
+                    step="0.01"
+                    value={formData.weight}
+                    onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
+                    placeholder="0.00"
+                    required
+                  />
+                </div>
+                <div>
+                  {/* Empty div for grid layout */}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                <div>
+                  <Label htmlFor="length">Length (CM) *</Label>
+                  <Input
+                    id="length"
+                    type="number"
+                    step="0.1"
+                    value={formData.length}
+                    onChange={(e) => setFormData({ ...formData, length: e.target.value })}
+                    placeholder="0.0"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="width">Width (CM) *</Label>
+                  <Input
+                    id="width"
+                    type="number"
+                    step="0.1"
+                    value={formData.width}
+                    onChange={(e) => setFormData({ ...formData, width: e.target.value })}
+                    placeholder="0.0"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="height">Height (CM) *</Label>
+                  <Input
+                    id="height"
+                    type="number"
+                    step="0.1"
+                    value={formData.height}
+                    onChange={(e) => setFormData({ ...formData, height: e.target.value })}
+                    placeholder="0.0"
+                    required
+                  />
+                </div>
+              </div>
             </div>
           </div>
 

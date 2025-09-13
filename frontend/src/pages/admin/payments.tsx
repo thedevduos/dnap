@@ -102,7 +102,7 @@ export default function AdminPayments() {
     if (!transaction || !transaction.id) return false
     
     const matchesSearch = transaction.id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         transaction.orderId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         transaction.orderNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          transaction.customerEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          transaction.customerName?.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesPaymentMethod = paymentMethodFilter === "all" || 
@@ -219,7 +219,7 @@ export default function AdminPayments() {
                 </div>
               </TableCell>
               <TableCell className="font-mono text-sm">
-                {transaction.orderId ? `#${transaction.orderId.toString().slice(-8)}` : 'N/A'}
+                {transaction.orderNumber || 'N/A'}
               </TableCell>
               <TableCell>
                 <div>

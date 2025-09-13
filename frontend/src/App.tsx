@@ -48,13 +48,13 @@ import AdminUsers from "@/pages/admin/users"
 import AdminTeam from "@/pages/admin/team"
 import AdminCareers from "@/pages/admin/careers"
 import AdminOrders from "@/pages/admin/orders"
-import AdminShipping from "@/pages/admin/shipping"
 import AdminCoupons from "@/pages/admin/coupons"
 import AdminPayments from "@/pages/admin/payments"
 import AdminCustomers from "@/pages/admin/customers"
 import AdminAnalytics from "@/pages/admin/analytics"
 import AdminReviews from "@/pages/admin/reviews"
 import AdminZohoConnection from "@/pages/admin/zoho-connection"
+import AdminShiprocket from "@/pages/admin/shiprocket"
 import AdminAuthorBooks from "@/pages/admin/author-books"
 import AdminAffiliateLinks from "@/pages/admin/affiliate-links"
 import AdminSalesReports from "@/pages/admin/sales-reports"
@@ -92,7 +92,6 @@ export default function App() {
                               <Route path="/team" element={<AdminTeam />} />
                               <Route path="/careers" element={<AdminCareers />} />
                               <Route path="/orders" element={<AdminOrders />} />
-                              <Route path="/shipping" element={<AdminShipping />} />
                               <Route path="/coupons" element={<AdminCoupons />} />
                               <Route path="/payments" element={<AdminPayments />} />
                               <Route path="/customers" element={<AdminCustomers />} />
@@ -105,6 +104,7 @@ export default function App() {
                               <Route path="/emails" element={<AdminEmails />} />
                               <Route path="/profile" element={<AdminProfile />} />
                               <Route path="/zoho-connection" element={<AdminZohoConnection />} />
+                              <Route path="/shiprocket" element={<AdminShiprocket />} />
                               <Route path="/author-books" element={<AdminAuthorBooks />} />
                               <Route path="/affiliate-links" element={<AdminAffiliateLinks />} />
                               <Route path="/sales-reports" element={<AdminSalesReports />} />

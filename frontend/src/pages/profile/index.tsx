@@ -499,7 +499,7 @@ export default function ProfilePage() {
                           <CardContent className="p-4">
                             <div className="flex justify-between items-start mb-4">
                               <div>
-                                <p className="font-medium">Order #{order.id.slice(-8)}</p>
+                                <p className="font-medium">Order {order.orderNumber || `#${order.id.slice(-8)}`}</p>
                                 <p className="text-sm text-muted-foreground">
                                   {order.createdAt?.toDate().toLocaleDateString()}
                                 </p>

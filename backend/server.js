@@ -33,6 +33,8 @@ const zohoRoutes = require('./routes/zoho');
 const jiraRoutes = require('./routes/jira');
 const authorsRoutes = require('./routes/authors');
 const usersRoutes = require('./routes/users');
+const ordersRoutes = require('./routes/orders');
+const shiprocketRoutes = require('./routes/shiprocket');
 
 // Import Zoho service for automated token refresh
 const zohoService = require('./services/zohoService');
@@ -299,6 +301,12 @@ app.use('/api/authors', authorsRoutes);
 
 // Users routes
 app.use('/api/users', usersRoutes);
+
+// Orders routes
+app.use('/api/orders', ordersRoutes);
+
+// Shiprocket routes
+app.use('/api/shiprocket', shiprocketRoutes);
 
 // Zoho auto-refresh status endpoint
 app.get('/api/zoho/auto-refresh-status', async (req, res) => {
