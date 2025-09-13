@@ -1,8 +1,8 @@
 "use client"
 
 import { useEffect, useRef } from "react"
-import { Card, CardContent } from "@/components/ui/card"
-import { BookOpen, Users, Award, Heart, Zap, Globe } from "lucide-react"
+// import { Card, CardContent } from "@/components/ui/card"
+// import { BookOpen, Users, Award, Heart, Zap, Globe } from "lucide-react"
 import anime from "animejs"
 
 export function About() {
@@ -43,39 +43,39 @@ export function About() {
     return () => observer.disconnect()
   }, [])
 
-  const features = [
-    {
-      icon: BookOpen,
-      title: "Quality Publishing",
-      description: "We maintain the highest standards in publishing, ensuring every book meets our quality criteria.",
-    },
-    {
-      icon: Users,
-      title: "Author Support",
-      description: "Comprehensive support for authors throughout their publishing journey, from manuscript to market.",
-    },
-    {
-      icon: Award,
-      title: "Award-Winning",
-      description: "Our publications have won numerous literary awards and recognition in the industry.",
-    },
-    {
-      icon: Heart,
-      title: "Passionate Team",
-      description: "A dedicated team of literary enthusiasts committed to bringing great stories to readers.",
-    },
-    {
-      icon: Zap,
-      title: "Fast Publishing",
-      description:
-        "Streamlined publishing process that gets your work to readers quickly without compromising quality.",
-    },
-    {
-      icon: Globe,
-      title: "Global Reach",
-      description: "Distribution network that spans across multiple countries and digital platforms.",
-    },
-  ]
+  // const features = [
+  //   {
+  //     icon: BookOpen,
+  //     title: "Quality Publishing",
+  //     description: "We maintain the highest standards in publishing, ensuring every book meets our quality criteria.",
+  //   },
+  //   {
+  //     icon: Users,
+  //     title: "Author Support",
+  //     description: "Comprehensive support for authors throughout their publishing journey, from manuscript to market.",
+  //   },
+  //   {
+  //     icon: Award,
+  //     title: "Award-Winning",
+  //     description: "Our publications have won numerous literary awards and recognition in the industry.",
+  //   },
+  //   {
+  //     icon: Heart,
+  //     title: "Passionate Team",
+  //     description: "A dedicated team of literary enthusiasts committed to bringing great stories to readers.",
+  //   },
+  //   {
+  //     icon: Zap,
+  //     title: "Fast Publishing",
+  //     description:
+  //       "Streamlined publishing process that gets your work to readers quickly without compromising quality.",
+  //   },
+  //   {
+  //     icon: Globe,
+  //     title: "Global Reach",
+  //     description: "Distribution network that spans across multiple countries and digital platforms.",
+  //   },
+  // ]
 
   return (
     <section id="about" ref={sectionRef} className="py-20 bg-muted/30">
@@ -91,7 +91,7 @@ export function About() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {features.map((feature, index) => (
             <Card
               key={index}
@@ -108,7 +108,7 @@ export function About() {
               </CardContent>
             </Card>
           ))}
-        </div>
+        </div> */}
 
         <div className="mt-16 text-center">
           <div className="about-title max-w-4xl mx-auto">

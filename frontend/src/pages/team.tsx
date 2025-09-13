@@ -42,7 +42,7 @@ export default function TeamPage() {
     <section ref={sectionRef} className="py-20 bg-background min-h-screen">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
-          <h1 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-orange-500 to-amber-500 bg-clip-text text-transparent">
+          <h1 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
             Meet Our Team
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
@@ -52,7 +52,7 @@ export default function TeamPage() {
 
         {loading ? (
           <div className="text-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
             <p className="mt-4 text-muted-foreground">Loading team members...</p>
           </div>
         ) : team.length === 0 ? (

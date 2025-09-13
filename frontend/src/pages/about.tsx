@@ -72,7 +72,7 @@ export default function AboutPage() {
     <section ref={sectionRef} className="py-20 bg-background">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
-          <h1 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-orange-500 to-amber-500 bg-clip-text text-transparent">
+          <h1 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
             About DNA Publications
           </h1>
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto leading-relaxed">
@@ -91,8 +91,8 @@ export default function AboutPage() {
             >
               <CardContent className="p-6 text-center">
                 <div className="mb-4 flex justify-center">
-                  <div className="p-3 rounded-full bg-orange-100 group-hover:bg-orange-200 transition-colors duration-300">
-                    <feature.icon className="h-8 w-8 text-orange-600" />
+                  <div className="p-3 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors duration-300">
+                    <feature.icon className="h-8 w-8 text-primary" />
                   </div>
                 </div>
                 <h3 className="text-xl font-semibold mb-3 text-foreground">{feature.title}</h3>
@@ -104,7 +104,7 @@ export default function AboutPage() {
 
         <div className="text-center">
           <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl md:text-3xl font-bold mb-6 text-foreground">Our Mission</h2>
+            <h2 className="text-2xl md:text-3xl font-bold mb-6 text-primary">Our Mission & Vision</h2>
             <p className="text-lg text-muted-foreground leading-relaxed">
               To democratize publishing and make quality literature accessible to everyone. We strive to create a
               platform where emerging and established authors can share their stories with the world, while providing

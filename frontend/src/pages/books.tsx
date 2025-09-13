@@ -143,7 +143,7 @@ export default function BooksPage() {
     <section ref={sectionRef} className="py-20 bg-background min-h-screen">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
-          <h1 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-orange-500 to-amber-500 bg-clip-text text-transparent">
+          <h1 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
             Our Book Collection
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8">

@@ -104,7 +104,7 @@ export function Header() {
       <header className="bg-background/80 backdrop-blur-md border-b">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
-          <Link to="/" className="header-item flex items-center space-x-3">
+          <Link to="/" className="header-item flex items-center space-x-3 ml-8">
             <img src="/dnap-full.png" alt="DNA Publications" className="h-14 w-auto" />
           </Link>
 
@@ -115,7 +115,7 @@ export function Header() {
                 key={item.name}
                 to={item.path}
                 className={`header-item font-medium transition-colors duration-200 ${
-                  location.pathname === item.path ? "text-primary" : "text-foreground hover:text-primary"
+                  location.pathname === item.path ? "text-navbar-gold" : "text-foreground hover:text-navbar-gold"
                 }`}
               >
                 {item.name}
@@ -218,7 +218,7 @@ export function Header() {
                   key={item.name}
                   to={item.path}
                   className={`mobile-menu-item font-medium transition-colors duration-200 ${
-                    location.pathname === item.path ? "text-primary" : "text-foreground hover:text-primary"
+                    location.pathname === item.path ? "text-navbar-gold" : "text-foreground hover:text-navbar-gold"
                   }`}
                   onClick={() => setIsMenuOpen(false)}
                 >

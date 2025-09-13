@@ -71,12 +71,12 @@ export function Footer() {
           <div className="lg:col-span-2">
             <div className="flex items-center space-x-3 mb-2">
               <img src="/dnap-full.png" alt="DNA Publications" className="h-16 w-auto -mt-6" />
-              <div>
+              {/* <div>
                 <span className="text-3xl font-bold" style={{ color: '#381874' }}>DNA Publications</span>
                 <p className="text-lg font-medium text-muted-foreground mb-4">
                   The Home of ambitious writers
                 </p>
-              </div>
+              </div> */}
             </div>
 
             {/* Newsletter Signup */}

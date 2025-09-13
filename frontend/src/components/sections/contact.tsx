@@ -32,7 +32,7 @@ const contactInfo = [
     icon: MapPin,
     title: "Visit Us",
     details: "Keeranatham, Coimbatore, Tamil Nadu, India",
-    action: "#",
+    action: "https://maps.app.goo.gl/CDHovj4uusycpiem8",
     description: "Our headquarters"
   },
 ]
@@ -123,16 +123,16 @@ export function Contact() {
   }
 
   return (
-    <section ref={sectionRef} id="contact" className="py-20 bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
+    <section ref={sectionRef} id="contact" className="py-20 bg-gradient-to-br from-purple-50 via-background to-purple-50">
       <div className="container mx-auto px-4">
         {/* Header */}
         <div className="text-center mb-16">
-          <Badge variant="outline" className="mb-4 border-orange-200 text-orange-600">
+          <Badge variant="outline" className="mb-4 border-primary/20 text-primary">
             Contact Us
           </Badge>
           <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
             Let's Start Your{" "}
-            <span className="bg-gradient-to-r from-orange-500 to-amber-600 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
               Publishing Journey
             </span>
           </h2>
@@ -149,23 +149,23 @@ export function Contact() {
             <Card className="contact-card border-0 shadow-xl bg-white/90 backdrop-blur-sm">
               <CardHeader className="pb-4">
                 <CardTitle className="flex items-center space-x-3 text-xl">
-                  <div className="p-2 bg-gradient-to-br from-orange-500 to-amber-600 rounded-lg">
-                    <Users className="w-5 h-5 text-white" />
+                  <div className="p-2 bg-primary/20 rounded-full">
+                    <Users className="w-5 h-5 text-primary" />
                   </div>
-                  <span className="bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">
+                  <span className="text-primary">
                     Quick Contact
                   </span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {contactInfo.map((info, index) => (
-                  <div key={index} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-orange-50 transition-colors">
-                    <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-amber-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <info.icon className="h-5 w-5 text-white" />
+                  <div key={index} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-primary/5 transition-colors">
+                    <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center flex-shrink-0">
+                      <info.icon className="h-5 w-5 text-primary" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <h4 className="font-semibold text-gray-900 text-sm">{info.title}</h4>
-                      <a href={info.action} className="text-orange-600 hover:text-orange-700 font-medium text-sm block">
+                      <a href={info.action} className="text-primary hover:text-primary/80 font-medium text-sm block">
                         {info.details}
                       </a>
                       <p className="text-gray-500 text-xs mt-1">{info.description}</p>
@@ -179,10 +179,10 @@ export function Contact() {
             <Card className="contact-card border-0 shadow-xl bg-white/90 backdrop-blur-sm">
               <CardHeader className="pb-4">
                 <CardTitle className="flex items-center space-x-3 text-xl">
-                  <div className="p-2 bg-gradient-to-br from-orange-500 to-amber-600 rounded-lg">
-                    <Clock className="w-5 h-5 text-white" />
+                  <div className="p-2 bg-primary/20 rounded-full">
+                    <Clock className="w-5 h-5 text-primary" />
                   </div>
-                  <span className="bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">
+                  <span className="text-primary">
                     Business Hours
                   </span>
                 </CardTitle>
@@ -211,10 +211,10 @@ export function Contact() {
             <Card className="contact-card border-0 shadow-2xl bg-white/95 backdrop-blur-sm">
               <CardHeader className="pb-6">
                 <CardTitle className="flex items-center space-x-3 text-2xl">
-                  <div className="p-3 bg-gradient-to-br from-orange-500 to-amber-600 rounded-xl">
-                    <MessageSquare className="w-6 h-6 text-white" />
+                  <div className="p-3 bg-primary/20 rounded-full">
+                    <MessageSquare className="w-6 h-6 text-primary" />
                   </div>
-                  <span className="bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">
+                  <span className="text-primary">
                     Send us a Message
                   </span>
                 </CardTitle>
@@ -237,7 +237,7 @@ export function Contact() {
                         value={formData.name}
                         onChange={handleChange}
                         placeholder="Your full name"
-                        className="h-12 border-gray-200 focus:border-orange-500 focus:ring-orange-500 transition-all duration-200"
+                        className="h-12 border-gray-200 focus:border-primary focus:ring-primary transition-all duration-200"
                       />
                     </div>
                     <div className="space-y-2">
@@ -252,7 +252,7 @@ export function Contact() {
                         value={formData.email}
                         onChange={handleChange}
                         placeholder="your@email.com"
-                        className="h-12 border-gray-200 focus:border-orange-500 focus:ring-orange-500 transition-all duration-200"
+                        className="h-12 border-gray-200 focus:border-primary focus:ring-primary transition-all duration-200"
                       />
                     </div>
                   </div>
@@ -283,7 +283,7 @@ export function Contact() {
                       value={formData.type}
                       onChange={handleChange}
                       required
-                      className="w-full h-12 px-4 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 bg-white"
+                      className="w-full h-12 px-4 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200 bg-white"
                     >
                       <option value="general">General Inquiry</option>
                       <option value="publishing">Publishing Services</option>
@@ -305,13 +305,13 @@ export function Contact() {
                       onChange={handleChange}
                       placeholder="Tell us about your project, goals, or any questions you have..."
                       rows={6}
-                      className="border-gray-200 focus:border-orange-500 focus:ring-orange-500 transition-all duration-200 resize-none"
+                      className="border-gray-200 focus:border-primary focus:ring-primary transition-all duration-200 resize-none"
                     />
                   </div>
 
                   <Button 
                     type="submit" 
-                    className="w-full h-14 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]" 
+                    className="w-full h-14 bg-primary hover:bg-primary/90 text-white font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]" 
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? (

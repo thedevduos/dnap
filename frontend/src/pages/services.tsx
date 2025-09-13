@@ -290,7 +290,7 @@ export default function ServicesPage() {
     <section ref={sectionRef} className="py-20 bg-background min-h-screen">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
-          <h1 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-orange-500 to-amber-500 bg-clip-text text-transparent">
+          <h1 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
             Our Services
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
@@ -304,15 +304,15 @@ export default function ServicesPage() {
             {services.map((service) => (
               <Card
                 key={service.id}
-                className="service-card group hover:shadow-lg transition-all duration-300 border-l-4 border-l-orange-500"
+                className="service-card group hover:shadow-lg transition-all duration-300 border-l-4 border-l-primary"
               >
                 <CardContent className="p-6">
                   <div className="flex items-start space-x-4">
-                    <div className="p-3 rounded-full bg-orange-100 group-hover:bg-orange-200 transition-colors duration-300 flex-shrink-0">
-                      <service.icon className="h-6 w-6 text-orange-600" />
+                    <div className="p-3 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors duration-300 flex-shrink-0">
+                      <service.icon className="h-6 w-6 text-primary" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-lg font-semibold mb-2 text-gray-900 group-hover:text-orange-600 transition-colors duration-300">
+                      <h3 className="text-lg font-semibold mb-2 text-gray-900 group-hover:text-primary transition-colors duration-300">
                         {service.title}
                       </h3>
                       <p className="text-sm text-muted-foreground leading-relaxed">
@@ -328,7 +328,7 @@ export default function ServicesPage() {
 
         {/* Publishing Packages Section */}
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold mb-6 bg-gradient-to-r from-orange-500 to-amber-500 bg-clip-text text-transparent">
+          <h2 className="text-3xl md:text-4xl font-bold mb-6 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
             Book Publishing Packages
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
@@ -341,21 +341,21 @@ export default function ServicesPage() {
             <Card
               key={pkg.id}
               className={`service-card relative group hover:shadow-xl transition-all duration-300 ${
-                pkg.popular ? "ring-2 ring-orange-500 scale-105" : ""
+                pkg.popular ? "ring-2 ring-primary scale-105" : ""
               }`}
             >
               {pkg.popular && (
-                <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-orange-500">Most Popular</Badge>
+                <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-primary">Most Popular</Badge>
               )}
 
               <CardHeader className="text-center pb-4">
                 <div className="mb-4 flex justify-center">
-                  <div className="p-3 rounded-full bg-orange-100 group-hover:bg-orange-200 transition-colors duration-300">
-                    <pkg.icon className="h-8 w-8 text-orange-600" />
+                  <div className="p-3 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors duration-300">
+                    <pkg.icon className="h-8 w-8 text-primary" />
                   </div>
                 </div>
                 <CardTitle className="text-lg font-bold">{pkg.title}</CardTitle>
-                <div className="text-2xl font-bold text-orange-600">
+                <div className="text-2xl font-bold text-primary">
                   {pkg.price}
                 </div>
                 <p className="text-sm text-muted-foreground">{pkg.description}</p>
@@ -365,7 +365,7 @@ export default function ServicesPage() {
                 <ul className="space-y-3">
                   {pkg.features.map((feature, featureIndex) => (
                     <li key={featureIndex} className="flex items-center">
-                      <Check className="h-4 w-4 text-orange-600 mr-3 flex-shrink-0" />
+                      <Check className="h-4 w-4 text-primary mr-3 flex-shrink-0" />
                       <span className="text-sm">{feature}</span>
                     </li>
                   ))}
