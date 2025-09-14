@@ -131,9 +131,8 @@ export function Contact() {
             Contact Us
           </Badge>
           <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-            Let's Start Your{" "}
             <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-              Publishing Journey
+            Let's Start Your Publishing Journey
             </span>
           </h2>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">

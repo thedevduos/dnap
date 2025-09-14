@@ -34,8 +34,7 @@ import { Package, Search, MoreHorizontal, Eye, Edit, RefreshCw, Truck, X } from 
 import { Trash2 } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useOrdersAdmin } from "@/hooks/use-orders-admin"
-import { updateOrderStatus, deleteOrder, processRefund } from "@/lib/firebase-utils"
-import { cancelShipment } from "@/lib/shiprocket-utils"
+import { updateOrderStatus, deleteOrder } from "@/lib/firebase-utils"
 import { useToast } from "@/hooks/use-toast"
 import { AdminLayout } from "@/components/admin/admin-layout"
 import { OrderModal } from "@/components/admin/order-modal"
@@ -106,58 +105,21 @@ export default function AdminOrders() {
       })
       return
     }
-
-    // Get payment method display name
-    const getPaymentMethodName = (method: string) => {
-      switch (method) {
-        case 'razorpay': return 'Razorpay'
-        case 'zoho': return 'Zoho Pay'
-        default: return method
-      }
-    }
-
-    const paymentMethodName = getPaymentMethodName(order.paymentMethod)
     
-    if (window.confirm(`Are you sure you want to cancel this order? This will automatically trigger a refund via ${paymentMethodName} and cancel the Shiprocket pickup.`)) {
+    if (window.confirm(`Are you sure you want to cancel this order? The order status will be updated to cancelled. Refunds and Shiprocket cancellations will be handled manually.`)) {
       try {
-        // Cancel Shiprocket pickup if it exists
-        if (order.shiprocketOrderId) {
-          try {
-            await cancelShipment(order.shiprocketOrderId)
-            console.log('Shiprocket pickup cancelled successfully')
-          } catch (shiprocketError: any) {
-            console.error('Error cancelling Shiprocket pickup:', shiprocketError)
-            // Continue with order cancellation even if Shiprocket cancellation fails
-            toast({
-              title: "Warning",
-              description: "Order cancelled but Shiprocket pickup cancellation failed. Please cancel manually in Shiprocket dashboard.",
-              variant: "destructive",
-            })
-          }
-        }
-
         // Update order status to cancelled
         await updateOrderStatus(order.id, "cancelled")
         
-        // Process refund if payment was made and transaction ID exists
-        if (order.transactionId && order.total > 0) {
-          await processRefund(order.transactionId, order.total, order.paymentMethod)
-          
-          toast({
-            title: "Order Cancelled",
-            description: `Order has been cancelled, Shiprocket pickup cancelled, and refund initiated via ${paymentMethodName}.`,
-          })
-        } else {
-          toast({
-            title: "Order Cancelled",
-            description: "Order has been cancelled and Shiprocket pickup cancelled. No refund was processed as no payment was made.",
-          })
-        }
+        toast({
+          title: "Order Cancelled",
+          description: "Order status has been updated to cancelled. Please handle refunds and Shiprocket cancellations manually.",
+        })
       } catch (error: any) {
         console.error('Error cancelling order:', error)
         toast({
           title: "Error",
-          description: `Failed to cancel order and process refund: ${error.message || 'Unknown error'}`,
+          description: `Failed to cancel order: ${error.message || 'Unknown error'}`,
           variant: "destructive",
         })
       }

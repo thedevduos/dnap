@@ -135,7 +135,12 @@ export default function BooksPage() {
       price: book.price,
       imageUrl: book.imageUrl,
       category: book.category,
-      quantity: 1
+      quantity: 1,
+      sku: book.sku, // Only use SKU if admin provided it
+      weight: book.weight || 0.5,
+      length: book.length || 20,
+      breadth: book.breadth || book.width || 15, // Use breadth if available, fallback to width, then default
+      height: book.height || 2
     })
   }
 

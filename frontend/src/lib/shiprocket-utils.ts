@@ -29,7 +29,7 @@ export interface ShiprocketOrderData {
     quantity: number;
     weight?: number;
     length?: number;
-    width?: number;
+    breadth?: number;
     height?: number;
   }>;
   shippingAddress: {
@@ -68,7 +68,7 @@ export const calculateShippingRates = async (
   deliveryPincode: string,
   weight: number,
   length: number,
-  width: number,
+  breadth: number,
   height: number
 ): Promise<ShippingCalculationResponse> => {
   try {
@@ -76,7 +76,7 @@ export const calculateShippingRates = async (
       deliveryPincode,
       weight,
       length,
-      width,
+      breadth,
       height
     });
 
@@ -89,7 +89,7 @@ export const calculateShippingRates = async (
         deliveryPincode,
         weight,
         length,
-        width,
+        breadth,
         height
       })
     });
@@ -261,25 +261,25 @@ export const getPickupAddress = async () => {
 export const calculateCartShippingData = (items: any[]) => {
   let totalWeight = 0;
   let maxLength = 0;
-  let maxWidth = 0;
+  let maxBreadth = 0;
   let maxHeight = 0;
 
   items.forEach(item => {
     const weight = item.weight || 0.5; // Default 0.5kg if weight not available
     const length = item.length || 20; // Default 20cm if not available
-    const width = item.width || 15; // Default 15cm if not available
+    const breadth = item.breadth || 15; // Default 15cm if not available
     const height = item.height || 2; // Default 2cm if not available
 
     totalWeight += weight * item.quantity;
     maxLength = Math.max(maxLength, length);
-    maxWidth = Math.max(maxWidth, width);
+    maxBreadth = Math.max(maxBreadth, breadth);
     maxHeight = Math.max(maxHeight, height);
   });
 
   return {
     totalWeight,
     maxLength,
-    maxWidth,
+    maxBreadth,
     maxHeight
   };
 };

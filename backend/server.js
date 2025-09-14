@@ -35,6 +35,7 @@ const authorsRoutes = require('./routes/authors');
 const usersRoutes = require('./routes/users');
 const ordersRoutes = require('./routes/orders');
 const shiprocketRoutes = require('./routes/shiprocket');
+const emailRoutes = require('./routes/email');
 
 // Import Zoho service for automated token refresh
 const zohoService = require('./services/zohoService');
@@ -307,6 +308,9 @@ app.use('/api/orders', ordersRoutes);
 
 // Shiprocket routes
 app.use('/api/shiprocket', shiprocketRoutes);
+
+// Email routes
+app.use('/api', emailRoutes);
 
 // Zoho auto-refresh status endpoint
 app.get('/api/zoho/auto-refresh-status', async (req, res) => {

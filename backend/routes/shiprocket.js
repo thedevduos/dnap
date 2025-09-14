@@ -9,20 +9,20 @@ router.post('/calculate-shipping', async (req, res) => {
       deliveryPincode,
       weight,
       length,
-      width,
+      breadth,
       height
     } = req.body;
 
     // Validate required fields
-    if (!deliveryPincode || !weight || !length || !width || !height) {
+    if (!deliveryPincode || !weight || !length || !breadth || !height) {
       return res.status(400).json({
         success: false,
-        message: 'Missing required fields: deliveryPincode, weight, length, width, height'
+        message: 'Missing required fields: deliveryPincode, weight, length, breadth, height'
       });
     }
 
     // Validate data types
-    if (isNaN(weight) || isNaN(length) || isNaN(width) || isNaN(height)) {
+    if (isNaN(weight) || isNaN(length) || isNaN(breadth) || isNaN(height)) {
       return res.status(400).json({
         success: false,
         message: 'Weight and dimensions must be valid numbers'
@@ -33,7 +33,7 @@ router.post('/calculate-shipping', async (req, res) => {
       deliveryPincode,
       weight,
       length,
-      width,
+      breadth,
       height
     });
 
@@ -41,7 +41,7 @@ router.post('/calculate-shipping', async (req, res) => {
       deliveryPincode,
       parseFloat(weight),
       parseFloat(length),
-      parseFloat(width),
+      parseFloat(breadth),
       parseFloat(height)
     );
 

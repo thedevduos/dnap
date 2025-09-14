@@ -47,7 +47,7 @@ export default function AdminAuthorBooks() {
     imageUrl: "",
     weight: "",
     length: "",
-    width: "",
+    breadth: "",
     height: "",
     edition: "",
     year: "",
@@ -57,6 +57,7 @@ export default function AdminAuthorBooks() {
     language: "",
     publisher: "",
     royaltyPercentage: "",
+    sku: "",
   })
   const [_imageFile] = useState<File | null>(null)
   const [isImageUploading, setIsImageUploading] = useState(false)
@@ -183,7 +184,7 @@ export default function AdminAuthorBooks() {
       imageUrl: book.imageUrl || "",
       weight: "",
       length: "",
-      width: "",
+      breadth: "",
       height: "",
       // Pre-populate additional fields from the selected book if available
       edition: book.edition || "",
@@ -194,6 +195,7 @@ export default function AdminAuthorBooks() {
       language: book.language || "",
       publisher: book.publisher || "",
       royaltyPercentage: book.royaltyPercentage || "",
+      sku: book.sku || "",
     })
     setShowBookCreationModal(true)
   }
@@ -228,10 +230,10 @@ export default function AdminAuthorBooks() {
   }
 
   const handleCreateBook = async () => {
-    if (!selectedBook || !bookCreationData.price) {
+    if (!selectedBook || !bookCreationData.price || !bookCreationData.sku || bookCreationData.sku.trim() === '') {
       toast({
         title: "Error",
-        description: "Please fill in all required fields.",
+        description: "Please fill in all required fields including SKU.",
         variant: "destructive"
       })
       return
@@ -262,7 +264,7 @@ export default function AdminAuthorBooks() {
         rating: parseFloat(bookCreationData.rating),
         weight: parseFloat(bookCreationData.weight) || 0,
         length: parseFloat(bookCreationData.length) || 0,
-        width: parseFloat(bookCreationData.width) || 0,
+        breadth: parseFloat(bookCreationData.breadth) || 0,
         height: parseFloat(bookCreationData.height) || 0,
         // Include all additional book details
         edition: bookCreationData.edition,
@@ -273,6 +275,7 @@ export default function AdminAuthorBooks() {
         language: bookCreationData.language,
         publisher: bookCreationData.publisher,
         royaltyPercentage: Math.round((parseFloat(bookCreationData.royaltyPercentage) || 0) * 100) / 100,
+        sku: bookCreationData.sku,
         createdAt: new Date(),
       }
 
@@ -907,13 +910,13 @@ export default function AdminAuthorBooks() {
                             />
                           </div>
                           <div>
-                            <Label htmlFor="bookWidth">Width (CM) *</Label>
+                            <Label htmlFor="bookBreadth">Breadth (CM) *</Label>
                             <Input
-                              id="bookWidth"
+                              id="bookBreadth"
                               type="number"
                               step="0.1"
-                              value={bookCreationData.width}
-                              onChange={(e) => setBookCreationData({...bookCreationData, width: e.target.value})}
+                              value={bookCreationData.breadth}
+                              onChange={(e) => setBookCreationData({...bookCreationData, breadth: e.target.value})}
                               placeholder="0.0"
                             />
                           </div>
@@ -1104,6 +1107,20 @@ export default function AdminAuthorBooks() {
                             max="100"
                             step="0.1"
                           />
+                        </div>
+
+                        <div className="mt-4">
+                          <Label htmlFor="bookSku">SKU (Stock Keeping Unit) *</Label>
+                          <Input
+                            id="bookSku"
+                            value={bookCreationData.sku}
+                            onChange={(e) => setBookCreationData({...bookCreationData, sku: e.target.value})}
+                            placeholder="e.g., DNAP-BOOK-001"
+                            required
+                          />
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Unique identifier for inventory management. Required for Shiprocket integration.
+                          </p>
                         </div>
                       </div>
                     </div>

@@ -737,4 +737,30 @@ export const sendTestEmail = async (testEmail: string) => {
     console.error('Error sending test email:', error)
     throw new Error('Failed to send test email')
   }
+}
+
+// Send admin pickup notification email
+export const sendAdminPickupNotification = async (orderData: any, pickupData: any, courierData: any) => {
+  try {
+    const response = await fetch(`${BACKEND_API_URL}/api/send-admin-pickup-notification`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ orderData, pickupData, courierData }),
+    })
+
+    const result = await response.json()
+    
+    if (!result.success) {
+      throw new Error(result.message || 'Failed to send admin pickup notification email')
+    }
+
+    console.log('Admin pickup notification email sent successfully:', result.messageId)
+    return result
+    
+  } catch (error) {
+    console.error('Error sending admin pickup notification email:', error)
+    throw new Error('Failed to send admin pickup notification email')
+  }
 } 

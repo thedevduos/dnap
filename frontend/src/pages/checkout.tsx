@@ -209,7 +209,7 @@ export default function CheckoutPage() {
         formData.postalCode,
         shippingData.totalWeight,
         shippingData.maxLength,
-        shippingData.maxWidth,
+        shippingData.maxBreadth,
         shippingData.maxHeight
       )
 

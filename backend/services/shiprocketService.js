@@ -10,9 +10,9 @@ const SHIPROCKET_CONFIG = {
 // Pickup Address (Permanent)
 const PICKUP_ADDRESS = {
   pickup_location: "work", // Use the correct pickup location name from Shiprocket
-  name: "Nitin A",
+  name: "Nithin Antony U",
   email: "info@dnap.in",
-  phone: "7598691689",
+  phone: "9488879628",
   address: "No.5, Sastik House, Sivasakthi Amman Nagar, opposite to Keeranatham Panchayat Office",
   address_2: "Keeranatham",
   city: "Coimbatore",
@@ -56,14 +56,14 @@ const getAuthToken = async () => {
 };
 
 // Calculate shipping rates
-const calculateShippingRates = async (deliveryPincode, weight, length, width, height) => {
+const calculateShippingRates = async (deliveryPincode, weight, length, breadth, height) => {
   try {
     const token = await getAuthToken();
     
     console.log('Calculating shipping rates for:', {
       deliveryPincode,
       weight,
-      dimensions: { length, width, height }
+      dimensions: { length, breadth, height }
     });
 
     // Correct Shiprocket API endpoint and payload format
@@ -73,7 +73,7 @@ const calculateShippingRates = async (deliveryPincode, weight, length, width, he
       cod: 0, // COD disabled - prepaid only
       weight: weight,
       length: length,
-      breadth: width, // Shiprocket expects 'breadth' instead of 'width'
+      breadth: breadth, // Shiprocket expects 'breadth' instead of 'width'
       height: height
     };
 
@@ -142,6 +142,11 @@ const createShipmentOrder = async (orderData) => {
     const token = await getAuthToken();
     
     console.log('Creating Shiprocket order for:', orderData.orderId);
+    console.log('Order ID details:', {
+      orderId: orderData.orderId,
+      orderIdType: typeof orderData.orderId,
+      orderIdLength: orderData.orderId?.length
+    });
     console.log('Order data received:', {
       subtotal: orderData.subtotal,
       shipping: orderData.shipping,
@@ -150,15 +155,33 @@ const createShipmentOrder = async (orderData) => {
     });
 
     // Prepare order items
-    const orderItems = orderData.items.map(item => ({
-      name: item.title,
-      sku: item.bookId,
-      units: item.quantity,
-      selling_price: item.price,
-      discount: 0,
-      tax: 0,
-      hsn: 4901 // HSN code for books
-    }));
+    const orderItems = orderData.items.map(item => {
+      console.log(`Processing item: ${item.title}, SKU: ${item.sku || 'NOT PROVIDED'}, BookId: ${item.bookId}`);
+      
+      // Create order item object
+      const orderItem = {
+        name: item.title,
+        units: item.quantity,
+        selling_price: item.price,
+        discount: 0,
+        tax: 0,
+        hsn: 4901 // HSN code for books
+      };
+      
+      // Only add SKU if it's provided and not empty
+      if (item.sku && item.sku.trim() !== '') {
+        orderItem.sku = item.sku;
+      } else {
+        // Temporary fallback for existing books without SKU
+        // TODO: Remove this once all books have SKU fields
+        orderItem.sku = `TEMP-${item.bookId}`;
+        console.log(`Using temporary SKU for book without SKU: ${orderItem.sku}`);
+      }
+      
+      return orderItem;
+    });
+
+    console.log('Final order items for Shiprocket:', orderItems);
 
     // Calculate total weight and dimensions
     const totalWeight = orderData.items.reduce((sum, item) => {
@@ -167,7 +190,7 @@ const createShipmentOrder = async (orderData) => {
 
     // For multiple items, we'll use the largest dimensions
     const maxLength = Math.max(...orderData.items.map(item => item.length || 20));
-    const maxWidth = Math.max(...orderData.items.map(item => item.width || 15));
+    const maxBreadth = Math.max(...orderData.items.map(item => item.breadth || 15));
     const maxHeight = Math.max(...orderData.items.map(item => item.height || 2));
 
     // Calculate total if not provided
@@ -176,6 +199,7 @@ const createShipmentOrder = async (orderData) => {
 
     const shipmentData = {
         order_id: orderData.orderId,
+        channel_order_id: orderData.orderId, // Use our order ID as channel order ID
         order_date: new Date().toISOString().split('T')[0],
         pickup_location: PICKUP_ADDRESS.pickup_location,
         billing_customer_name: orderData.shippingAddress.firstName,
@@ -195,7 +219,7 @@ const createShipmentOrder = async (orderData) => {
         total_discount: orderData.discount || 0,
         total: calculatedTotal,
         length: Number(maxLength),
-        breadth: Number(maxWidth),
+        breadth: Number(maxBreadth),
         height: Number(maxHeight),
         weight: Number(totalWeight),
         // Additional required fields
@@ -205,6 +229,7 @@ const createShipmentOrder = async (orderData) => {
       
 
     console.log('Shiprocket order creation payload:', shipmentData);
+    console.log('Using custom order ID:', orderData.orderId, 'as both order_id and channel_order_id');
     console.log('Shiprocket order creation URL:', `${SHIPROCKET_CONFIG.baseUrl}/orders/create/adhoc`);
 
     const response = await axios.post(`${SHIPROCKET_CONFIG.baseUrl}/orders/create/adhoc`, shipmentData, {
@@ -216,9 +241,13 @@ const createShipmentOrder = async (orderData) => {
 
     console.log('Shiprocket order creation response status:', response.status);
     console.log('Shiprocket order creation response data:', response.data);
+    console.log('Shiprocket returned order_id:', response.data?.order_id);
+    console.log('Shiprocket returned channel_order_id:', response.data?.channel_order_id);
 
     if (response.data && response.data.order_id) {
       console.log('Shiprocket order created successfully:', response.data.order_id);
+      console.log('Our original order ID was:', orderData.orderId);
+      console.log('Shiprocket order ID matches ours:', response.data.order_id === orderData.orderId);
       return {
         success: true,
         shiprocketOrderId: response.data.order_id,
@@ -265,13 +294,19 @@ const assignCourier = async (shiprocketOrderId, courierId) => {
     console.log('Courier assignment response status:', response.status);
     console.log('Courier assignment response data:', response.data);
 
-    if (response.data && response.data.awb_code) {
-      console.log('Courier assigned successfully, AWB:', response.data.awb_code);
+    // Check for successful courier assignment
+    if (response.data && response.data.awb_assign_status === 1 && response.data.response && response.data.response.data) {
+      const courierData = response.data.response.data;
+      console.log('Courier assigned successfully, AWB:', courierData.awb_code);
       return {
         success: true,
-        awbCode: response.data.awb_code,
-        courierName: response.data.courier_name,
-        trackingUrl: response.data.tracking_url
+        awbCode: courierData.awb_code,
+        courierName: courierData.courier_name,
+        courierCompanyId: courierData.courier_company_id,
+        freightCharges: courierData.freight_charges,
+        pickupScheduledDate: courierData.pickup_scheduled_date,
+        invoiceNo: courierData.invoice_no,
+        appliedWeight: courierData.applied_weight
       };
     } else {
       console.error('Invalid response from courier assignment:', response.data);
@@ -313,7 +348,7 @@ const generatePickup = async (shipmentId) => {
     console.log('Pickup generation response status:', response.status);
     console.log('Pickup generation response data:', response.data);
 
-    if (response.data && response.data.status === 1) {
+    if (response.data && response.data.pickup_status === 1) {
       console.log('Pickup generated successfully for shipment:', shipmentId);
       return {
         success: true,
@@ -335,6 +370,21 @@ const generatePickup = async (shipmentId) => {
                         error.response?.data?.errors || 
                         error.response?.data || 
                         error.message;
+    
+    // Handle "Already in Pickup Queue" as a success case
+    if (error.response?.status === 400 && 
+        (errorMessage.includes('Already in Pickup Queue') || 
+         errorMessage.includes('already in pickup queue'))) {
+      console.log('✅ Pickup already scheduled - treating as success');
+      return {
+        success: true,
+        pickupData: {
+          pickup_status: 1,
+          message: 'Pickup already scheduled',
+          already_scheduled: true
+        }
+      };
+    }
     
     throw new Error(`Failed to generate pickup: ${JSON.stringify(errorMessage)}`);
   }

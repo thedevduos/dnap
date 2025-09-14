@@ -21,10 +21,12 @@ export default function PaymentSuccessPage() {
   const [searchParams] = useSearchParams()
   const [processing, setProcessing] = useState(true)
   const [orderDetails, setOrderDetails] = useState<any>(null)
+  const [adminEmailSent, setAdminEmailSent] = useState(false)
   const processedRef = useRef(false)
   const processingRef = useRef(false)
   const mountedRef = useRef(false)
   const effectRunRef = useRef(false)
+  const { refreshCartItems } = useCart()
   const clearCartRef = useRef<any>(null)
   const toastRef = useRef<any>(null)
   const addAddressRef = useRef<any>(null)
@@ -274,10 +276,13 @@ export default function PaymentSuccessPage() {
                 try {
                   console.log('Creating Shiprocket order for:', orderRef.id)
                   
+                  // Refresh cart items to get latest book data (including SKU)
+                  await refreshCartItems()
+                  
                   console.log('Order data items for Shiprocket:', orderData.items);
                   
                   const shiprocketOrderData = {
-                    orderId: orderRef.id,
+                    orderId: orderNumber, // Use the DNAP/X format order number instead of Firebase ID
                     items: orderData.items,
                     shippingAddress: orderData.shippingAddress,
                     userEmail: orderData.userEmail,
@@ -309,7 +314,9 @@ export default function PaymentSuccessPage() {
                     if (workflowResult.courierResult?.success) {
                       updateData.shiprocketAWB = workflowResult.courierResult.awbCode
                       updateData.courierName = workflowResult.courierResult.courierName
-                      updateData.trackingUrl = workflowResult.courierResult.trackingUrl
+                      if (workflowResult.courierResult.trackingUrl) {
+                        updateData.trackingUrl = workflowResult.courierResult.trackingUrl
+                      }
                     }
                     
                     // Add pickup details if generation was successful
@@ -318,29 +325,49 @@ export default function PaymentSuccessPage() {
                       updateData.pickupData = workflowResult.pickupResult.pickupData
                     }
                     
-                    await updateDoc(orderRef, updateData)
+                    // Filter out undefined values before updating
+                    const filteredUpdateData: any = Object.fromEntries(
+                      Object.entries(updateData).filter(([_, value]) => value !== undefined)
+                    )
+                    
+                    await updateDoc(orderRef, filteredUpdateData)
                     
                     console.log('✅ Order updated with complete Shiprocket workflow results')
                     
-                    // Send order confirmation email with tracking information
+                    // Send order confirmation email ONLY after complete Shiprocket workflow is successful
                     await sendOrderConfirmationEmailWithTracking(orderData, orderNumber, paymentMethod, paymentData, workflowResult)
+                    
+                    // Send admin pickup notification email
+                    try {
+                      const emailUtils = await import('@/lib/email-utils')
+                      await emailUtils.sendAdminPickupNotification(orderData, workflowResult.pickupResult?.pickupData, workflowResult.courierResult)
+                      console.log('✅ Admin pickup notification email sent successfully')
+                      setAdminEmailSent(true) // Enable buttons after admin email is sent
+                    } catch (adminEmailError) {
+                      console.error('Error sending admin pickup notification email:', adminEmailError)
+                      // Don't throw error as the main workflow is complete
+                      setAdminEmailSent(true) // Still enable buttons even if admin email fails
+                    }
                   } else {
                     console.warn('⚠️ Complete Shiprocket workflow failed:', workflowResult.message)
                     
-                    // Send basic order confirmation email without tracking
-                    await sendOrderConfirmationEmailWithTracking(orderData, orderNumber, paymentMethod, paymentData, null)
+                    // Don't send email if Shiprocket workflow failed - wait for manual processing
+                    console.log('❌ Not sending email due to failed Shiprocket workflow')
+                    setAdminEmailSent(true) // Still enable buttons even if Shiprocket workflow failed
                   }
                 } catch (shiprocketError) {
                   console.error('Error creating Shiprocket order:', shiprocketError)
                   // Don't throw error as the order was successful, just log the issue
                   
-                  // Send basic order confirmation email without tracking
-                  await sendOrderConfirmationEmailWithTracking(orderData, orderNumber, paymentMethod, paymentData, null)
+                  // Don't send email if Shiprocket workflow failed - wait for manual processing
+                  console.log('❌ Not sending email due to Shiprocket error')
+                  setAdminEmailSent(true) // Still enable buttons even if Shiprocket error occurs
                 }
               } else {
                 // For non-Shiprocket orders, send email immediately
                 console.log('Non-Shiprocket order, sending confirmation email immediately')
                 await sendOrderConfirmationEmailWithTracking(orderData, orderNumber, paymentMethod, paymentData, null)
+                setAdminEmailSent(true) // Enable buttons for non-Shiprocket orders
               }
 
               // Track affiliate sale if applicable
@@ -543,6 +570,31 @@ export default function PaymentSuccessPage() {
               <p className="text-muted-foreground">
                 Thank you for your purchase. Your order has been confirmed and will be processed shortly.
               </p>
+              
+              {!adminEmailSent && (
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6 shadow-sm">
+                  <div className="flex items-start space-x-4">
+                    <div className="flex-shrink-0">
+                      <div className="animate-spin rounded-full h-6 w-6 border-2 border-blue-600 border-t-transparent"></div>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-blue-900 font-medium text-sm mb-1">
+                        Finalizing your order...
+                      </h3>
+                      <p className="text-blue-700 text-sm leading-relaxed">
+                        We're processing your order and notifying our team about the pickup schedule. 
+                        This will only take a moment.
+                      </p>
+                      <div className="mt-3 flex items-center text-blue-600 text-xs">
+                        <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                        </svg>
+                        Please don't go back or refresh the page
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {orderDetails && (
                 <div className="bg-muted/30 p-4 rounded-lg">
@@ -568,17 +620,53 @@ export default function PaymentSuccessPage() {
               )}
 
               <div className="space-y-3">
-                <Button asChild size="lg" className="w-full">
+                <Button 
+                  asChild 
+                  size="lg" 
+                  className={`w-full transition-all duration-200 ${
+                    !adminEmailSent 
+                      ? 'opacity-50 cursor-not-allowed bg-gray-100 text-gray-500' 
+                      : 'hover:shadow-md'
+                  }`}
+                  disabled={!adminEmailSent}
+                >
                   <Link to={orderDetails ? `/order/${orderDetails.orderId}` : "/profile"}>
-                    <Package className="w-5 h-5 mr-2" />
-                    View Order Details
+                    {!adminEmailSent ? (
+                      <div className="flex items-center">
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-400 border-t-transparent mr-2"></div>
+                        Processing...
+                      </div>
+                    ) : (
+                      <>
+                        <Package className="w-5 h-5 mr-2" />
+                        View Order Details
+                      </>
+                    )}
                   </Link>
                 </Button>
                 
-                <Button variant="outline" asChild className="w-full">
+                <Button 
+                  variant="outline" 
+                  asChild 
+                  className={`w-full transition-all duration-200 ${
+                    !adminEmailSent 
+                      ? 'opacity-50 cursor-not-allowed border-gray-200 text-gray-500' 
+                      : 'hover:shadow-md'
+                  }`}
+                  disabled={!adminEmailSent}
+                >
                   <Link to="/books">
-                    Continue Shopping
-                    <ArrowRight className="w-5 h-5 ml-2" />
+                    {!adminEmailSent ? (
+                      <div className="flex items-center">
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-400 border-t-transparent mr-2"></div>
+                        Processing...
+                      </div>
+                    ) : (
+                      <>
+                        Continue Shopping
+                        <ArrowRight className="w-5 h-5 ml-2" />
+                      </>
+                    )}
                   </Link>
                 </Button>
               </div>

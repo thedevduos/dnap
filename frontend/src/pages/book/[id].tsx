@@ -46,6 +46,11 @@ interface Book {
   format?: string
   language?: string
   publisher?: string
+  sku?: string
+  weight?: number
+  length?: number
+  breadth?: number
+  height?: number
 }
 
 export default function BookDetailPage() {
@@ -154,7 +159,12 @@ export default function BookDetailPage() {
         price: book.price,
         imageUrl: book.imageUrl,
         category: book.category || '',
-        quantity: 1
+        quantity: 1,
+        sku: book.sku, // Only use SKU if admin provided it
+        weight: book.weight,
+        length: book.length,
+        breadth: book.breadth, // Use breadth if available, fallback to width, then default
+        height: book.height || 2
       })
     }
   }

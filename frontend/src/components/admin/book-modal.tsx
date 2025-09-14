@@ -29,7 +29,7 @@ export function BookModal({ isOpen, onClose, book }: BookModalProps) {
     rating: "4.5",
     weight: "",
     length: "",
-    width: "",
+    breadth: "",
     height: "",
     edition: "",
     year: "",
@@ -38,6 +38,7 @@ export function BookModal({ isOpen, onClose, book }: BookModalProps) {
     format: "",
     language: "",
     publisher: "",
+    sku: "",
   })
   const [_imageFile, setImageFile] = useState<File | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -57,7 +58,7 @@ export function BookModal({ isOpen, onClose, book }: BookModalProps) {
         rating: book.rating?.toString(),
         weight: book.weight?.toString() || "",
         length: book.length?.toString() || "",
-        width: book.width?.toString() || "",
+        breadth: book.breadth?.toString() || book.width?.toString() || "",
         height: book.height?.toString() || "",
         edition: book.edition || "",
         year: book.year || "",
@@ -66,6 +67,7 @@ export function BookModal({ isOpen, onClose, book }: BookModalProps) {
         format: book.format || "",
         language: book.language || "",
         publisher: book.publisher || "",
+        sku: book.sku || "",
       })
     } else {
       setFormData({
@@ -79,7 +81,7 @@ export function BookModal({ isOpen, onClose, book }: BookModalProps) {
         rating: "4.5",
         weight: "",
         length: "",
-        width: "",
+        breadth: "",
         height: "",
         edition: "",
         year: "",
@@ -88,6 +90,7 @@ export function BookModal({ isOpen, onClose, book }: BookModalProps) {
         format: "",
         language: "",
         publisher: "",
+        sku: "",
       })
     }
     setImageFile(null)
@@ -120,6 +123,17 @@ export function BookModal({ isOpen, onClose, book }: BookModalProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Validate required fields
+    if (!formData.sku || formData.sku.trim() === '') {
+      toast({
+        title: "Error",
+        description: "SKU is required for inventory management.",
+        variant: "destructive"
+      })
+      return
+    }
+    
     setIsSubmitting(true)
 
     try {
@@ -134,7 +148,7 @@ export function BookModal({ isOpen, onClose, book }: BookModalProps) {
         rating: parseFloat(formData.rating),
         weight: parseFloat(formData.weight) || 0,
         length: parseFloat(formData.length) || 0,
-        width: parseFloat(formData.width) || 0,
+        breadth: parseFloat(formData.breadth) || 0,
         height: parseFloat(formData.height) || 0,
         edition: formData.edition,
         year: formData.year,
@@ -143,6 +157,7 @@ export function BookModal({ isOpen, onClose, book }: BookModalProps) {
         format: formData.format,
         language: formData.language,
         publisher: formData.publisher,
+        sku: formData.sku,
       }
 
       if (book) {
@@ -403,6 +418,20 @@ export function BookModal({ isOpen, onClose, book }: BookModalProps) {
               />
             </div>
 
+            <div className="mt-4">
+              <Label htmlFor="sku">SKU (Stock Keeping Unit) *</Label>
+              <Input
+                id="sku"
+                value={formData.sku}
+                onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                placeholder="e.g., DNAP-BOOK-001"
+                required
+              />
+              <p className="text-sm text-muted-foreground mt-1">
+                Unique identifier for inventory management. Required for Shiprocket integration.
+              </p>
+            </div>
+
             {/* Shipping Details Section */}
             <div className="border-t pt-6 mt-6">
               <h3 className="text-lg font-semibold mb-4">Shipping Details</h3>
@@ -439,13 +468,13 @@ export function BookModal({ isOpen, onClose, book }: BookModalProps) {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="width">Width (CM) *</Label>
+                  <Label htmlFor="breadth">Breadth (CM) *</Label>
                   <Input
-                    id="width"
+                    id="breadth"
                     type="number"
                     step="0.1"
-                    value={formData.width}
-                    onChange={(e) => setFormData({ ...formData, width: e.target.value })}
+                    value={formData.breadth}
+                    onChange={(e) => setFormData({ ...formData, breadth: e.target.value })}
                     placeholder="0.0"
                     required
                   />

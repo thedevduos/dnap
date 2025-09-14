@@ -12,6 +12,11 @@ interface CartItem {
   imageUrl: string
   quantity: number
   category: string
+  sku?: string
+  weight?: number
+  length?: number
+  breadth?: number
+  height?: number
 }
 
 interface CartContextType {
@@ -21,6 +26,7 @@ interface CartContextType {
   updateQuantity: (itemId: string, quantity: number) => void
   clearCart: () => void
   restoreCartFromOrderData: (orderData: any) => void
+  refreshCartItems: () => Promise<void>
   getTotalItems: () => number
   getTotalPrice: () => number
   isInCart: (itemId: string) => boolean
@@ -163,6 +169,48 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }
 
+  const refreshCartItems = async () => {
+    if (items.length === 0) return
+
+    try {
+      const { doc, getDoc } = await import('firebase/firestore')
+      const { db } = await import('@/lib/firebase')
+      
+      const refreshedItems = await Promise.all(
+        items.map(async (item) => {
+          try {
+            const bookDoc = await getDoc(doc(db, "books", item.id))
+            if (bookDoc.exists()) {
+              const bookData = bookDoc.data()
+              return {
+                ...item,
+                title: bookData.title || item.title,
+                author: bookData.author || item.author,
+                price: bookData.price || item.price,
+                imageUrl: bookData.imageUrl || item.imageUrl,
+                category: bookData.category || item.category,
+                sku: bookData.sku || item.sku,
+                weight: bookData.weight || item.weight,
+                length: bookData.length || item.length,
+                breadth: bookData.breadth || bookData.width || item.breadth,
+                height: bookData.height || item.height
+              }
+            }
+            return item
+          } catch (error) {
+            console.error(`Error refreshing book ${item.id}:`, error)
+            return item
+          }
+        })
+      )
+      
+      setItems(refreshedItems)
+      console.log('Cart items refreshed with latest book data')
+    } catch (error) {
+      console.error('Error refreshing cart items:', error)
+    }
+  }
+
   const getTotalItems = () => {
     return items.reduce((total, item) => total + item.quantity, 0)
   }
@@ -182,6 +230,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     updateQuantity,
     clearCart,
     restoreCartFromOrderData,
+    refreshCartItems,
     getTotalItems,
     getTotalPrice,
     isInCart,

@@ -25,7 +25,7 @@ export interface AuthorBook {
   description: string
   weight?: number
   length?: number
-  width?: number
+  breadth?: number
   height?: number
   pdfUrl: string
   imageUrl: string
