@@ -10,9 +10,9 @@ const SHIPROCKET_CONFIG = {
 // Pickup Address (Permanent)
 const PICKUP_ADDRESS = {
   pickup_location: "work", // Use the correct pickup location name from Shiprocket
-  name: "DNA Publications",
-  email: "ragul@dnap.in",
-  phone: "9876543210",
+  name: "Nitin A",
+  email: "info@dnap.in",
+  phone: "7598691689",
   address: "No.5, Sastik House, Sivasakthi Amman Nagar, opposite to Keeranatham Panchayat Office",
   address_2: "Keeranatham",
   city: "Coimbatore",
