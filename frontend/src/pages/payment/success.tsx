@@ -63,7 +63,7 @@ export default function PaymentSuccessPage() {
         } : null
       }
 
-      const emailResponse = await fetch(`${import.meta.env.VITE_BACKEND_API_URL || 'http://localhost:5000'}/api/orders/send-order-confirmation-email`, {
+      const emailResponse = await fetch(`${import.meta.env.VITE_BACKEND_API_URL}/api/orders/send-order-confirmation-email`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

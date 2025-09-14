@@ -1,6 +1,6 @@
 // Shiprocket API integration utilities
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_BASE_URL = import.meta.env.VITE_BACKEND_API_URL;
 
 export interface ShippingRate {
   courierId: number;
@@ -287,7 +287,7 @@ export const calculateCartShippingData = (items: any[]) => {
 // Process complete Shiprocket workflow: Create Order → Assign Courier → Generate Pickup
 export const processCompleteShiprocketOrder = async (orderData: any) => {
   try {
-    const response = await fetch(`${import.meta.env.VITE_BACKEND_API_URL || 'http://localhost:5000'}/api/shiprocket/process-complete-order`, {
+    const response = await fetch(`${import.meta.env.VITE_BACKEND_API_URL}/api/shiprocket/process-complete-order`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
